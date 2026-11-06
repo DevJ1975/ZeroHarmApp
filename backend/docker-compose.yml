@@ -1,0 +1,29 @@
+# Local development: `docker compose up --build` from this folder, then open http://localhost:8000/admin/
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: zeroharm
+      POSTGRES_USER: zeroharm
+      POSTGRES_PASSWORD: zeroharm-local-only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zeroharm"]
+      interval: 3s
+      retries: 20
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: local-dev-only
+      DATABASE_URL: postgres://zeroharm:zeroharm-local-only@db:5432/zeroharm
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

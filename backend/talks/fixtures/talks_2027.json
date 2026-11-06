@@ -1,0 +1,678 @@
+[
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 1,
+  "fields": {
+   "issue_date": "2027-01-04",
+   "send_at": "2027-01-03T19:59:00Z",
+   "month_theme": "Hazardous Energy",
+   "title": "Prove the Power Is Off (LOTO try-out)",
+   "story_title": "The label was wrong",
+   "crew_question": "A coworker went home with their lock still on the machine. Who can take it off?",
+   "ghl_template_id": "6ae6cc5fa92b4f00e1650ac4"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 2,
+  "fields": {
+   "issue_date": "2027-01-11",
+   "send_at": "2027-01-10T19:59:00Z",
+   "month_theme": "Hazardous Energy",
+   "title": "Locked Out Isn’t Empty: Release the Stored Energy",
+   "story_title": "The ram that drifted",
+   "crew_question": "The press is locked out and the disconnect is off, but the ram is still up. Is it safe to reach under it for a quick look?",
+   "ghl_template_id": "6ae790d896c503e784057b93"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 3,
+  "fields": {
+   "issue_date": "2027-01-18",
+   "send_at": "2027-01-17T19:59:00Z",
+   "month_theme": "Hazardous Energy",
+   "title": "Many Hands, One Machine: Group Lockout and Shift Change",
+   "story_title": "The lock that wasn’t on the box",
+   "crew_question": "Five mechanics are working on one line under a group lockbox. One says, “The lead’s lock is on the box, so I don’t need mine.” Is that right?",
+   "ghl_template_id": "6ae79107050bd1f5c11f81a9"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 4,
+  "fields": {
+   "issue_date": "2027-01-25",
+   "send_at": "2027-01-24T19:59:00Z",
+   "month_theme": "Hazardous Energy",
+   "title": "See a Lock, Leave It Alone: What Everyone Else Does During Lockout",
+   "story_title": "The early start",
+   "crew_question": "Your machine is locked out, and the mechanic stepped away for parts. Your supervisor asks you to run one quick cycle to see if it’s fixed. What do you do?",
+   "ghl_template_id": "6ae7913096c503e7840587cc"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 5,
+  "fields": {
+   "issue_date": "2027-02-01",
+   "send_at": "2027-01-31T19:59:00Z",
+   "month_theme": "Chemicals",
+   "title": "Read the Label Before You Open It",
+   "story_title": "The faded drum",
+   "crew_question": "A drum’s label is torn and half the words are gone. Everyone knows what’s in it. Can you keep using it?",
+   "ghl_template_id": "6ae7915bc3b3bfb3ee5a2ad4"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 6,
+  "fields": {
+   "issue_date": "2027-02-08",
+   "send_at": "2027-02-07T19:59:00Z",
+   "month_theme": "Chemicals",
+   "title": "Find the Safety Data Sheet Before You Need It",
+   "story_title": "The sheet nobody could open",
+   "crew_question": "The power goes out during a chemical spill, and your SDSs are only on the computer. Is that OK, since the SDSs are “on file”?",
+   "ghl_template_id": "6ae791840cbc021f07addff2"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 7,
+  "fields": {
+   "issue_date": "2027-02-15",
+   "send_at": "2027-02-14T19:59:00Z",
+   "month_theme": "Chemicals",
+   "title": "Label the Spray Bottle Too",
+   "story_title": "The bottle on the cart",
+   "crew_question": "You pour degreaser into a spray bottle and use some of it. Your shift is over, and the next shift wants the rest. Does it need a label?",
+   "ghl_template_id": "6ae791ada92b4f00e1719b3a"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 8,
+  "fields": {
+   "issue_date": "2027-02-22",
+   "send_at": "2027-02-21T19:59:00Z",
+   "month_theme": "Chemicals",
+   "title": "Chemical Splash? Get to the Eyewash Fast",
+   "story_title": "The cart in front of the eyewash",
+   "crew_question": "A coworker gets a chemical splash in the eye. After a minute at the eyewash, they say it feels fine and want to get back to work. What do you do?",
+   "ghl_template_id": "6ae791d8a92b4f00e1719eb2"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 9,
+  "fields": {
+   "issue_date": "2027-03-01",
+   "send_at": "2027-02-28T19:59:00Z",
+   "month_theme": "Machine Guarding",
+   "title": "Know Every Danger Zone on Your Machine",
+   "story_title": "The gap under the guard",
+   "crew_question": "The guard is on the machine, but there is a gap under it wide enough for your fingers to reach the blade. Is the machine guarded?",
+   "ghl_template_id": "6ae79200050bd1f5c11f9491"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 10,
+  "fields": {
+   "issue_date": "2027-03-08",
+   "send_at": "2027-03-07T19:59:00Z",
+   "month_theme": "Machine Guarding",
+   "title": "Never Remove or Bypass a Guard",
+   "story_title": "The taped switch",
+   "crew_question": "The guard door interlock keeps stopping the line. A coworker says you can tape the switch for the rest of the shift. Is that OK?",
+   "ghl_template_id": "6ae7922a79173350f13b8b1f"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 11,
+  "fields": {
+   "issue_date": "2027-03-15",
+   "send_at": "2027-03-14T18:59:00Z",
+   "month_theme": "Machine Guarding",
+   "title": "Rotating Parts: Gloves Off, Sleeves Tight, Hair Up",
+   "story_title": "The cuff at the drill press",
+   "crew_question": "You are drilling a small part that gets hot and has sharp edges. Can you wear gloves at the drill press?",
+   "ghl_template_id": "6ae7925496c503e78405a410"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 12,
+  "fields": {
+   "issue_date": "2027-03-22",
+   "send_at": "2027-03-21T18:59:00Z",
+   "month_theme": "Machine Guarding",
+   "title": "Bench Grinder Check: Mind the Gaps",
+   "story_title": "The gap that grew",
+   "crew_question": "The grinder wheel has worn down and the tool rest gap looks wide. Can you slide the rest in while the wheel is spinning to save time?",
+   "ghl_template_id": "6ae7927f79173350f13b9287"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 13,
+  "fields": {
+   "issue_date": "2027-03-29",
+   "send_at": "2027-03-28T18:59:00Z",
+   "month_theme": "Machine Guarding",
+   "title": "Keep Your Hands Out: Push Sticks and Pinch Points",
+   "story_title": "The last short piece",
+   "crew_question": "A small scrap is stuck next to the table saw blade. The saw is off but still coasting down. Can you flick it out with a push stick?",
+   "ghl_template_id": "6ae792a70cbc021f07ae007d"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 14,
+  "fields": {
+   "issue_date": "2027-04-05",
+   "send_at": "2027-04-04T18:59:00Z",
+   "month_theme": "Respiratory & Eye Protection",
+   "title": "Before You Wear a Respirator: Medical, Fit Test, Training",
+   "story_title": "The spare in the cabinet",
+   "crew_question": "You were fit tested on a medium half-mask. The crib only has larges today. Can you wear a large?",
+   "ghl_template_id": "6ae792d202316e72fdd1dd22"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 15,
+  "fields": {
+   "issue_date": "2027-04-12",
+   "send_at": "2027-04-11T18:59:00Z",
+   "month_theme": "Respiratory & Eye Protection",
+   "title": "Check the Seal Every Time You Put It On",
+   "story_title": "The torn flap",
+   "crew_question": "A coworker grew a short beard over vacation. His half-mask seems to pass the seal check. Can he wear it?",
+   "ghl_template_id": "6ae792fca92b4f00e171bb63"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 16,
+  "fields": {
+   "issue_date": "2027-04-19",
+   "send_at": "2027-04-18T18:59:00Z",
+   "month_theme": "Respiratory & Eye Protection",
+   "title": "Change Cartridges on Schedule and Store the Mask Right",
+   "story_title": "The faint smell",
+   "crew_question": "Your vapor cartridges are not due for a change until tomorrow, but you start to smell solvent today. Can you finish the job first?",
+   "ghl_template_id": "6ae7932680bccb24ecfc6549"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 17,
+  "fields": {
+   "issue_date": "2027-04-26",
+   "send_at": "2027-04-25T18:59:00Z",
+   "month_theme": "Respiratory & Eye Protection",
+   "title": "Right Eyewear for the Hazard",
+   "story_title": "The shield with nothing under it",
+   "crew_question": "You wear regular prescription glasses. Are they enough eye protection when you are cutting metal with a chop saw?",
+   "ghl_template_id": "6ae7935080bccb24ecfc68fb"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 18,
+  "fields": {
+   "issue_date": "2027-05-03",
+   "send_at": "2027-05-02T18:59:00Z",
+   "month_theme": "Falls",
+   "title": "Check the Ladder Before You Climb",
+   "story_title": "The ladder in the corner",
+   "crew_question": "The stepladder is just a little too short. Is it OK to stand on the top step “just for a second”?",
+   "ghl_template_id": "6ae75539050bd1f5c11a7e2c"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 19,
+  "fields": {
+   "issue_date": "2027-05-10",
+   "send_at": "2027-05-09T18:59:00Z",
+   "month_theme": "Falls",
+   "title": "Four Feet Is the Line: Guard Every Edge and Hole",
+   "story_title": "The grate that was open “just for a minute”",
+   "crew_question": "Is a plastic skylight dome strong enough to keep someone from falling through?",
+   "ghl_template_id": "6ae755700cbc021f07a8d297"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 20,
+  "fields": {
+   "issue_date": "2027-05-17",
+   "send_at": "2027-05-16T18:59:00Z",
+   "month_theme": "Falls",
+   "title": "Same-Level Falls: Spills, Cords and Clutter",
+   "story_title": "The drip under the press",
+   "crew_question": "Who is responsible for a spill you did not make?",
+   "ghl_template_id": "6ae7559102316e72fdcc9f28"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 21,
+  "fields": {
+   "issue_date": "2027-05-24",
+   "send_at": "2027-05-23T18:59:00Z",
+   "month_theme": "Falls",
+   "title": "Harness Check: Inspect It Before You Trust It",
+   "story_title": "The lanyard that had already done its job",
+   "crew_question": "You are 8 feet up, and your 6-foot lanyard is clipped to an anchor at your feet. Are you protected?",
+   "ghl_template_id": "6ae755bc0cbc021f07a8d730"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 22,
+  "fields": {
+   "issue_date": "2027-05-31",
+   "send_at": "2027-05-30T18:59:00Z",
+   "month_theme": "Falls",
+   "title": "After the Fall: Have a Rescue Plan",
+   "story_title": "Twenty minutes is a long time",
+   "crew_question": "A coworker is hanging in his harness after a fall. He says he feels fine. How fast does he need to come down?",
+   "ghl_template_id": "6ae755e0050bd1f5c11a8a8e"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 23,
+  "fields": {
+   "issue_date": "2027-06-07",
+   "send_at": "2027-06-06T18:59:00Z",
+   "month_theme": "Heat",
+   "title": "Heat Stroke Is a 911 Call",
+   "story_title": "He said he was fine",
+   "crew_question": "A coworker is sweating heavily and feels dizzy, but is talking normally. Is it time to call 911?",
+   "ghl_template_id": "6ae7560c02316e72fdccaa98"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 24,
+  "fields": {
+   "issue_date": "2027-06-14",
+   "send_at": "2027-06-13T18:59:00Z",
+   "month_theme": "Heat",
+   "title": "New to the Heat? Ease In",
+   "story_title": "Second day on the dock",
+   "crew_question": "Your best worker just came back from two weeks of vacation somewhere cooler. Do they need to ramp up?",
+   "ghl_template_id": "6ae7562e0cbc021f07a8e1f2"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 25,
+  "fields": {
+   "issue_date": "2027-06-21",
+   "send_at": "2027-06-20T18:59:00Z",
+   "month_theme": "Heat",
+   "title": "Water. Rest. Shade. Indoors Too.",
+   "story_title": "The quiet corner by the oven",
+   "crew_question": "On a hot shift, is a sports drink better than water?",
+   "ghl_template_id": "6ae7565979173350f13667e0"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 26,
+  "fields": {
+   "issue_date": "2027-06-28",
+   "send_at": "2027-06-27T18:59:00Z",
+   "month_theme": "Heat",
+   "title": "Make Your Heat Plan Before the Heat Wave",
+   "story_title": "The address nobody knew",
+   "crew_question": "The thermometer says 82°F. Can it still be a dangerous heat day?",
+   "ghl_template_id": "6ae7567b79173350f1366ad7"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 27,
+  "fields": {
+   "issue_date": "2027-07-05",
+   "send_at": "2027-07-04T18:59:00Z",
+   "month_theme": "Forklifts",
+   "title": "Check the Truck Before the Shift",
+   "story_title": "“It always pulls a little”",
+   "crew_question": "The horn on the only available forklift does not work, and the load is urgent. What do you do?",
+   "ghl_template_id": "6ae756a50eb0e74ae0775ad3"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 28,
+  "fields": {
+   "issue_date": "2027-07-12",
+   "send_at": "2027-07-11T18:59:00Z",
+   "month_theme": "Forklifts",
+   "title": "People on Foot and Forklifts: See, Slow, Stay Clear",
+   "story_title": "The blind corner by receiving",
+   "crew_question": "A forklift driver stops to talk with you. Where should you stand?",
+   "ghl_template_id": "6ae756c896c503e78400b245"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 29,
+  "fields": {
+   "issue_date": "2027-07-19",
+   "send_at": "2027-07-18T18:59:00Z",
+   "month_theme": "Forklifts",
+   "title": "Loads, Ramps and Tip-Overs",
+   "story_title": "The turn on the ramp",
+   "crew_question": "You drive a stand-up reach truck with a rear entry, and it starts to tip. Do you stay in it?",
+   "ghl_template_id": "6ae756f202316e72fdccc0e4"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 30,
+  "fields": {
+   "issue_date": "2027-07-26",
+   "send_at": "2027-07-25T18:59:00Z",
+   "month_theme": "Forklifts",
+   "title": "Trained, Evaluated and Re-checked",
+   "story_title": "Just one pallet",
+   "crew_question": "You were trained on a sit-down forklift. Can you drive the new stand-up reach truck today?",
+   "ghl_template_id": "6ae7571496c503e78400baf8"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 31,
+  "fields": {
+   "issue_date": "2027-08-02",
+   "send_at": "2027-08-01T18:59:00Z",
+   "month_theme": "Electrical",
+   "title": "Check the Cord Before You Plug It In",
+   "story_title": "The cord with the black tape",
+   "crew_question": "The round ground pin snapped off an extension cord, but the tool still runs fine. Can you keep using it until the end of the shift?",
+   "ghl_template_id": "6ae7937b96c503e78405bdcd"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 32,
+  "fields": {
+   "issue_date": "2027-08-09",
+   "send_at": "2027-08-08T18:59:00Z",
+   "month_theme": "Electrical",
+   "title": "Keep the Space in Front of Every Panel Clear",
+   "story_title": "The panel behind the boxes",
+   "crew_question": "The aisle is full, and you need to park a pallet jack for an hour. The only open spot is in front of the electrical panel. Is that OK?",
+   "ghl_template_id": "6ae793a6a92b4f00e171cec0"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 33,
+  "fields": {
+   "issue_date": "2027-08-16",
+   "send_at": "2027-08-15T18:59:00Z",
+   "month_theme": "Electrical",
+   "title": "Water and Power: Let the GFCI Do Its Job",
+   "story_title": "The washer that kept tripping",
+   "crew_question": "The GFCI cord keeps tripping when you start the pressure washer. The wall outlet next to it has no GFCI. Can you plug in there to finish the job?",
+   "ghl_template_id": "6ae793cf0cbc021f07ae1f56"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 34,
+  "fields": {
+   "issue_date": "2027-08-23",
+   "send_at": "2027-08-22T18:59:00Z",
+   "month_theme": "Electrical",
+   "title": "Not Qualified? Stop, Stay Back and Report",
+   "story_title": "The cover on the floor",
+   "crew_question": "A breaker tripped, and your line is down. The panel is right there, and the breaker is easy to reach. Can you flip it back on?",
+   "ghl_template_id": "6ae790db96c503e784057c11"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 35,
+  "fields": {
+   "issue_date": "2027-08-30",
+   "send_at": "2027-08-29T18:59:00Z",
+   "month_theme": "Electrical",
+   "title": "Someone Is Being Shocked: Don’t Touch, Cut the Power, Call 911",
+   "story_title": "The power strip under the bench",
+   "crew_question": "A coworker is frozen on a drill cord, shaking, and can’t let go. What is the first thing you do?",
+   "ghl_template_id": "6ae7910879173350f13b6f64"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 36,
+  "fields": {
+   "issue_date": "2027-09-06",
+   "send_at": "2027-09-05T18:59:00Z",
+   "month_theme": "Emergency Action",
+   "title": "Know Your Emergency Plan Before the Alarm",
+   "story_title": "The new hire and the horn",
+   "crew_question": "An alarm goes off with a tone you have never heard before. Nobody near you is sure what it means. What do you do?",
+   "ghl_template_id": "6ae791300cbc021f07add9f2"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 37,
+  "fields": {
+   "issue_date": "2027-09-13",
+   "send_at": "2027-09-12T18:59:00Z",
+   "month_theme": "Emergency Action",
+   "title": "Exit Routes Stay Clear and Unlocked",
+   "story_title": "The pallet by the side door",
+   "crew_question": "Night shift chains the side exit door after 10 p.m. to stop theft, but the main door stays open. Is that OK?",
+   "ghl_template_id": "6ae79157050bd1f5c11f87bc"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 38,
+  "fields": {
+   "issue_date": "2027-09-20",
+   "send_at": "2027-09-19T18:59:00Z",
+   "month_theme": "Emergency Action",
+   "title": "Get Out, Go to Your Spot, Get Counted",
+   "story_title": "The truck in the lot",
+   "crew_question": "You reach the assembly point and realize a coworker from your line is not there. Do you go back in to find them?",
+   "ghl_template_id": "6ae7918002316e72fdd1bfae"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 39,
+  "fields": {
+   "issue_date": "2027-09-27",
+   "send_at": "2027-09-26T18:59:00Z",
+   "month_theme": "Emergency Action",
+   "title": "When Leaving Isn’t Safe: Know Where to Shelter",
+   "story_title": "The break room with the glass wall",
+   "crew_question": "A tornado warning siren sounds while you are on the loading dock. Do you head for the outdoor assembly point?",
+   "ghl_template_id": "6ae791a80eb0e74ae07c4fc6"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 40,
+  "fields": {
+   "issue_date": "2027-10-04",
+   "send_at": "2027-10-03T18:59:00Z",
+   "month_theme": "Fire Prevention",
+   "title": "Clear the Fuel: Clutter, Oily Rags and Dust",
+   "story_title": "The rag in the trash can",
+   "crew_question": "Dust has built up on top of the beams. The fastest fix is to blow it down with the air hose. Good idea?",
+   "ghl_template_id": "6ae791d2a92b4f00e1719e38"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 41,
+  "fields": {
+   "issue_date": "2027-10-11",
+   "send_at": "2027-10-10T18:59:00Z",
+   "month_theme": "Fire Prevention",
+   "title": "Fire Extinguishers: Know When Not to Fight a Fire",
+   "story_title": "The fire between him and the door",
+   "crew_question": "Your site’s plan says evacuate only, but there is an extinguisher on the wall right next to a small trash-can fire. Do you use it?",
+   "ghl_template_id": "6ae791fb050bd1f5c11f941f"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 42,
+  "fields": {
+   "issue_date": "2027-10-18",
+   "send_at": "2027-10-17T18:59:00Z",
+   "month_theme": "Fire Prevention",
+   "title": "Hot Work: Get the Permit, Keep the Fire Watch",
+   "story_title": "The smell after lunch",
+   "crew_question": "The welder is almost done, and the fire watch is asked to go help unload a truck “for just a few minutes.” OK?",
+   "ghl_template_id": "6ae79229050bd1f5c11f99f8"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 43,
+  "fields": {
+   "issue_date": "2027-10-25",
+   "send_at": "2027-10-24T18:59:00Z",
+   "month_theme": "Fire Prevention",
+   "title": "Flammable Liquids: Right Can, Lid Shut, Back in the Cabinet",
+   "story_title": "The coffee cup of solvent",
+   "crew_question": "The flammable cabinet is full. Can the extra cans sit on top of the cabinet until there is room?",
+   "ghl_template_id": "6ae792540cbc021f07adf872"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 44,
+  "fields": {
+   "issue_date": "2027-11-01",
+   "send_at": "2027-10-31T18:59:00Z",
+   "month_theme": "Lifting & Driving",
+   "title": "Plan the Lift Before You Pick It Up",
+   "story_title": "The box that looked light",
+   "crew_question": "A heavy, awkward part needs to move and your coworker offers to help. You both grab an end. What has to happen before anyone lifts?",
+   "ghl_template_id": "6ae7927cc3b3bfb3ee5a46c9"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 45,
+  "fields": {
+   "issue_date": "2027-11-08",
+   "send_at": "2027-11-07T19:59:00Z",
+   "month_theme": "Lifting & Driving",
+   "title": "Report the Ache Before It Becomes an Injury",
+   "story_title": "The tingling at the end of the shift",
+   "crew_question": "Your wrist has ached at the end of every shift this week, but it feels fine by morning. Should you report it?",
+   "ghl_template_id": "6ae792aa69ea1decf814a0c6"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 46,
+  "fields": {
+   "issue_date": "2027-11-15",
+   "send_at": "2027-11-14T19:59:00Z",
+   "month_theme": "Lifting & Driving",
+   "title": "Push, Don’t Pull: Carts and Hand Pallet Jacks",
+   "story_title": "The wheel that would not turn",
+   "crew_question": "The loaded cart is stacked so high you cannot see over it. Is it OK to turn around and pull it so you can see where you are going?",
+   "ghl_template_id": "6ae792d2c3b3bfb3ee5a4d23"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 47,
+  "fields": {
+   "issue_date": "2027-11-22",
+   "send_at": "2027-11-21T19:59:00Z",
+   "month_theme": "Lifting & Driving",
+   "title": "Holiday Driving: Rested, Buckled and Phone Down",
+   "story_title": "The last ten minutes",
+   "crew_question": "You are driving home after a double shift and feel your car drift toward the lane line. You are only ten minutes from home. Push through or pull over?",
+   "ghl_template_id": "6ae792fc80bccb24ecfc614e"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 48,
+  "fields": {
+   "issue_date": "2027-11-29",
+   "send_at": "2027-11-28T19:59:00Z",
+   "month_theme": "Lifting & Driving",
+   "title": "Company Vehicles: Walk Around, Then Back Up With a Spotter",
+   "story_title": "The pallet behind the van",
+   "crew_question": "You are backing a truck to the dock with a spotter guiding you. The spotter suddenly steps out of your mirror. What do you do?",
+   "ghl_template_id": "6ae7932a80bccb24ecfc65a8"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 49,
+  "fields": {
+   "issue_date": "2027-12-06",
+   "send_at": "2027-12-05T19:59:00Z",
+   "month_theme": "Winter Safety",
+   "title": "Cold Stress: Know the Signs of Hypothermia and Frostbite",
+   "story_title": "The gloves that stayed wet",
+   "crew_question": "A coworker’s fingers are white and numb after an hour on the dock. Someone says to rub them hard or hold them over the heater. Right?",
+   "ghl_template_id": "6ae793530cbc021f07ae0e66"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 50,
+  "fields": {
+   "issue_date": "2027-12-13",
+   "send_at": "2027-12-12T19:59:00Z",
+   "month_theme": "Winter Safety",
+   "title": "Icy Lots and Entrances: Short Steps and Three Points",
+   "story_title": "The step off the truck",
+   "crew_question": "You are climbing down from the forklift, and it is only a short drop. Is it OK to just hop down?",
+   "ghl_template_id": "6ae7937c79173350f13ba830"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 51,
+  "fields": {
+   "issue_date": "2027-12-20",
+   "send_at": "2027-12-19T19:59:00Z",
+   "month_theme": "Winter Safety",
+   "title": "Carbon Monoxide: Keep Engines Out and Alarms On",
+   "story_title": "Headaches in the back room",
+   "crew_question": "It is freezing out, so the crew wants to run the gas generator just inside the big door, with the door half open. Is that OK?",
+   "ghl_template_id": "6ae793ac0eb0e74ae07c84ec"
+  }
+ },
+ {
+  "model": "talks.toolboxtalk",
+  "pk": 52,
+  "fields": {
+   "issue_date": "2027-12-27",
+   "send_at": "2027-12-26T19:59:00Z",
+   "month_theme": "Winter Safety",
+   "title": "Tired and Short-Staffed: Don’t Skip Steps",
+   "story_title": "The last order before the holiday",
+   "crew_question": "It is the last hour of a double shift, and you notice you have read the same work order three times. What do you do?",
+   "ghl_template_id": "6ae793d60eb0e74ae07c8891"
+  }
+ }
+]

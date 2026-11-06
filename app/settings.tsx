@@ -3,9 +3,8 @@ import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { isConfigured } from '@/lib/config';
+import { api, isConfigured } from '@/lib/config';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
-import { supabase } from '@/lib/supabase';
 
 export default function SettingsScreen() {
   const t = useTheme();
@@ -32,13 +31,20 @@ export default function SettingsScreen() {
       return;
     }
     setStatus('saving');
-    const { error } = await supabase.from('app_signups').insert({
-      email: email.trim().toLowerCase(),
-      first_name: firstName.trim() || null,
-      company: company.trim() || null,
-      wants_offers: prefs.offers,
-    });
-    setStatus(error ? 'error' : 'saved');
+    try {
+      await api('/signups/', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          first_name: firstName.trim(),
+          company: company.trim(),
+          wants_offers: prefs.offers,
+        }),
+      });
+      setStatus('saved');
+    } catch {
+      setStatus('error');
+    }
   }
 
   const row = (label: string, detail: string, key: keyof PushPrefs) => (

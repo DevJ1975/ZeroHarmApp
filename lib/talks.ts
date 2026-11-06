@@ -1,6 +1,5 @@
-import { isConfigured } from './config';
+import { api, isConfigured } from './config';
 import { getDb } from './db';
-import { supabase } from './supabase';
 
 export type Talk = {
   issue: number;
@@ -13,8 +12,6 @@ export type Talk = {
   hero_url: string | null;
   pdf_url: string | null;
 };
-
-const COLUMNS = 'issue, issue_date, month_theme, title, story_title, crew_question, body_md, hero_url, pdf_url';
 
 async function cache(talks: Talk[]) {
   const db = await getDb();
@@ -30,19 +27,18 @@ async function readCache(): Promise<Talk[]> {
 }
 
 /**
- * Released talks, newest first. Row-level security in Supabase only returns talks whose
- * Sunday send time has passed, so the app never shows next week's talk early.
+ * Released talks, newest first. The Django API only returns talks whose Sunday send time
+ * has passed, so the app never shows next week's talk early.
  * Falls back to the on-device copy when there is no signal.
  */
 export async function listTalks(): Promise<{ talks: Talk[]; offline: boolean }> {
   if (isConfigured()) {
-    const { data, error } = await supabase
-      .from('toolbox_talks')
-      .select(COLUMNS)
-      .order('issue', { ascending: false });
-    if (!error && data) {
-      await cache(data as Talk[]);
-      return { talks: data as Talk[], offline: false };
+    try {
+      const { talks } = await api<{ talks: Talk[] }>('/talks/');
+      await cache(talks);
+      return { talks, offline: false };
+    } catch {
+      // no signal or server unreachable: fall through to the copy on this phone
     }
   }
   return { talks: await readCache(), offline: true };
