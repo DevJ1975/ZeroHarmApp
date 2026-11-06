@@ -1,0 +1,94 @@
+import { Link, router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
+import { fonts, space, useTheme } from '@/constants/theme';
+import { listTalks, Talk } from '@/lib/talks';
+
+/** Today: this week's talk as a safety placard, then past talks. */
+export default function TodayScreen() {
+  const t = useTheme();
+  const [talks, setTalks] = useState<Talk[] | null>(null);
+  const [offline, setOffline] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      listTalks().then((r) => {
+        setTalks(r.talks);
+        setOffline(r.offline);
+      });
+    }, []),
+  );
+
+  const [current, ...past] = talks ?? [];
+
+  return (
+    <Screen>
+      <View style={styles.topRow}>
+        <Heading>Today</Heading>
+        <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
+      </View>
+
+      {talks === null && <ActivityIndicator />}
+
+      {talks !== null && !current && (
+        <ComingSoon
+          title="The first talk lands Sunday, January 3"
+          detail="Zero Harm Weekly starts in January. Turn on reminders in Settings and we'll let you know when it's ready for Monday's meeting."
+        />
+      )}
+
+      {current && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open this week's talk: ${current.title}`}
+          onPress={() => router.push(`/talk/${current.issue}`)}
+          style={[styles.placard, { borderColor: t.text, backgroundColor: t.surface }]}>
+          <View style={[styles.band, { backgroundColor: t.accent }]}>
+            <Text style={[styles.bandText, { color: t.onAccent }]}>This week’s talk</Text>
+            <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {current.issue}</Text>
+          </View>
+          <View style={styles.placardBody}>
+            <Text style={[styles.title, { color: t.text }]}>{current.title}</Text>
+            <Body muted>{current.month_theme}</Body>
+            <Body>{current.crew_question}</Body>
+            <Button label="Open the talk" onPress={() => router.push(`/talk/${current.issue}`)} />
+          </View>
+        </Pressable>
+      )}
+
+      {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
+
+      {past.length > 0 && (
+        <View style={{ gap: space.sm }}>
+          <Text style={[styles.section, { color: t.text }]}>Past talks</Text>
+          {past.map((p) => (
+            <Pressable
+              key={p.issue}
+              accessibilityRole="button"
+              onPress={() => router.push(`/talk/${p.issue}`)}
+              style={[styles.row, { borderColor: t.rule }]}>
+              <Text style={[styles.rowNum, { color: t.muted }]}>{p.issue}</Text>
+              <Text style={[styles.rowTitle, { color: t.text }]}>{p.title}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  link: { fontFamily: fonts.bodyMedium, fontSize: 16 },
+  placard: { borderWidth: 3, borderRadius: 8, overflow: 'hidden' },
+  band: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 10 },
+  bandText: { fontFamily: fonts.display, fontSize: 18 },
+  placardBody: { padding: space.md, gap: space.sm },
+  title: { fontFamily: fonts.display, fontSize: 34, lineHeight: 36 },
+  section: { fontFamily: fonts.displayMedium, fontSize: 22, marginTop: space.sm },
+  row: { flexDirection: 'row', gap: space.md, paddingVertical: 12, borderBottomWidth: 1 },
+  rowNum: { fontFamily: fonts.displayMedium, fontSize: 18, width: 28 },
+  rowTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, flex: 1 },
+});
