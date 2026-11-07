@@ -4,13 +4,16 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { listTalks, Talk } from '@/lib/talks';
+import { AlertCard } from '@/components/feed';
+import { FeedItem, listFeed } from '@/lib/feed';
+import { issueNumber, listTalks, Talk } from '@/lib/talks';
 
 /** Today: this week's talk as a safety placard, then past talks. */
 export default function TodayScreen() {
   const t = useTheme();
   const [talks, setTalks] = useState<Talk[] | null>(null);
   const [offline, setOffline] = useState(false);
+  const [alerts, setAlerts] = useState<FeedItem[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -18,6 +21,7 @@ export default function TodayScreen() {
         setTalks(r.talks);
         setOffline(r.offline);
       });
+      listFeed(['alert']).then(setAlerts);
     }, []),
   );
 
@@ -47,7 +51,7 @@ export default function TodayScreen() {
           style={[styles.placard, { borderColor: t.text, backgroundColor: t.surface }]}>
           <View style={[styles.band, { backgroundColor: t.accent }]}>
             <Text style={[styles.bandText, { color: t.onAccent }]}>This week’s talk</Text>
-            <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {current.issue}</Text>
+            <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {issueNumber(current)}</Text>
           </View>
           <View style={styles.placardBody}>
             <Text style={[styles.title, { color: t.text }]}>{current.title}</Text>
@@ -56,6 +60,16 @@ export default function TodayScreen() {
             <Button label="Open the talk" onPress={() => router.push(`/talk/${current.issue}`)} />
           </View>
         </Pressable>
+      )}
+
+      {alerts.length > 0 && (
+        <View style={{ gap: space.sm }}>
+          <View style={styles.topRow}>
+            <Text style={[styles.section, { color: t.text }]}>Latest alert</Text>
+            <Link href="/alerts" style={[styles.link, { color: t.muted }]}>All alerts</Link>
+          </View>
+          <AlertCard item={alerts[0]} />
+        </View>
       )}
 
       {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
@@ -69,7 +83,7 @@ export default function TodayScreen() {
               accessibilityRole="button"
               onPress={() => router.push(`/talk/${p.issue}`)}
               style={[styles.row, { borderColor: t.rule }]}>
-              <Text style={[styles.rowNum, { color: t.muted }]}>{p.issue}</Text>
+              <Text style={[styles.rowNum, { color: t.muted }]}>{issueNumber(p)}</Text>
               <Text style={[styles.rowTitle, { color: t.text }]}>{p.title}</Text>
             </Pressable>
           ))}

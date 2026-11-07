@@ -8,9 +8,9 @@ export const config = {
 export const isConfigured = () => Boolean(config.apiUrl);
 
 /** Small fetch wrapper for the Django API with a timeout, so a dead dock signal fails fast. */
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+export async function api<T>(path: string, init?: RequestInit, timeoutMs = 10000): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${config.apiUrl}/api${path}`, {
       ...init,

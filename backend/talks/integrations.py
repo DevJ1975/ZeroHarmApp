@@ -86,3 +86,62 @@ def sync_signup_to_ghl(signup):
         return True
     log.error("GHL sync for %s failed: %s %s", signup.email, status, body)
     return False
+
+
+def feed_push_payload(item):
+    """Alerts go to people with 'Regulatory alerts' on; resources are promotional, so only 'News and offers'."""
+    tag = "alerts" if item.kind == item.ALERT else "offers"
+    heading = "Regulatory alert" if item.kind == item.ALERT else f"New free {item.get_kind_display().replace('Free ', '').lower()}"
+    if item.jurisdiction and item.kind == item.ALERT:
+        heading += f" · {item.get_jurisdiction_display()}"
+    return {
+        "app_id": settings.ONESIGNAL_APP_ID,
+        "target_channel": "push",
+        "filters": [{"field": "tag", "key": tag, "relation": "=", "value": "on"}],
+        "headings": {"en": heading},
+        "contents": {"en": item.title},
+        "data": {"feed_id": item.pk, "kind": item.kind},
+    }
+
+
+def send_feed_push(item, dry_run=False):
+    payload = feed_push_payload(item)
+    if dry_run:
+        return True, payload
+    if not (settings.ONESIGNAL_APP_ID and settings.ONESIGNAL_REST_API_KEY):
+        return False, "OneSignal is not configured."
+    status, body = _post("https://api.onesignal.com/notifications?c=push", {"Authorization": f"Key {settings.ONESIGNAL_REST_API_KEY}"}, payload)
+    if 200 <= status < 300:
+        item.push_sent_at = timezone.now()
+        item.save(update_fields=["push_sent_at"])
+        return True, body
+    log.error("OneSignal push for feed item %s failed: %s %s", item.pk, status, body)
+    return False, body
+
+
+def sync_sheet_to_ghl(sheet):
+    """Uploads the sign-in sheet PDF to GHL Media Storage, attaches a note to the supervisor's contact, then clears the local copy."""
+    from . import ghl
+
+    if not ghl.configured():
+        return False
+    try:
+        safe = "".join(c if c.isalnum() else "-" for c in sheet.talk_title)[:50].strip("-") or "talk"
+        name = f"ZeroHarm-SignIn-{sheet.held_on:%Y-%m-%d}-{safe}-{sheet.pk}.pdf"
+        url = ghl.upload_media(name, bytes(sheet.pdf))
+        contact = ghl.upsert_contact(sheet.supervisor_email, sheet.supervisor_name.split(" ")[0], sheet.company, ["zero-harm-app", "zero-harm-signin-sheet"])
+        if contact:
+            photo = " Group photo included." if sheet.has_group_photo else ""
+            ghl.add_note(contact, (
+                f"Zero Harm crew sign-in sheet\nTalk: {sheet.talk_title}\nDate: {sheet.held_on:%B %-d, %Y}\n"
+                f"Location: {sheet.location or 'not given'}\nAttendees: {sheet.attendee_count}.{photo}\nDownload: {url}"
+            ))
+        sheet.ghl_media_url, sheet.ghl_contact_id = url, contact
+        sheet.status, sheet.error, sheet.synced_at, sheet.pdf = "synced", "", timezone.now(), b""
+        sheet.save()
+        return True
+    except Exception as err:  # keep the PDF and retry on the next cron run
+        sheet.status, sheet.error = "failed", str(err)[:500]
+        sheet.save(update_fields=["status", "error"])
+        log.error("Sign-in sheet %s to GHL failed: %s", sheet.pk, err)
+        return False

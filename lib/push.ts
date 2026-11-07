@@ -5,12 +5,14 @@ import { LogLevel, NotificationClickEvent, OneSignal } from 'react-native-onesig
 import { config } from './config';
 
 /**
- * Two separate opt-ins, matching Apple's rule that promotional pushes need their own consent:
+ * Three separate opt-ins, matching Apple's rule that promotional pushes need their own consent:
  *   weekly_talk  - the Sunday toolbox talk (a feature of the app)
- *   offers       - news and offers (promotional, off by default)
- * GoHighLevel's Sunday workflow calls the send-talk-push edge function, which targets weekly_talk = on.
+ *   alerts       - regulatory alerts published from GoHighLevel (a feature of the app)
+ *   offers       - news, free courses and offers (promotional, off by default)
+ * The backend's cron sends each push to devices with the matching OneSignal tag set to "on".
  */
-export type PushPrefs = { weeklyTalk: boolean; offers: boolean };
+export type PushPrefs = { weeklyTalk: boolean; alerts: boolean; offers: boolean };
+const OFF: PushPrefs = { weeklyTalk: false, alerts: false, offers: false };
 const PREFS_KEY = 'push_prefs';
 const ASKED_KEY = 'push_asked';
 
@@ -24,14 +26,16 @@ export function startPush() {
 
   // Tapping the Sunday push opens that week's talk.
   OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
-    const data = event.notification.additionalData as { issue?: number | string } | undefined;
+    const data = event.notification.additionalData as { issue?: number | string; feed_id?: number | string; kind?: string } | undefined;
     if (data?.issue) router.push(`/talk/${data.issue}`);
+    else if (data?.feed_id && data.kind === 'alert') router.push(`/alert/${data.feed_id}`);
+    else if (data?.feed_id) router.push('/learn');
   });
 }
 
 export async function getPrefs(): Promise<PushPrefs> {
   const raw = await Storage.getItem(PREFS_KEY);
-  return raw ? (JSON.parse(raw) as PushPrefs) : { weeklyTalk: false, offers: false };
+  return raw ? { ...OFF, ...(JSON.parse(raw) as Partial<PushPrefs>) } : OFF;
 }
 
 export async function hasBeenAsked() {
@@ -45,16 +49,17 @@ export async function markAsked() {
 /** Saves the choice on the device and mirrors it to OneSignal tags. Asks iOS/Android permission the first time a switch turns on. */
 export async function setPrefs(next: PushPrefs): Promise<{ prefs: PushPrefs; permissionDenied: boolean }> {
   let permissionDenied = false;
-  if (config.oneSignalAppId && (next.weeklyTalk || next.offers)) {
+  if (config.oneSignalAppId && (next.weeklyTalk || next.alerts || next.offers)) {
     const granted = await OneSignal.Notifications.requestPermission(true);
     await markAsked();
     if (!granted) {
       permissionDenied = true;
-      next = { weeklyTalk: false, offers: false };
+      next = OFF;
     }
   }
   if (config.oneSignalAppId) {
-    OneSignal.User.addTags({ weekly_talk: next.weeklyTalk ? 'on' : 'off', offers: next.offers ? 'on' : 'off' });
+    const on = (v: boolean) => (v ? 'on' : 'off');
+    OneSignal.User.addTags({ weekly_talk: on(next.weeklyTalk), alerts: on(next.alerts), offers: on(next.offers) });
   }
   await Storage.setItem(PREFS_KEY, JSON.stringify(next));
   return { prefs: next, permissionDenied };

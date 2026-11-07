@@ -27,7 +27,29 @@ export function getDb() {
           signature TEXT NOT NULL,
           signed_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS feed_cache (
+          id INTEGER PRIMARY KEY NOT NULL,
+          kind TEXT NOT NULL,
+          json TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS sheet_outbox (
+          session_id INTEGER PRIMARY KEY NOT NULL,
+          payload TEXT NOT NULL,
+          tries INTEGER NOT NULL DEFAULT 0
+        );
       `);
+      // Columns added after the first release: add them to databases that predate them.
+      for (const sql of [
+        'ALTER TABLE signin_sessions ADD COLUMN group_photo TEXT',
+        'ALTER TABLE signin_sessions ADD COLUMN photo_count INTEGER',
+        'ALTER TABLE signin_sessions ADD COLUMN saved_at TEXT',
+      ]) {
+        try {
+          await db.execAsync(sql);
+        } catch {
+          // already there
+        }
+      }
       return db;
     })();
   }

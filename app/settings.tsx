@@ -4,11 +4,12 @@ import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { api, isConfigured } from '@/lib/config';
+import { getProfile, saveProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
 
 export default function SettingsScreen() {
   const t = useTheme();
-  const [prefs, setLocal] = useState<PushPrefs>({ weeklyTalk: false, offers: false });
+  const [prefs, setLocal] = useState<PushPrefs>({ weeklyTalk: false, alerts: false, offers: false });
   const [denied, setDenied] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -17,6 +18,11 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     getPrefs().then(setLocal);
+    getProfile().then((p) => {
+      setEmail(p.email);
+      setFirstName(p.name.split(' ')[0] ?? '');
+      setCompany(p.company);
+    });
   }, []);
 
   async function toggle(key: keyof PushPrefs, value: boolean) {
@@ -41,6 +47,8 @@ export default function SettingsScreen() {
           wants_offers: prefs.offers,
         }),
       });
+      const prev = await getProfile();
+      await saveProfile({ name: prev.name || firstName, email, company });
       setStatus('saved');
     } catch {
       setStatus('error');
@@ -66,6 +74,7 @@ export default function SettingsScreen() {
     <Screen>
       <Text style={[styles.section, { color: t.text }]}>Notifications</Text>
       {row('Weekly toolbox talk', 'Sunday around noon Pacific, ready for Monday.', 'weeklyTalk')}
+      {row('Regulatory alerts', 'New federal, Nevada and Las Vegas rules that could affect your site.', 'alerts')}
       {row('News and offers', 'New tools, free courses and Trainovate offers. Off unless you turn it on.', 'offers')}
       {denied && (
         <View style={{ gap: space.sm }}>

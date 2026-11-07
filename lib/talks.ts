@@ -1,8 +1,11 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
 
+export type TalkText = { title: string; story_title: string; crew_question: string; body_md: string };
+
 export type Talk = {
   issue: number;
+  number?: number;
   issue_date: string;
   month_theme: string;
   title: string;
@@ -11,7 +14,12 @@ export type Talk = {
   body_md: string | null;
   hero_url: string | null;
   pdf_url: string | null;
+  /** Approved Spanish version, or null when there isn't one yet. */
+  es?: TalkText | null;
 };
+
+/** The number printed on the issue (#01), falling back to the app's id. */
+export const issueNumber = (t: Talk) => t.number ?? t.issue;
 
 async function cache(talks: Talk[]) {
   const db = await getDb();

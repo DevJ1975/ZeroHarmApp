@@ -12,6 +12,11 @@
       "bundleIdentifier": "ai.trainovate.zeroharm",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png",
+        "tinted": "./assets/images/icon-tinted.png"
       }
     },
     "android": {
@@ -37,8 +42,13 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F5C400"
+          "backgroundColor": "#F5C400",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#13233F"
+          }
         }
       ],
       [
@@ -46,10 +56,19 @@
         {
           "mode": "development"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Zero Harm uses the camera when you take a group photo of your crew for the toolbox talk sign-in sheet.",
+          "photosPermission": "Zero Harm lets you choose a crew photo from your library for the toolbox talk sign-in sheet.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "backgroundColor": "#F5C400"
   }
 }

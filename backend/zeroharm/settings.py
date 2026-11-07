@@ -100,6 +100,9 @@ ONESIGNAL_APP_ID = os.environ.get("ONESIGNAL_APP_ID", "")
 ONESIGNAL_REST_API_KEY = os.environ.get("ONESIGNAL_REST_API_KEY", "")
 GHL_PRIVATE_TOKEN = os.environ.get("GHL_PRIVATE_TOKEN", "")
 GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
+# Shared secret the GoHighLevel workflow sends in the X-ZeroHarm-Key header when publishing to the app
+INGEST_KEY = os.environ.get("INGEST_KEY", "")
+DATA_UPLOAD_MAX_MEMORY_SIZE = 21 * 1024 * 1024  # sign-in sheets with a group photo
 
 LOGGING = {
     "version": 1,
