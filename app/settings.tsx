@@ -9,7 +9,7 @@ import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
 
 export default function SettingsScreen() {
   const t = useTheme();
-  const [prefs, setLocal] = useState<PushPrefs>({ weeklyTalk: false, alerts: false, offers: false });
+  const [prefs, setLocal] = useState<PushPrefs>({ weeklyTalk: false, alerts: false, zeroHour: false, offers: false });
   const [denied, setDenied] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -75,6 +75,7 @@ export default function SettingsScreen() {
       <Text style={[styles.section, { color: t.text }]}>Notifications</Text>
       {row('Weekly toolbox talk', 'Sunday around noon Pacific, ready for Monday.', 'weeklyTalk')}
       {row('Regulatory alerts', 'New federal, Nevada and Las Vegas rules that could affect your site.', 'alerts')}
+      {row('Zero Hour episodes', 'A new 5-minute episode and huddle card, Thursdays.', 'zeroHour')}
       {row('News and offers', 'New tools, free courses and Trainovate offers. Off unless you turn it on.', 'offers')}
       {denied && (
         <View style={{ gap: space.sm }}>

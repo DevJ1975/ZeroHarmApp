@@ -138,6 +138,10 @@ def ingest(request):
         return JsonResponse({"error": "Send JSON."}, status=400)
     data = {str(k).strip().lower().replace(" ", "_"): v for k, v in data.items()}
 
+    if data.get("action") == "sync_zero_hour":
+        from .zero_hour import sync_episodes
+        return JsonResponse({"ok": True, "log": sync_episodes()})
+
     if data.get("action") == "sync_year":
         try:
             year = int(data.get("year"))
@@ -258,6 +262,8 @@ def otis_kb(request):
         items += _talk_chunks(talk)
         if talk.spanish_status == ToolboxTalk.ES_APPROVED:
             items += _talk_chunks(talk, "es")
+    for ep in Episode.objects.released():
+        items += _episode_chunks(ep)
     version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.released()], default=None)
     return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
 
@@ -315,3 +321,32 @@ def suggestion(request):
     )
     sync_suggestion_to_ghl(s)
     return JsonResponse({"ok": True, "id": s.pk}, status=201)
+
+
+# ---- Zero Hour ------------------------------------------------------------------------------------
+from .models import Episode
+
+
+@require_GET
+def episode_list(request):
+    return JsonResponse({"episodes": [e.as_api() for e in Episode.objects.released()]})
+
+
+@require_GET
+def episode_detail(request, number):
+    ep = Episode.objects.released().filter(number=number).first()
+    if not ep:
+        return JsonResponse({"error": "This episode isn't out yet."}, status=404)
+    return JsonResponse(ep.as_api())
+
+
+def _episode_chunks(ep):
+    label = f"Zero Hour EP {ep.number:02d}: {ep.title} (huddle card)"
+    base = {"lang": "en", "issue": None, "episode": ep.number, "source": label}
+    return [
+        {**base, "id": f"z{ep.number}-story", "title": f"{label} · The story", "text": f"{ep.hazard}. {ep.story}"},
+        {**base, "id": f"z{ep.number}-chain", "title": f"{label} · Where the chain could have broken", "text": " ".join(ep.chain)},
+        {**base, "id": f"z{ep.number}-checks", "title": f"{label} · {ep.checks_label}", "text": ". ".join(ep.checks) + "."},
+        {**base, "id": f"z{ep.number}-stop", "title": f"{label} · Say stop when you see", "text": ep.stop_when},
+        {**base, "id": f"z{ep.number}-emergency", "title": f"{label} · {ep.emergency_label}", "text": ep.emergency},
+    ]

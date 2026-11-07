@@ -15,4 +15,6 @@ urlpatterns = [
     path("otis/config/", views.otis_config),
     path("weather/", views.weather),
     path("suggestions/", views.suggestion),
+    path("episodes/", views.episode_list),
+    path("episodes/<int:number>/", views.episode_detail),
 ]

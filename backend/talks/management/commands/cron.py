@@ -5,8 +5,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from talks.ghl_sync import sync_year
-from talks.integrations import send_feed_push, sync_sheet_to_ghl
-from talks.models import FeedItem, GhlSync, SigninSheet
+from talks.integrations import send_episode_push, send_feed_push, sync_sheet_to_ghl
+from talks.models import Episode, FeedItem, GhlSync, SigninSheet
+from talks.zero_hour import sync_episodes
 
 
 class Command(BaseCommand):
@@ -31,6 +32,17 @@ class Command(BaseCommand):
             job.log, job.finished_at = "\n".join(lines), timezone.now()
             job.save()
             self.stdout.write(f"GHL sync {job.year}: {job.status}")
+
+        # Zero Hour: look for new episode files in GHL once an hour, and push any episode that just released.
+        if now.minute < 15:
+            try:
+                for line in sync_episodes():
+                    self.stdout.write(f"Zero Hour sync: {line}")
+            except Exception as err:
+                self.stdout.write(f"Zero Hour sync failed: {err}")
+        for ep in Episode.objects.released().filter(send_push=True, push_sent_at__isnull=True, release_at__gte=now - timedelta(days=1)):
+            ok, detail = send_episode_push(ep)
+            self.stdout.write(f"Episode {ep.number} push: {'OK' if ok else detail}")
 
         for sheet in SigninSheet.objects.exclude(status="synced").filter(created_at__gte=now - timedelta(days=14))[:20]:
             sync_sheet_to_ghl(sheet)

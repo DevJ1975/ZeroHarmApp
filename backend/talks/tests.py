@@ -244,3 +244,48 @@ class SuggestionTests(TestCase):
         self.assertEqual(ok.status_code, 201)
         self.assertFalse(TalkSuggestion.objects.get().may_contact)  # no email, so no contact
         self.assertEqual(self.client.post("/api/suggestions/", _json.dumps({"topic": "x"}), content_type="application/json").status_code, 400)
+
+
+# ---- Zero Hour --------------------------------------------------------------------------------------
+from .models import Episode
+from zoneinfo import ZoneInfo
+
+from .zero_hour import next_thursday_5am, sync_episodes
+
+PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
+
+
+class ZeroHourTests(TestCase):
+    def test_four_episodes_loaded_and_released_on_schedule(self):
+        self.assertEqual(Episode.objects.count(), 4)
+        at = datetime(2026, 11, 7, tzinfo=dt_tz.utc)
+        with patch("django.utils.timezone.now", return_value=at):
+            eps = self.client.get("/api/episodes/").json()["episodes"]
+        self.assertEqual([e["number"] for e in eps], [3, 2, 1])  # EP 04 releases Nov 12
+        self.assertEqual(eps[-1]["chain"][0], "An E-stop stops the motion. It does not lock out the energy.")
+        self.assertTrue(eps[-1]["video_url"].endswith("_720p.mp4"))
+
+    def test_sync_links_new_episode_on_hold_and_prefers_newest_version(self):
+        files = [
+            {"name": "ZH_E05_LinkedIn_1x1_v1.mp4", "contentType": "video/mp4", "url": "https://x/v1.mp4", "encodedFormats": ["cts-aaa_720p.mp4"]},
+            {"name": "ZH_E05_LinkedIn_1x1_v2.mp4", "contentType": "video/mp4", "url": "https://x/v2.mp4", "encodedFormats": ["cts-bbb_720p.mp4"],
+             "thumbnail": {"url": "https://x/t.jpg"}},
+            {"name": "ZH_E05_Huddle_Card.pdf", "contentType": "application/pdf", "url": "https://x/card.pdf"},
+            {"name": "ZHA_OSHA300_L01_FINAL.mp4", "contentType": "video/mp4", "url": "https://x/other.mp4"},
+        ]
+        log = sync_episodes(files)
+        ep = Episode.objects.get(number=5)
+        self.assertTrue(ep.needs_details)
+        self.assertIn("cts-bbb_720p", ep.video_url)
+        self.assertEqual(ep.card_pdf_url, "https://x/card.pdf")
+        self.assertIn("on hold", log[0])
+        self.assertEqual(ep.release_at.astimezone(PACIFIC_TZ).weekday(), 3)
+
+    def test_next_thursday(self):
+        t = next_thursday_5am(datetime(2026, 11, 6, 20, tzinfo=dt_tz.utc))  # a Friday
+        self.assertEqual(t, datetime(2026, 11, 12, 13, 0, tzinfo=dt_tz.utc))
+
+    def test_huddle_cards_feed_otis(self):
+        with patch("django.utils.timezone.now", return_value=datetime(2026, 11, 7, tzinfo=dt_tz.utc)):
+            items = self.client.get("/api/otis/kb/").json()["items"]
+        self.assertTrue(any("E-stop" in i["text"] and i.get("episode") == 1 for i in items))

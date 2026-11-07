@@ -165,3 +165,26 @@ def sync_suggestion_to_ghl(s):
     except Exception as err:
         log.error("Suggestion %s to GHL failed: %s", s.pk, err)
         return False
+
+
+def send_episode_push(ep, dry_run=False):
+    """New Zero Hour episode, to devices with 'Zero Hour episodes' switched on."""
+    payload = {
+        "app_id": settings.ONESIGNAL_APP_ID,
+        "target_channel": "push",
+        "filters": [{"field": "tag", "key": "zero_hour", "relation": "=", "value": "on"}],
+        "headings": {"en": f"Zero Hour · Episode {ep.number}"},
+        "contents": {"en": f"{ep.title}. 5 minutes, sound on, then a 10-minute huddle."},
+        "data": {"episode": ep.number},
+    }
+    if dry_run:
+        return True, payload
+    if not (settings.ONESIGNAL_APP_ID and settings.ONESIGNAL_REST_API_KEY):
+        return False, "OneSignal is not configured."
+    status, body = _post("https://api.onesignal.com/notifications?c=push", {"Authorization": f"Key {settings.ONESIGNAL_REST_API_KEY}"}, payload)
+    if 200 <= status < 300:
+        ep.push_sent_at = timezone.now()
+        ep.save(update_fields=["push_sent_at"])
+        return True, body
+    log.error("OneSignal push for episode %s failed: %s %s", ep.number, status, body)
+    return False, body

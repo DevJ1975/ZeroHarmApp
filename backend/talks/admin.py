@@ -143,3 +143,34 @@ class TalkSuggestionAdmin(admin.ModelAdmin):
     list_filter = ("status", "month_theme", "may_contact")
     list_editable = ("status",)
     search_fields = ("topic", "details", "email", "company")
+
+
+from .integrations import send_episode_push
+from .models import Episode
+from .zero_hour import sync_episodes
+
+
+@admin.register(Episode)
+class EpisodeAdmin(admin.ModelAdmin):
+    list_display = ("number", "title", "hazard", "release_at", "published", "needs_details", "push_sent_at")
+    list_filter = ("published", "needs_details")
+    readonly_fields = ("push_sent_at", "updated_at")
+    actions = ("sync_from_ghl", "push_now")
+    fieldsets = (
+        (None, {"fields": ("number", "title", "hazard", "zero_hour", "story")}),
+        ("Huddle card", {"fields": ("chain", "checks_label", "checks", "stop_when", "emergency_label", "emergency", "questions", "references"),
+                         "description": "Lists are JSON, e.g. [\"First point\", \"Second point\"]. Untick Needs details once the card text is in."}),
+        ("Media (from GHL Media Storage)", {"fields": ("video_url", "video_full_url", "thumbnail_url", "card_pdf_url")}),
+        ("Release", {"fields": ("release_at", "published", "needs_details", "send_push", "push_sent_at", "updated_at")}),
+    )
+
+    @admin.action(description="Check GHL Media Storage for new Zero Hour files")
+    def sync_from_ghl(self, request, queryset):
+        for line in sync_episodes():
+            self.message_user(request, line)
+
+    @admin.action(description="Send the push for selected episodes now")
+    def push_now(self, request, queryset):
+        for ep in queryset:
+            ok, detail = send_episode_push(ep)
+            self.message_user(request, f"EP {ep.number}: {'sent' if ok else detail}", messages.SUCCESS if ok else messages.ERROR)

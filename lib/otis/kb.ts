@@ -3,7 +3,7 @@ import Storage from 'expo-sqlite/kv-store';
 import { api, isConfigured } from '../config';
 
 /** One searchable passage: a KB entry or one section of a released talk. */
-export type KbItem = { id: string; title: string; text: string; source: string; lang: 'en' | 'es'; issue: number | null; tags?: string };
+export type KbItem = { id: string; title: string; text: string; source: string; lang: 'en' | 'es'; issue: number | null; episode?: number; tags?: string };
 
 const KEY = 'otis_kb';
 let memo: KbItem[] | null = null;

@@ -8,11 +8,12 @@ import { config } from './config';
  * Three separate opt-ins, matching Apple's rule that promotional pushes need their own consent:
  *   weekly_talk  - the Sunday toolbox talk (a feature of the app)
  *   alerts       - regulatory alerts published from GoHighLevel (a feature of the app)
+ *   zero_hour    - a new Zero Hour episode, Thursdays (a feature of the app)
  *   offers       - news, free courses and offers (promotional, off by default)
  * The backend's cron sends each push to devices with the matching OneSignal tag set to "on".
  */
-export type PushPrefs = { weeklyTalk: boolean; alerts: boolean; offers: boolean };
-const OFF: PushPrefs = { weeklyTalk: false, alerts: false, offers: false };
+export type PushPrefs = { weeklyTalk: boolean; alerts: boolean; zeroHour: boolean; offers: boolean };
+const OFF: PushPrefs = { weeklyTalk: false, alerts: false, zeroHour: false, offers: false };
 const PREFS_KEY = 'push_prefs';
 const ASKED_KEY = 'push_asked';
 
@@ -26,8 +27,9 @@ export function startPush() {
 
   // Tapping the Sunday push opens that week's talk.
   OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
-    const data = event.notification.additionalData as { issue?: number | string; feed_id?: number | string; kind?: string } | undefined;
-    if (data?.issue) router.push(`/talk/${data.issue}`);
+    const data = event.notification.additionalData as { issue?: number | string; feed_id?: number | string; kind?: string; episode?: number | string } | undefined;
+    if (data?.episode) router.push(`/zero-hour/${data.episode}`);
+    else if (data?.issue) router.push(`/talk/${data.issue}`);
     else if (data?.feed_id && data.kind === 'alert') router.push(`/alert/${data.feed_id}`);
     else if (data?.feed_id) router.push('/learn');
   });
@@ -49,7 +51,7 @@ export async function markAsked() {
 /** Saves the choice on the device and mirrors it to OneSignal tags. Asks iOS/Android permission the first time a switch turns on. */
 export async function setPrefs(next: PushPrefs): Promise<{ prefs: PushPrefs; permissionDenied: boolean }> {
   let permissionDenied = false;
-  if (config.oneSignalAppId && (next.weeklyTalk || next.alerts || next.offers)) {
+  if (config.oneSignalAppId && (next.weeklyTalk || next.alerts || next.zeroHour || next.offers)) {
     const granted = await OneSignal.Notifications.requestPermission(true);
     await markAsked();
     if (!granted) {
@@ -59,7 +61,7 @@ export async function setPrefs(next: PushPrefs): Promise<{ prefs: PushPrefs; per
   }
   if (config.oneSignalAppId) {
     const on = (v: boolean) => (v ? 'on' : 'off');
-    OneSignal.User.addTags({ weekly_talk: on(next.weeklyTalk), alerts: on(next.alerts), offers: on(next.offers) });
+    OneSignal.User.addTags({ weekly_talk: on(next.weeklyTalk), alerts: on(next.alerts), zero_hour: on(next.zeroHour), offers: on(next.offers) });
   }
   await Storage.setItem(PREFS_KEY, JSON.stringify(next));
   return { prefs: next, permissionDenied };

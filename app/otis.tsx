@@ -200,9 +200,9 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
                 {!m.pending && m.sources?.map((s, i) => (
                   <Pressable
                     key={s.id}
-                    accessibilityRole={s.issue ? 'link' : 'text'}
-                    disabled={!s.issue}
-                    onPress={() => s.issue && router.push(`/talk/${s.issue}`)}
+                    accessibilityRole={s.issue || s.episode ? 'link' : 'text'}
+                    disabled={!s.issue && !s.episode}
+                    onPress={() => (s.episode ? router.push(`/zero-hour/${s.episode}`) : s.issue && router.push(`/talk/${s.issue}`))}
                     style={[styles.source, { borderColor: t.rule }]}>
                     <Text style={[styles.sourceText, { color: t.muted }]}>[{i + 1}] {s.source}</Text>
                   </Pressable>

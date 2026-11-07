@@ -233,3 +233,54 @@ class TalkSuggestion(models.Model):
 
     def __str__(self):
         return self.topic
+
+
+class EpisodeQuerySet(models.QuerySet):
+    def released(self):
+        return self.filter(published=True, needs_details=False, release_at__lte=timezone.now())
+
+
+class Episode(models.Model):
+    """A Zero Hour audio-drama episode and its huddle card. Video and PDF are hosted in GoHighLevel Media Storage."""
+
+    number = models.PositiveIntegerField(unique=True)
+    title = models.CharField(max_length=120)
+    hazard = models.CharField(max_length=120, help_text="e.g. 'Lockout / Tagout · Stored Energy'")
+    story = models.TextField(help_text="The story in 30 seconds")
+    zero_hour = models.CharField(max_length=20, blank=True, help_text="The clock time of the incident, e.g. 3:38 P.M.")
+    chain = models.JSONField(default=list, blank=True, help_text="Where the chain could have broken (list)")
+    checks_label = models.CharField(max_length=80, default="Before anyone starts")
+    checks = models.JSONField(default=list, blank=True)
+    stop_when = models.TextField(blank=True)
+    emergency_label = models.CharField(max_length=80, default="If it goes wrong")
+    emergency = models.TextField(blank=True)
+    questions = models.JSONField(default=list, blank=True)
+    references = models.JSONField(default=list, blank=True)
+    video_url = models.URLField(max_length=500, blank=True, help_text="Streaming copy (720p)")
+    video_full_url = models.URLField(max_length=500, blank=True)
+    thumbnail_url = models.URLField(max_length=500, blank=True)
+    card_pdf_url = models.URLField(max_length=500, blank=True, help_text="Printable huddle card")
+    release_at = models.DateTimeField(help_text="Zero Hour posts Thursdays at 5:00 AM Pacific")
+    published = models.BooleanField(default=True)
+    needs_details = models.BooleanField(default=False, help_text="Found in GHL but the huddle card text isn't filled in yet")
+    send_push = models.BooleanField(default=True)
+    push_sent_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = EpisodeQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-number"]
+        verbose_name = "Zero Hour episode"
+
+    def __str__(self):
+        return f"EP {self.number:02d} · {self.title}"
+
+    def as_api(self):
+        return {
+            "number": self.number, "title": self.title, "hazard": self.hazard, "story": self.story, "zero_hour": self.zero_hour,
+            "chain": self.chain, "checks_label": self.checks_label, "checks": self.checks, "stop_when": self.stop_when,
+            "emergency_label": self.emergency_label, "emergency": self.emergency, "questions": self.questions,
+            "references": self.references, "video_url": self.video_url or None, "thumbnail_url": self.thumbnail_url or None,
+            "card_pdf_url": self.card_pdf_url or None, "released_at": self.release_at.isoformat(),
+        }

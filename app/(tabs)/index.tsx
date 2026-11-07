@@ -5,7 +5,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { AlertCard } from '@/components/feed';
+import { EpisodeCard } from '@/components/EpisodeCard';
 import { WeatherBar } from '@/components/WeatherBar';
+import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed } from '@/lib/feed';
 import { issueNumber, listTalks, Talk } from '@/lib/talks';
 
@@ -15,6 +17,7 @@ export default function TodayScreen() {
   const [talks, setTalks] = useState<Talk[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [alerts, setAlerts] = useState<FeedItem[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,6 +26,7 @@ export default function TodayScreen() {
         setOffline(r.offline);
       });
       listFeed(['alert']).then(setAlerts);
+      listEpisodes().then(setEpisodes);
     }, []),
   );
 
@@ -71,6 +75,16 @@ export default function TodayScreen() {
             <Link href="/alerts" style={[styles.link, { color: t.muted }]}>All alerts</Link>
           </View>
           <AlertCard item={alerts[0]} />
+        </View>
+      )}
+
+      {episodes.length > 0 && (
+        <View style={{ gap: space.sm }}>
+          <View style={styles.topRow}>
+            <Text style={[styles.section, { color: t.text }]}>Zero Hour</Text>
+            <Link href="/zero-hour" style={[styles.link, { color: t.muted }]}>All episodes</Link>
+          </View>
+          <EpisodeCard ep={episodes[0]} compact />
         </View>
       )}
 
