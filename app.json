@@ -48,6 +48,16 @@
           "dark": {
             "image": "./assets/images/splash-icon-dark.png",
             "backgroundColor": "#13233F"
+          },
+          "ios": {
+            "image": "./assets/images/splash-logo.png",
+            "imageWidth": 300,
+            "resizeMode": "contain",
+            "backgroundColor": "#F5C400",
+            "dark": {
+              "image": "./assets/images/splash-logo-dark.png",
+              "backgroundColor": "#13233F"
+            }
           }
         }
       ],
