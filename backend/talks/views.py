@@ -219,3 +219,99 @@ def signin_sheet(request):
     )
     synced = sync_sheet_to_ghl(sheet)  # if GHL is down, the cron retries
     return JsonResponse({"ok": True, "id": sheet.pk, "saved_to_ghl": synced}, status=201)
+
+
+# ---- OTIS knowledge base, weather and talk suggestions ------------------------------------------
+from . import weather as wx
+from .integrations import sync_suggestion_to_ghl
+from .models import KbEntry, TalkSuggestion, ToolboxTalk
+
+
+def _talk_chunks(talk, lang="en"):
+    """Splits a released talk into sections so OTIS can retrieve and cite just the relevant part."""
+    if lang == "es":
+        title, question, body = talk.title_es, talk.crew_question_es, talk.body_md_es
+    else:
+        title, question, body = talk.title, talk.crew_question, talk.body_md
+    label = f"Zero Harm Weekly #{talk.number or talk.issue}: {title}"
+    sections, head = [], "Overview"
+    for block in (body or "").split("\n\n## "):
+        block = block.strip().lstrip("#").strip()
+        if not block:
+            continue
+        if sections or (body or "").startswith("## "):
+            head, _, block = block.partition("\n\n")
+        sections.append((head.strip(), block.strip()))
+    out = [{"id": f"t{talk.issue}-{lang}-q", "title": label, "text": f"Crew question: {question}", "source": label, "lang": lang, "issue": talk.issue}]
+    for i, (h, text) in enumerate(sections):
+        if text:
+            out.append({"id": f"t{talk.issue}-{lang}-{i}", "title": f"{label} · {h}", "text": text, "source": label, "lang": lang, "issue": talk.issue})
+    return out
+
+
+@require_GET
+def otis_kb(request):
+    """Everything OTIS may answer from: reviewed KB entries plus every released talk (English, and approved Spanish)."""
+    items = [{"id": f"k{e.pk}", "title": e.title, "text": e.body, "source": e.source or e.title, "lang": "en", "tags": e.tags, "issue": None}
+             for e in KbEntry.objects.filter(published=True)]
+    for talk in ToolboxTalk.objects.released():
+        items += _talk_chunks(talk)
+        if talk.spanish_status == ToolboxTalk.ES_APPROVED:
+            items += _talk_chunks(talk, "es")
+    version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.released()], default=None)
+    return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
+
+
+@require_GET
+def otis_config(request):
+    """Which on-device model the app downloads. Phones with less memory get the small one."""
+    return JsonResponse({
+        "enabled": settings.OTIS_ENABLED,
+        "model": settings.OTIS_MODEL,
+        "small_model": settings.OTIS_SMALL_MODEL,
+        "min_memory_gb_for_model": 6,
+    })
+
+
+@require_GET
+def weather(request):
+    try:
+        lat = round(float(request.GET["lat"]), 2)
+        lon = round(float(request.GET["lon"]), 2)
+    except (KeyError, ValueError):
+        return JsonResponse({"error": "lat and lon are required."}, status=400)
+    if not (18 <= lat <= 72 and -180 <= lon <= -64):
+        return JsonResponse({"error": "Weather is available for US locations."}, status=404)
+    try:
+        return JsonResponse(wx.conditions(lat, lon))
+    except Exception:
+        return JsonResponse({"error": "Weather is unavailable right now."}, status=503)
+
+
+@csrf_exempt  # called by the app
+@require_POST
+def suggestion(request):
+    key = f"suggest-rate:{_client_ip(request)}"
+    if cache.get(key, 0) >= 10:
+        return JsonResponse({"error": "Thanks! That's a lot of ideas at once. Try again in an hour."}, status=429)
+    cache.set(key, cache.get(key, 0) + 1, 3600)
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Send JSON."}, status=400)
+    topic = str(data.get("topic", "")).strip()
+    if len(topic) < 3:
+        return JsonResponse({"error": "Tell us the topic in a few words."}, status=400)
+    email = str(data.get("email", "")).strip().lower()
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"error": "Check the email address, or leave it blank."}, status=400)
+    s = TalkSuggestion.objects.create(
+        topic=topic[:200], details=str(data.get("details", ""))[:4000], month_theme=str(data.get("month_theme", ""))[:80],
+        name=str(data.get("name", ""))[:120], email=email, company=str(data.get("company", ""))[:120],
+        may_contact=bool(data.get("may_contact")) and bool(email),
+    )
+    sync_suggestion_to_ghl(s)
+    return JsonResponse({"ok": True, "id": s.pk}, status=201)

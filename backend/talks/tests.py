@@ -199,3 +199,48 @@ class SigninSheetTests(TestCase):
 
     def test_rejects_non_pdf(self):
         self.assertEqual(self.send(pdf=b"GIF89a").status_code, 400)
+
+
+# ---- OTIS knowledge base, weather, suggestions ---------------------------------------------------
+from .models import KbEntry, TalkSuggestion
+from .weather import heat_index_f
+
+
+class OtisKbTests(TestCase):
+    def test_kb_has_entries_and_only_released_talks(self):
+        talk = ToolboxTalk.objects.get(issue=1)
+        talk.body_md = "Intro text.\n\n## Talk it through with your crew\n\n1. Clear the area."
+        talk.save()
+        with patch("django.utils.timezone.now", return_value=talk.send_at + timedelta(minutes=1)):
+            items = self.client.get("/api/otis/kb/").json()["items"]
+        self.assertTrue(any(i["title"] == "Someone is hurt or in danger right now" for i in items))
+        talk_items = [i for i in items if i["issue"]]
+        self.assertEqual({i["issue"] for i in talk_items}, {1})
+        self.assertTrue(any("Clear the area" in i["text"] and "Talk it through" in i["title"] for i in talk_items))
+
+    def test_config(self):
+        self.assertEqual(self.client.get("/api/otis/config/").json()["model"], "QWEN3_1_7B")
+
+
+class WeatherTests(TestCase):
+    def test_heat_index_matches_nws_table(self):
+        self.assertEqual(heat_index_f(90, 60), 100)  # NWS chart: 90°F at 60% RH is about 100°F
+        self.assertEqual(heat_index_f(96, 40), 101)
+
+    def test_rounds_location_and_rejects_non_us(self):
+        self.assertEqual(self.client.get("/api/weather/?lat=51.5&lon=-0.12").status_code, 404)
+        with patch("talks.weather.conditions", return_value={"temp_f": 70}) as c:
+            self.client.get("/api/weather/?lat=36.1699412&lon=-115.1398296")
+        self.assertEqual(c.call_args[0], (36.17, -115.14))
+
+
+class SuggestionTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_suggestion_saved_and_validated(self):
+        ok = self.client.post("/api/suggestions/", _json.dumps({"topic": "Battery charging stations", "email": "", "may_contact": True}),
+                              content_type="application/json")
+        self.assertEqual(ok.status_code, 201)
+        self.assertFalse(TalkSuggestion.objects.get().may_contact)  # no email, so no contact
+        self.assertEqual(self.client.post("/api/suggestions/", _json.dumps({"topic": "x"}), content_type="application/json").status_code, 400)

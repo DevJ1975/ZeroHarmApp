@@ -48,6 +48,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="talk/[issue]" options={{ title: 'Toolbox talk' }} />
         <Stack.Screen name="signin/[session]" options={{ title: 'Crew sign-in' }} />
+        <Stack.Screen name="archive" options={{ title: 'Archive' }} />
+        <Stack.Screen name="suggest" options={{ title: 'Suggest a talk' }} />
+        <Stack.Screen name="otis" options={{ title: 'OTIS' }} />
         <Stack.Screen name="alerts" options={{ title: 'Regulatory alerts' }} />
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />

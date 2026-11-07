@@ -64,6 +64,23 @@
           "photosPermission": "Zero Harm lets you choose a crew photo from your library for the toolbox talk sign-in sheet.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Zero Harm uses your approximate location to show local weather, heat risk and weather alerts for your site.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
       ]
     ],
     "experiments": {

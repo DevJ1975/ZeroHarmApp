@@ -11,4 +11,8 @@ urlpatterns = [
     path("feed/<int:pk>/", views.feed_detail),
     path("ingest/", views.ingest),
     path("signin-sheets/", views.signin_sheet),
+    path("otis/kb/", views.otis_kb),
+    path("otis/config/", views.otis_config),
+    path("weather/", views.weather),
+    path("suggestions/", views.suggestion),
 ]

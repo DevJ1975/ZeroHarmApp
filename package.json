@@ -5,13 +5,17 @@
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
+    "@kesha-antonov/react-native-background-downloader": "^4.6.4",
     "expo": "~58.0.23",
+    "expo-build-properties": "~58.0.12",
     "expo-constants": "~58.0.15",
     "expo-dev-client": "~58.0.18",
+    "expo-device": "~58.0.5",
     "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.11",
     "expo-image-picker": "~58.0.10",
     "expo-linking": "~58.0.16",
+    "expo-location": "~58.0.20",
     "expo-print": "~58.0.8",
     "expo-router": "~58.0.30",
     "expo-sharing": "~58.0.22",
@@ -24,6 +28,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
+    "react-native-blob-util": "^0.25.1",
+    "react-native-executorch": "^0.10.7",
     "react-native-onesignal": "^5.5.16",
     "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.11.1",
@@ -46,5 +52,13 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "react-native-executorch": {
+    "features": [
+      "llm"
+    ]
+  },
+  "allowScripts": {
+    "react-native-executorch@0.10.7": true
+  }
 }

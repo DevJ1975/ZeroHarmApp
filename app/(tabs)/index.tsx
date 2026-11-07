@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { AlertCard } from '@/components/feed';
+import { WeatherBar } from '@/components/WeatherBar';
 import { FeedItem, listFeed } from '@/lib/feed';
 import { issueNumber, listTalks, Talk } from '@/lib/talks';
 
@@ -33,6 +34,7 @@ export default function TodayScreen() {
         <Heading>Today</Heading>
         <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
       </View>
+      <WeatherBar />
 
       {talks === null && <ActivityIndicator />}
 
@@ -72,12 +74,21 @@ export default function TodayScreen() {
         </View>
       )}
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ask OTIS, the Zero Harm safety assistant"
+        onPress={() => router.push('/otis')}
+        style={[styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
+        <Text style={[styles.otisTitle, { color: t.text }]}>Ask OTIS</Text>
+        <Body muted>Safety questions answered from Zero Harm talks. Works with no signal.</Body>
+      </Pressable>
+
       {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
 
       {past.length > 0 && (
         <View style={{ gap: space.sm }}>
           <Text style={[styles.section, { color: t.text }]}>Past talks</Text>
-          {past.map((p) => (
+          {past.slice(0, 3).map((p) => (
             <Pressable
               key={p.issue}
               accessibilityRole="button"
@@ -89,6 +100,10 @@ export default function TodayScreen() {
           ))}
         </View>
       )}
+      <View style={styles.links}>
+        <Link href="/archive" style={[styles.link, { color: t.text }]}>Open the archive →</Link>
+        <Link href="/suggest" style={[styles.link, { color: t.text }]}>Suggest a talk →</Link>
+      </View>
     </Screen>
   );
 }
@@ -104,5 +119,8 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.displayMedium, fontSize: 22, marginTop: space.sm },
   row: { flexDirection: 'row', gap: space.md, paddingVertical: 12, borderBottomWidth: 1 },
   rowNum: { fontFamily: fonts.displayMedium, fontSize: 18, width: 28 },
+  otis: { borderWidth: 1, borderRadius: 6, padding: space.md, gap: 2 },
+  otisTitle: { fontFamily: fonts.displayMedium, fontSize: 22 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
   rowTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, flex: 1 },
 });

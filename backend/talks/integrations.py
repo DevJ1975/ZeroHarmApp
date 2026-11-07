@@ -145,3 +145,23 @@ def sync_sheet_to_ghl(sheet):
         sheet.save(update_fields=["status", "error"])
         log.error("Sign-in sheet %s to GHL failed: %s", sheet.pk, err)
         return False
+
+
+def sync_suggestion_to_ghl(s):
+    """Talk ideas land on the sender's GHL contact (tagged) so a workflow can alert you. Anonymous ideas stay in the admin."""
+    from . import ghl
+
+    if not (s.email and ghl.configured()):
+        return False
+    try:
+        tags = ["zero-harm-app", "zero-harm-talk-suggestion"] + (["ok-to-contact"] if s.may_contact else [])
+        contact = ghl.upsert_contact(s.email, s.name.split(" ")[0] if s.name else "", s.company, tags)
+        if contact:
+            ghl.add_note(contact, f"Toolbox talk suggestion from the Zero Harm app\nTopic: {s.topic}\nTheme: {s.month_theme or 'any'}\n"
+                                  f"Details: {s.details or '(none)'}\nOK to contact: {'yes' if s.may_contact else 'no'}")
+        s.ghl_contact_id = contact
+        s.save(update_fields=["ghl_contact_id"])
+        return True
+    except Exception as err:
+        log.error("Suggestion %s to GHL failed: %s", s.pk, err)
+        return False

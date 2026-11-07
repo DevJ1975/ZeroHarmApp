@@ -125,3 +125,21 @@ class SigninSheetAdmin(admin.ModelAdmin):
     def retry(self, request, queryset):
         n = sum(sync_sheet_to_ghl(s) for s in queryset.exclude(status="synced"))
         self.message_user(request, f"Saved {n} sheet(s) to GoHighLevel.")
+
+
+from .models import KbEntry, TalkSuggestion
+
+
+@admin.register(KbEntry)
+class KbEntryAdmin(admin.ModelAdmin):
+    list_display = ("title", "source", "published", "updated_at")
+    list_filter = ("published",)
+    search_fields = ("title", "body", "tags")
+
+
+@admin.register(TalkSuggestion)
+class TalkSuggestionAdmin(admin.ModelAdmin):
+    list_display = ("topic", "month_theme", "email", "may_contact", "status", "created_at")
+    list_filter = ("status", "month_theme", "may_contact")
+    list_editable = ("status",)
+    search_fields = ("topic", "details", "email", "company")

@@ -191,3 +191,45 @@ class SigninSheet(models.Model):
 
     def __str__(self):
         return f"{self.held_on} {self.talk_title} ({self.supervisor_email})"
+
+
+class KbEntry(models.Model):
+    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically."""
+
+    title = models.CharField(max_length=200)
+    body = models.TextField(help_text="Plain sentences. OTIS answers only from text like this, so keep it accurate and reviewed.")
+    source = models.CharField(max_length=200, blank=True, help_text="What OTIS cites, e.g. 'OSHA 1910.147' or 'Zero Harm app help'")
+    tags = models.CharField(max_length=200, blank=True, help_text="Extra search words, comma separated")
+    published = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "OTIS knowledge base entry"
+        verbose_name_plural = "OTIS knowledge base"
+
+    def __str__(self):
+        return self.title
+
+
+class TalkSuggestion(models.Model):
+    """A toolbox talk idea sent from the app."""
+
+    STATUSES = [("new", "New"), ("planned", "Planned"), ("used", "Used in an issue"), ("declined", "Not a fit")]
+    topic = models.CharField(max_length=200)
+    details = models.TextField(blank=True)
+    month_theme = models.CharField(max_length=80, blank=True)
+    name = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True)
+    company = models.CharField(max_length=120, blank=True)
+    may_contact = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=STATUSES, default="new")
+    used_in_issue = models.PositiveIntegerField(null=True, blank=True)
+    ghl_contact_id = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.topic
