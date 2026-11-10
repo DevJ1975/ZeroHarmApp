@@ -92,7 +92,8 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      "@kesha-antonov/react-native-background-downloader"
     ],
     "experiments": {
       "typedRoutes": true

@@ -3,7 +3,7 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-goog
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
@@ -40,9 +40,10 @@ export default function RootLayout() {
     flushSheets(); // sheets saved with no signal go out now
   }, []);
 
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+  // The intro hides the native launch screen once its first frame is drawn (see IntroSplash); after the intro, nothing to do.
+  const hideSplash = useCallback(() => {
+    SplashScreen.hideAsync();
+  }, []);
 
   if (!loaded) return null;
 
@@ -61,7 +62,7 @@ export default function RootLayout() {
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
-      {!introDone && <IntroSplash onDone={() => setIntroDone(true)} />}
+      {!introDone && <IntroSplash onReady={hideSplash} onDone={() => setIntroDone(true)} />}
     </ThemeProvider>
   );
 }

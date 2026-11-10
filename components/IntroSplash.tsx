@@ -1,15 +1,20 @@
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Image, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { AccessibilityInfo, Animated, Image, Platform, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fonts, palette } from '@/constants/theme';
 
 const VIDEO = require('../assets/video/intro.mp4');
 const POSTER = require('../assets/video/intro-poster.jpg');
-const LOGO_LIGHT_BG = require('../assets/images/splash-logo.png');
-const LOGO_DARK_BG = require('../assets/images/splash-logo-dark.png');
+// 1200 px copies of the splash art, so they decode before the first frame (the 4326 px originals left a blank beat on Android).
+const LOGO_LIGHT_BG = require('../assets/video/logo-on-yellow.png');
+const LOGO_DARK_BG = require('../assets/video/logo-on-navy.png');
+// Android 12+ launch screens show only the mark (app.json imageWidth 180), so frame 1 copies that there.
+const MARK_LIGHT_BG = require('../assets/video/mark-on-yellow.png');
+const MARK_DARK_BG = require('../assets/video/mark-on-navy.png');
+const ANDROID = Platform.OS === 'android';
 
 const NAVY = '#13233F'; // the native splash background in dark mode
 const LOGO_RATIO = 4326 / 1024;
@@ -22,10 +27,20 @@ const STILL_MS = 1200; // Reduce Motion: a still frame, briefly
  * crews on the floor with the Zero Harm lockup, and fades out onto Today (already loaded underneath).
  * Tap anywhere or "Skip" to go straight in. With Reduce Motion on, it shows a still frame instead of video.
  */
-export function IntroSplash({ onDone }: { onDone: () => void }) {
+export function IntroSplash({ onReady, onDone }: { onReady: () => void; onDone: () => void }) {
   const dark = useColorScheme() === 'dark';
   const insets = useSafeAreaInsets();
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
+  // The native launch screen stays up until frame 1 (its look-alike) has drawn, so there is never a blank beat.
+  const [coverReady, setCoverReady] = useState(false);
+  const ready = useCallback(() => setCoverReady(true), []);
+  useEffect(() => {
+    const fallback = setTimeout(ready, 1500); // never hold the launch screen if an image fails to load
+    return () => clearTimeout(fallback);
+  }, [ready]);
+  useEffect(() => {
+    if (coverReady) onReady();
+  }, [coverReady, onReady]);
   const [cover] = useState(() => new Animated.Value(1)); // the native-splash look-alike
   const [brand] = useState(() => new Animated.Value(0)); // lockup and tagline over the footage
   const [whole] = useState(() => new Animated.Value(1));
@@ -52,7 +67,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
   }, []);
 
   useEffect(() => {
-    if (reduceMotion === null) return;
+    if (reduceMotion === null || !coverReady) return;
     if (!reduceMotion) player.play();
     Animated.parallel([
       Animated.timing(cover, { toValue: 0, delay: reduceMotion ? 0 : 250, duration: reduceMotion ? 1 : 450, useNativeDriver: true }),
@@ -60,7 +75,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
     ]).start();
     const timer = setTimeout(finish, reduceMotion ? STILL_MS : SHOW_MS);
     return () => clearTimeout(timer);
-  }, [reduceMotion, player, cover, brand, finish]);
+  }, [reduceMotion, coverReady, player, cover, brand, finish]);
 
   const rise = brand.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
 
@@ -77,13 +92,17 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
         <View style={styles.scrim} />
 
         <Animated.View style={[styles.brand, { paddingBottom: insets.bottom + 56, opacity: brand, transform: [{ translateY: rise }] }]}>
-          <Image source={LOGO_DARK_BG} style={styles.lockup} resizeMode="contain" accessibilityIgnoresInvertColors />
+          <Image source={LOGO_DARK_BG} style={styles.lockup} resizeMode="contain" fadeDuration={0} accessibilityIgnoresInvertColors />
           <View style={styles.rule} />
           <Text style={styles.tagline}>Safety talks, tools and answers for the floor.</Text>
         </Animated.View>
 
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: dark ? NAVY : palette.safetyYellow, opacity: cover }]}>
-          <Image source={dark ? LOGO_DARK_BG : LOGO_LIGHT_BG} style={styles.coverLogo} resizeMode="contain" />
+          {ANDROID ? (
+            <Image source={dark ? MARK_DARK_BG : MARK_LIGHT_BG} style={styles.coverMark} resizeMode="contain" fadeDuration={0} onLoadEnd={ready} />
+          ) : (
+            <Image source={dark ? LOGO_DARK_BG : LOGO_LIGHT_BG} style={styles.coverLogo} resizeMode="contain" onLoadEnd={ready} />
+          )}
         </Animated.View>
       </Pressable>
 
@@ -106,6 +125,7 @@ const styles = StyleSheet.create({
   tagline: { fontFamily: fonts.bodyMedium, fontSize: 20, lineHeight: 26, color: '#FFFFFF', maxWidth: 320 },
   cover: { alignItems: 'center', justifyContent: 'center' },
   coverLogo: { width: 300, height: 300 / LOGO_RATIO }, // matches the iOS native splash imageWidth in app.json
+  coverMark: { width: 180, height: 180 }, // matches the Android splash imageWidth in app.json
   skipWrap: { position: 'absolute', right: 16 },
   skip: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(23,33,43,0.55)' },
   skipText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },
