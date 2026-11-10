@@ -4,9 +4,11 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { Episode, getEpisode, LEGAL } from '@/lib/episodes';
+import { regLinks } from '@/lib/regs';
 
 /** One Zero Hour episode: watch it, then run the huddle card with the crew. */
 export default function EpisodeScreen() {
@@ -103,6 +105,7 @@ function EpisodeView({ ep }: { ep: Episode }) {
           {i + 1}. {r}
         </Body>
       ))}
+      <RegLinks links={regLinks(...ep.references)} />
       <Text style={[styles.legal, { color: t.muted }]}>{LEGAL}</Text>
       <Text style={[styles.credit, { color: t.muted }]}>Written and produced by Jamil Jones</Text>
       <Text style={[styles.tagline, { color: t.text }]}>GO HOME THE WAY YOU CAME IN</Text>

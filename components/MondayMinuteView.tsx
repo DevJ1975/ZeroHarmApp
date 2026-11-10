@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { MM_ORANGE, MondayMinuteLogo } from '@/components/MondayMinuteCard';
+import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { isConfigured } from '@/lib/config';
@@ -11,6 +12,7 @@ import {
   acceptRules, blockAuthor, Comment, listComments, Minute, myVote, postComment, rate, Reason, REASONS,
   reportComment, rulesAccepted, savedDisplayName, weekLabel,
 } from '@/lib/monday';
+import { regLinks } from '@/lib/regs';
 import { startSession } from '@/lib/signins';
 
 /** One Monday Minute: the talk, print and email, crew sign-in, thumbs up/down and the crew conversation. */
@@ -62,7 +64,7 @@ export function MondayMinuteView({ minute: m, onChange }: { minute: Minute; onCh
         <Body>{m.crew_question}</Body>
       </View>
       <Text style={[styles.takeaway, { color: t.text }]}>{m.takeaway}</Text>
-      {m.references.length > 0 && <Body muted>OSHA: {m.references.map((r) => `29 CFR ${r}`).join(', ')}</Body>}
+      <RegLinks links={regLinks(...m.references)} />
       <Body muted>
         Written by AI from a topic reviewed by a safety professional, and checked automatically before it’s published. It adds to your training and
         doesn’t replace it. Always follow your site’s written steps. Not sure it’s safe? Stop and ask.

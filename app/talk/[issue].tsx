@@ -3,10 +3,12 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { getPrefs, hasBeenAsked, markAsked, setPrefs } from '@/lib/push';
 import { startSession } from '@/lib/signins';
+import { regLinks } from '@/lib/regs';
 import { getTalk, issueNumber, sendDay, Talk } from '@/lib/talks';
 
 /** Labels on this screen in both languages. Talk text comes from the approved translation. */
@@ -116,6 +118,8 @@ export default function TalkScreen() {
         <Text style={[styles.qLabel, { color: t.text }]}>{l.ask}</Text>
         <Body>{text.crew_question}</Body>
       </View>
+
+      <RegLinks links={regLinks(text.body_md, text.crew_question)} />
 
       {talk.pdf_url && (
         <Button kind="secondary" label={l.pdf} onPress={() => WebBrowser.openBrowserAsync(talk.pdf_url!)} />

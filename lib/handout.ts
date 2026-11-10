@@ -2,6 +2,7 @@ import * as Print from 'expo-print';
 
 import { weekLabel, type Minute } from './monday';
 import { sharePdf } from './pdf';
+import { regLinks } from './regs';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const ORANGE = '#FF6A13';
@@ -21,6 +22,7 @@ const MARK = `<svg viewBox="0 0 200 200" width="64" height="64" xmlns="http://ww
  * US Letter. Works with no signal.
  */
 export function handoutHtml(m: Minute) {
+  const regs = regLinks(...m.references);
   const rows = Array.from({ length: PAPER_ROWS }, (_, i) => `<tr><td class="n">${i + 1}</td><td></td><td></td><td></td></tr>`).join('');
   const header = (sub: string) => `<div class="head">${MARK}<div><div class="brand">MONDAY <span>MINUTE</span></div>
     <div class="sub">${esc(sub)}</div></div></div>`;
@@ -37,6 +39,7 @@ export function handoutHtml(m: Minute) {
   .q b { display: block; font-size: 13pt; margin-bottom: 4px; }
   .take { font-weight: 700; font-size: 13.5pt; margin-top: 14px; }
   .fine { color: #5B6773; font-size: 9pt; margin-top: 16px; }
+  .regs { font-size: 9.5pt; margin-top: 14px; } .regs b { display: block; font-size: 10pt; margin-bottom: 2px; }
   .sheet { page-break-before: always; }
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin: 16px 0; font-size: 11pt; }
   .fields div { border-bottom: 1px solid ${INK}; padding: 14px 0 2px; }
@@ -53,7 +56,7 @@ export function handoutHtml(m: Minute) {
   <p>${esc(m.story)}</p>
   <div class="q"><b>Ask your crew</b>${esc(m.crew_question)}</div>
   <div class="take">${esc(m.takeaway)}</div>
-  ${m.references.length ? `<div class="fine">OSHA: ${m.references.map((r) => `29 CFR ${esc(r)}`).join(', ')}</div>` : ''}
+  ${regs.length ? `<div class="regs"><b>Read the regulation</b>${regs.map((r) => `<div>${esc(r.label)}: ${esc(r.url)}</div>`).join('')}</div>` : ''}
   <div class="fine">Written by AI from a topic reviewed by a safety professional and checked automatically before publishing. It adds to your
   training and does not replace it. Always follow your site's written steps. Not sure it's safe? Stop and ask. Free from the Zero Harm app, Trainovate Technologies.</div>
 

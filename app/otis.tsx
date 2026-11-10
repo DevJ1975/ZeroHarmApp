@@ -4,6 +4,7 @@ import { ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { setTelemetryEnabled, useLLMChatSession } from 'react-native-executorch';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Body, Button } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
@@ -11,6 +12,7 @@ import { getFeedbackPrefs, sendFeedback } from '@/lib/otis/feedback';
 import { KbItem, loadKb, search } from '@/lib/otis/kb';
 import { getManifest, llmModel, Manifest, sizeLabel } from '@/lib/otis/manifest';
 import { clean, looksSpanish, SYSTEM, userTurn } from '@/lib/otis/prompt';
+import { regLinks } from '@/lib/regs';
 import { looksUrgent } from '@/lib/otis/safety';
 
 setTelemetryEnabled(false); // OTIS keeps everything on the phone, so no download analytics either
@@ -214,16 +216,24 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
               <View key={m.id} style={[styles.bubble, styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
                 <Text style={[styles.who, { color: t.muted }]}>OTIS</Text>
                 {m.pending && !m.text ? <ActivityIndicator /> : <Text style={[styles.msg, { color: t.text }]}>{m.text}</Text>}
-                {!m.pending && m.sources?.map((s, i) => (
-                  <Pressable
-                    key={s.id}
-                    accessibilityRole={s.issue || s.episode ? 'link' : 'text'}
-                    disabled={!s.issue && !s.episode}
-                    onPress={() => (s.episode ? router.push(`/zero-hour/${s.episode}`) : s.issue && router.push(`/talk/${s.issue}`))}
-                    style={[styles.source, { borderColor: t.rule }]}>
-                    <Text style={[styles.sourceText, { color: t.muted }]}>[{i + 1}] {s.source}</Text>
-                  </Pressable>
-                ))}
+                {!m.pending && m.sources?.map((s, i) => {
+                  const reg = regLinks(s.source)[0];
+                  const linked = Boolean(s.issue || s.episode || reg);
+                  return (
+                    <Pressable
+                      key={s.id}
+                      accessibilityRole={linked ? 'link' : 'text'}
+                      disabled={!linked}
+                      onPress={() =>
+                        s.episode ? router.push(`/zero-hour/${s.episode}`) : s.issue ? router.push(`/talk/${s.issue}`) : reg && WebBrowser.openBrowserAsync(reg.url)
+                      }
+                      style={[styles.source, { borderColor: t.rule }]}>
+                      <Text style={[styles.sourceText, { color: t.muted }, reg && !s.issue && !s.episode && styles.regLink]}>
+                        [{i + 1}] {s.source}{reg && !s.issue && !s.episode ? ' ↗' : ''}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
                 {canRate && !m.pending && !!m.sources?.length && (
                   <View style={styles.rate}>
                     {m.rated ? (
@@ -296,6 +306,7 @@ const styles = StyleSheet.create({
   msg: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   source: { borderTopWidth: 1, paddingTop: 6 },
   sourceText: { fontFamily: fonts.bodyMedium, fontSize: 14 },
+  regLink: { textDecorationLine: 'underline' },
   rate: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: 6 },
   rateBtn: { borderWidth: 1, borderRadius: 6, minHeight: 36, minWidth: 52, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center' },
   rateText: { fontFamily: fonts.bodyBold, fontSize: 15 },
