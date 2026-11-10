@@ -4,11 +4,11 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { issueNumber, listTalks, Talk } from '@/lib/talks';
+import { arrangeTalks, issueNumber, listTalks, Talk } from '@/lib/talks';
 
 const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
 
-/** Every released talk: search by words, filter by month theme. */
+/** Every toolbox talk in the app, past and ready early: search by words, filter by month theme. */
 export default function ArchiveScreen() {
   const t = useTheme();
   const params = useLocalSearchParams<{ theme?: string }>();
@@ -27,10 +27,19 @@ export default function ArchiveScreen() {
       return words.every((w) => hay.includes(w));
     });
   }, [talks, q, theme]);
+  const groups = useMemo(() => {
+    const { current, past, early } = arrangeTalks(shown);
+    const sent = current && !current.early ? [current, ...past] : past;
+    const ahead = current?.early ? [current, ...early] : early;
+    return [
+      { label: 'Ready early', talks: ahead },
+      { label: 'Past talks', talks: sent },
+    ].filter((g) => g.talks.length > 0);
+  }, [shown]);
 
   return (
     <Screen>
-      <Field label="Search past talks" value={q} onChangeText={setQ} placeholder="Ladder, lockout, heat…" returnKeyType="search" />
+      <Field label="Search toolbox talks" value={q} onChangeText={setQ} placeholder="Ladder, lockout, heat…" returnKeyType="search" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
         {[null, ...themes].map((th) => {
           const on = theme === th;
@@ -48,19 +57,24 @@ export default function ArchiveScreen() {
       </ScrollView>
       {talks === null && <ActivityIndicator />}
       {talks !== null && shown.length === 0 && (
-        <Body muted>{talks.length ? 'No talks match. Try a different word or theme.' : 'Past talks appear here after each Sunday release.'}</Body>
+        <Body muted>{talks.length ? 'No talks match. Try a different word or theme.' : 'Toolbox talks appear here as soon as they are ready.'}</Body>
       )}
-      {shown.map((x) => (
-        <Pressable
-          key={x.issue}
-          accessibilityRole="button"
-          onPress={() => router.push(`/talk/${x.issue}`)}
-          style={[styles.row, { borderColor: t.rule }]}>
-          <Text style={[styles.meta, { color: t.muted }]}>
-            Issue {issueNumber(x)} · {fmt(x.issue_date)} · {x.month_theme}
-          </Text>
-          <Text style={[styles.title, { color: t.text }]}>{x.title}</Text>
-        </Pressable>
+      {groups.map((g) => (
+        <View key={g.label} style={{ gap: 0 }}>
+          {groups.length > 1 && <Text style={[styles.section, { color: t.text }]} accessibilityRole="header">{g.label}</Text>}
+          {g.talks.map((x) => (
+            <Pressable
+              key={x.issue}
+              accessibilityRole="button"
+              onPress={() => router.push(`/talk/${x.issue}`)}
+              style={[styles.row, { borderColor: t.rule }]}>
+              <Text style={[styles.meta, { color: t.muted }]}>
+                Issue {issueNumber(x)} · {fmt(x.issue_date)} · {x.month_theme}
+              </Text>
+              <Text style={[styles.title, { color: t.text }]}>{x.title}</Text>
+            </Pressable>
+          ))}
+        </View>
       ))}
       <View style={{ marginTop: space.md }}>
         <Button kind="secondary" label="Suggest a toolbox talk" onPress={() => router.push('/suggest')} />
@@ -75,4 +89,5 @@ const styles = StyleSheet.create({
   row: { borderBottomWidth: 1, paddingVertical: 12, gap: 2 },
   meta: { fontFamily: fonts.bodyMedium, fontSize: 14 },
   title: { fontFamily: fonts.displayMedium, fontSize: 20, lineHeight: 24 },
+  section: { fontFamily: fonts.displayMedium, fontSize: 22, marginTop: space.sm },
 });

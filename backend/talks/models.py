@@ -4,8 +4,18 @@ from django.utils import timezone
 
 class ToolboxTalkQuerySet(models.QuerySet):
     def released(self):
-        """Talks the app may show: published and past their Sunday send time."""
+        """Talks past their Sunday send time (published and reviewed)."""
         return self.filter(published=True, needs_review=False, send_at__lte=timezone.now())
+
+    def available(self):
+        """Talks the app shows. With TALKS_UNLOCK_EARLY on (the default), any reviewed talk that has its text is ready to
+        run with crew sign-in before its Sunday newsletter; talks without text still wait for their send time."""
+        from django.conf import settings
+
+        ready = models.Q(send_at__lte=timezone.now())
+        if settings.TALKS_UNLOCK_EARLY:
+            ready |= ~models.Q(body_md="")
+        return self.filter(ready, published=True, needs_review=False)
 
 
 class ToolboxTalk(models.Model):
@@ -59,6 +69,8 @@ class ToolboxTalk(models.Model):
             "body_md": self.body_md or None,
             "hero_url": self.hero_url or None,
             "pdf_url": self.pdf_url or None,
+            "send_at": self.send_at.isoformat(),
+            "early": self.send_at > timezone.now(),
             "es": {
                 "title": self.title_es,
                 "story_title": self.story_title_es,

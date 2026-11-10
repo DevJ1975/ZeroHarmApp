@@ -23,7 +23,7 @@ Run it:
 4. Before the store build, change `onesignal-expo-plugin` mode in `app.json` to `production`.
 
 ## The backend (Django 5.2 LTS, Postgres, Docker, Railway)
-- `GET /api/talks/` released talks, newest first. A talk stays hidden until its Sunday 11:59 AM Pacific send time.
+- `GET /api/talks/` talks the app shows, newest first. Any reviewed talk with its text opens right away, with crew sign-in, before its Sunday 11:59 AM Pacific newsletter (`early: true`). A talk without text waits for its send time. Set `TALKS_UNLOCK_EARLY=0` to hold every talk until Sunday. The Sunday push goes out on schedule either way.
 - `GET /api/talks/<issue>/` one talk. `POST /api/signups/` optional email sign-up (rate limited), synced to GoHighLevel with tags `zero-harm-app`, `zero-harm-weekly`, and `zero-harm-offers-optin` when they opt in.
 - `/admin/` edit talk text, PDF and image links, see sign-ups, send a push or retry a GHL sync by hand.
 - All 52 issues of 2027 load automatically on the first migrate.

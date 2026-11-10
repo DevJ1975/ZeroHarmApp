@@ -7,12 +7,12 @@ import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { getPrefs, hasBeenAsked, markAsked, setPrefs } from '@/lib/push';
 import { startSession } from '@/lib/signins';
-import { getTalk, issueNumber, Talk } from '@/lib/talks';
+import { getTalk, issueNumber, sendDay, Talk } from '@/lib/talks';
 
 /** Labels on this screen in both languages. Talk text comes from the approved translation. */
 const L = {
-  en: { issue: 'Issue', ask: 'Ask your crew', pdf: 'Open the printable PDF', run: 'Run the talk', start: 'Start crew sign-in', pending: 'The full talk text will appear here. Until then, open the printable PDF below.' },
-  es: { issue: 'Número', ask: 'Pregunte a su equipo', pdf: 'Abrir el PDF para imprimir', run: 'Dar la charla', start: 'Registrar asistencia', pending: 'El texto completo aparecerá aquí. Mientras tanto, abra el PDF para imprimir.' },
+  en: { early: 'Ready early. The newsletter goes out', issue: 'Issue', ask: 'Ask your crew', pdf: 'Open the printable PDF', run: 'Run the talk', start: 'Start crew sign-in', pending: 'The full talk text will appear here. Until then, open the printable PDF below.' },
+  es: { early: 'Disponible antes. El boletín sale el', issue: 'Número', ask: 'Pregunte a su equipo', pdf: 'Abrir el PDF para imprimir', run: 'Dar la charla', start: 'Registrar asistencia', pending: 'El texto completo aparecerá aquí. Mientras tanto, abra el PDF para imprimir.' },
 };
 
 export default function TalkScreen() {
@@ -35,7 +35,7 @@ export default function TalkScreen() {
   if (talk === null)
     return (
       <Screen>
-        <Body>This talk isn’t available yet. Talks open on the Sunday before their Monday date.</Body>
+        <Body>This talk isn’t available yet. Each talk opens as soon as its text is ready, and no later than the Sunday before its Monday date.</Body>
       </Screen>
     );
 
@@ -96,6 +96,7 @@ export default function TalkScreen() {
           </View>
         )}
       </View>
+      {talk.early && <Body muted>{l.early} {sendDay(talk, es ? 'es' : undefined)}.</Body>}
       <Text style={[styles.title, { color: t.text }]}>{text.title}</Text>
       <Text style={[styles.story, { color: t.muted }]}>{text.story_title}</Text>
 

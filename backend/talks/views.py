@@ -18,14 +18,14 @@ def health(request):
 
 @require_GET
 def talk_list(request):
-    """Released talks, newest first. Next week's talk stays hidden until its Sunday send time."""
-    talks = [t.as_api() for t in ToolboxTalk.objects.released()]
+    """Talks the app shows, newest first: released ones, plus (with TALKS_UNLOCK_EARLY) every reviewed talk with text."""
+    talks = [t.as_api() for t in ToolboxTalk.objects.available()]
     return JsonResponse({"talks": talks})
 
 
 @require_GET
 def talk_detail(request, issue):
-    talk = ToolboxTalk.objects.released().filter(issue=issue).first()
+    talk = ToolboxTalk.objects.available().filter(issue=issue).first()
     if not talk:
         return JsonResponse({"error": "This talk isn’t available yet."}, status=404)
     return JsonResponse(talk.as_api())
@@ -257,7 +257,7 @@ def _talk_chunks(talk, lang="en"):
 def otis_kb(request):
     """Everything OTIS may answer from (v1). The app now uses /api/v2/otis/kb, which only downloads when it changed."""
     items = kb_items()
-    version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.released()], default=None)
+    version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.available()], default=None)
     return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
 
 
@@ -265,7 +265,7 @@ def kb_items():
     """Reviewed KB entries plus every released talk (English, and approved Spanish) and Zero Hour huddle card."""
     items = [{"id": f"k{e.pk}", "title": e.title, "text": e.body, "source": e.source or e.title, "lang": "en", "tags": e.tags, "issue": None}
              for e in KbEntry.objects.filter(published=True)]
-    for talk in ToolboxTalk.objects.released():
+    for talk in ToolboxTalk.objects.available():
         items += _talk_chunks(talk)
         if talk.spanish_status == ToolboxTalk.ES_APPROVED:
             items += _talk_chunks(talk, "es")

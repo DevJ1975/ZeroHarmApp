@@ -104,6 +104,10 @@ GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
 INGEST_KEY = os.environ.get("INGEST_KEY", "")
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
+
+# Toolbox talks with their text open in the app (with crew sign-in) before their Sunday newsletter. Set to 0 to hold
+# every talk until its send time again. The Sunday push still goes out on schedule either way.
+TALKS_UNLOCK_EARLY = os.environ.get("TALKS_UNLOCK_EARLY", "1") == "1"
 OTIS_MODEL = os.environ.get("OTIS_MODEL", "QWEN3_1_7B")
 OTIS_SMALL_MODEL = os.environ.get("OTIS_SMALL_MODEL", "QWEN3_0_6B")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 21 * 1024 * 1024  # sign-in sheets with a group photo

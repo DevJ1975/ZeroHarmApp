@@ -9,9 +9,9 @@ import { EpisodeCard } from '@/components/EpisodeCard';
 import { WeatherBar } from '@/components/WeatherBar';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed } from '@/lib/feed';
-import { issueNumber, listTalks, Talk } from '@/lib/talks';
+import { arrangeTalks, issueNumber, listTalks, sendDay, Talk } from '@/lib/talks';
 
-/** Today: this week's talk as a safety placard, then past talks. */
+/** Today: this week's talk as a safety placard, talks ready early, then past talks. */
 export default function TodayScreen() {
   const t = useTheme();
   const [talks, setTalks] = useState<Talk[] | null>(null);
@@ -30,7 +30,7 @@ export default function TodayScreen() {
     }, []),
   );
 
-  const [current, ...past] = talks ?? [];
+  const { current, past, early } = arrangeTalks(talks ?? []);
 
   return (
     <Screen>
@@ -56,12 +56,13 @@ export default function TodayScreen() {
           onPress={() => router.push(`/talk/${current.issue}`)}
           style={[styles.placard, { borderColor: t.text, backgroundColor: t.surface }]}>
           <View style={[styles.band, { backgroundColor: t.accent }]}>
-            <Text style={[styles.bandText, { color: t.onAccent }]}>This week’s talk</Text>
+            <Text style={[styles.bandText, { color: t.onAccent }]}>{current.early ? 'Ready early' : 'This week’s talk'}</Text>
             <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {issueNumber(current)}</Text>
           </View>
           <View style={styles.placardBody}>
             <Text style={[styles.title, { color: t.text }]}>{current.title}</Text>
             <Body muted>{current.month_theme}</Body>
+            {current.early && <Body muted>The newsletter goes out {sendDay(current)}. You can run it with your crew now.</Body>}
             <Body>{current.crew_question}</Body>
             <Button label="Open the talk" onPress={() => router.push(`/talk/${current.issue}`)} />
           </View>
@@ -98,6 +99,27 @@ export default function TodayScreen() {
       </Pressable>
 
       {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
+
+      {early.length > 0 && (
+        <View style={{ gap: space.sm }}>
+          <View style={styles.topRow}>
+            <Text style={[styles.section, { color: t.text }]}>Ready early</Text>
+            <Link href="/archive" style={[styles.link, { color: t.muted }]}>All talks</Link>
+          </View>
+          <Body muted>Upcoming talks you can run with crew sign-in before the newsletter sends.</Body>
+          {early.slice(0, 3).map((p) => (
+            <Pressable
+              key={p.issue}
+              accessibilityRole="button"
+              accessibilityLabel={`Issue ${issueNumber(p)}: ${p.title}`}
+              onPress={() => router.push(`/talk/${p.issue}`)}
+              style={[styles.row, { borderColor: t.rule }]}>
+              <Text style={[styles.rowNum, { color: t.muted }]}>{issueNumber(p)}</Text>
+              <Text style={[styles.rowTitle, { color: t.text }]}>{p.title}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {past.length > 0 && (
         <View style={{ gap: space.sm }}>

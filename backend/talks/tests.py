@@ -395,3 +395,45 @@ class OshaKbTests(TestCase):
     def test_otis_finds_osha_answers(self):
         items = self.client.get("/api/otis/kb/").json()["items"]
         self.assertTrue(any(i["source"] == "OSHA 29 CFR 1910.147(d)" for i in items))
+
+
+class EarlyUnlockTests(TestCase):
+    """Talks with their text open in the app before their Sunday newsletter, with sign-in; others wait."""
+
+    def setUp(self):
+        cache.clear()
+        self.now = datetime(2026, 11, 10, 12, 0, tzinfo=dt_tz.utc)  # before issue #1's Jan 3, 2027 send
+        talk = ToolboxTalk.objects.get(issue=10)
+        talk.body_md = "Intro.\n\n## Talk it through with your crew\n\n1. Do the thing."
+        talk.save()
+
+    def listed(self):
+        with patch("django.utils.timezone.now", return_value=self.now):
+            return self.client.get("/api/talks/").json()["talks"]
+
+    def test_talk_with_text_is_available_early(self):
+        talks = self.listed()
+        self.assertEqual([t["issue"] for t in talks], [10])
+        self.assertTrue(talks[0]["early"])
+        self.assertEqual(talks[0]["send_at"], ToolboxTalk.objects.get(issue=10).send_at.isoformat())
+        with patch("django.utils.timezone.now", return_value=self.now):
+            self.assertEqual(self.client.get("/api/talks/10/").status_code, 200)
+            self.assertEqual(self.client.get("/api/talks/11/").status_code, 404)  # no text yet
+
+    def test_held_for_review_stays_hidden(self):
+        ToolboxTalk.objects.filter(issue=10).update(needs_review=True)
+        self.assertEqual(self.listed(), [])
+
+    @override_settings(TALKS_UNLOCK_EARLY=False)
+    def test_switch_off_waits_for_sunday(self):
+        self.assertEqual(self.listed(), [])
+
+    def test_released_talk_is_not_early(self):
+        self.now = ToolboxTalk.objects.get(issue=10).send_at + timedelta(minutes=1)
+        self.assertFalse(self.listed()[0]["early"])
+
+    def test_early_talk_does_not_push_early(self):
+        out = StringIO()
+        with patch("django.utils.timezone.now", return_value=self.now):
+            call_command("send_talk_push", "--dry-run", stdout=out)
+        self.assertIn("No talk is due", out.getvalue())
