@@ -1,10 +1,11 @@
 import { Link, router } from 'expo-router';
+import Storage from 'expo-sqlite/kv-store';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { MM_ORANGE, MondayMinuteLogo } from '@/components/MondayMinuteCard';
+import { MM_ORANGE, MondayMinuteLogo, useMmTextColor } from '@/components/MondayMinuteCard';
 import { RegLinks } from '@/components/RegLinks';
-import { Body, Button, Field, Screen } from '@/components/ui';
+import { Body, Button, Field, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { isConfigured } from '@/lib/config';
 import { printHandout, shareHandout } from '@/lib/handout';
@@ -13,16 +14,38 @@ import {
   reportComment, rulesAccepted, savedDisplayName, weekLabel,
 } from '@/lib/monday';
 import { regLinks } from '@/lib/regs';
+import { getProfile } from '@/lib/profile';
 import { startSession } from '@/lib/signins';
 
+const LAST_LOCATION = 'last_signin_location';
+const INK_ON_ORANGE = '#17212B'; // white on this orange is too faint to read
+
 /** One Monday Minute: the talk, print and email, crew sign-in, thumbs up/down and the crew conversation. */
-export function MondayMinuteView({ minute: m, onChange }: { minute: Minute; onChange: (m: Minute) => void }) {
+export function MondayMinuteView({
+  minute: m,
+  onChange,
+  onRefresh,
+  offline,
+}: {
+  minute: Minute;
+  onChange: (m: Minute) => void;
+  onRefresh?: () => Promise<unknown>;
+  offline?: boolean;
+}) {
   const t = useTheme();
+  const mmText = useMmTextColor();
   const [supervisor, setSupervisor] = useState('');
   const [location, setLocation] = useState('');
+
+  // Fewer taps in gloves: start from the name and location used last time.
+  useEffect(() => {
+    getProfile().then((p) => setSupervisor((cur) => cur || p.name));
+    Storage.getItem(LAST_LOCATION).then((v) => setLocation((cur) => cur || v || ''));
+  }, []);
   const [busy, setBusy] = useState<'print' | 'share' | null>(null);
 
   async function begin() {
+    if (location.trim()) await Storage.setItem(LAST_LOCATION, location.trim());
     const session = await startSession(m.id, supervisor.trim(), location.trim(), 'mm');
     router.push(`/signin/${session}`);
   }
@@ -39,19 +62,22 @@ export function MondayMinuteView({ minute: m, onChange }: { minute: Minute; onCh
   }
 
   return (
-    <Screen>
+    <Screen onRefresh={onRefresh}>
       <MondayMinuteLogo />
-      <Text style={[styles.kicker, { color: MM_ORANGE }]}>WEEK OF {weekLabel(m).toUpperCase()} · {m.category.toUpperCase()}</Text>
-      <Text style={[styles.title, { color: t.text }]}>{m.title}</Text>
+      {offline && <OfflineNote />}
+      <Text style={[styles.kicker, { color: mmText }]}>WEEK OF {weekLabel(m).toUpperCase()} · {m.category.toUpperCase()}</Text>
+      <Text style={[styles.title, { color: t.text }]} accessibilityRole="header">{m.title}</Text>
+      <Button label="Start crew sign-in" onPress={begin} />
       <View style={styles.actions}>
-        <View style={{ flex: 1 }}><Button label="Print with sign-in sheet" onPress={() => handout('print')} busy={busy === 'print'} /></View>
-        <View style={{ flex: 1 }}><Button kind="secondary" label="Email or share PDF" onPress={() => handout('share')} busy={busy === 'share'} /></View>
+        <View style={{ flex: 1 }}><Button kind="secondary" label="Print" onPress={() => handout('print')} busy={busy === 'print'} /></View>
+        <View style={{ flex: 1 }}><Button kind="secondary" label="Share PDF" onPress={() => handout('share')} busy={busy === 'share'} /></View>
       </View>
+      <Text style={[styles.hint, { color: t.muted }]}>Print and Share include a paper sign-in sheet.</Text>
       <Body>{m.intro}</Body>
       <Text style={[styles.h2, { color: t.text }]} accessibilityRole="header">Talk it through</Text>
       {m.points.map((p, i) => (
         <View key={i} style={styles.point}>
-          <Text style={[styles.num, { color: MM_ORANGE }]}>{i + 1}</Text>
+          <Text style={[styles.num, { color: mmText }]}>{i + 1}</Text>
           <View style={{ flex: 1 }}><Body>{p}</Body></View>
         </View>
       ))}
@@ -63,12 +89,14 @@ export function MondayMinuteView({ minute: m, onChange }: { minute: Minute; onCh
         <Text style={[styles.qLabel, { color: t.text }]}>Ask your crew</Text>
         <Body>{m.crew_question}</Body>
       </View>
-      <Text style={[styles.takeaway, { color: t.text }]}>{m.takeaway}</Text>
+      <View style={[styles.takeawayBox, { borderColor: MM_ORANGE }]}>
+        <Text style={[styles.takeaway, { color: t.text }]}>{m.takeaway}</Text>
+      </View>
       <RegLinks links={regLinks(...m.references)} />
-      <Body muted>
+      <Text style={[styles.hint, { color: t.muted }]}>
         Written by AI from a topic reviewed by a safety professional, and checked automatically before it’s published. It adds to your training and
         doesn’t replace it. Always follow your site’s written steps. Not sure it’s safe? Stop and ask.
-      </Body>
+      </Text>
 
       <Text style={[styles.h2, { color: t.text }]}>Run the talk</Text>
       <Body muted>Crew signs on this phone (or take one group photo). Then print the signed sheet, email it, or save it to your records. Paper crews: use the printed sign-in sheet instead.</Body>
@@ -122,7 +150,7 @@ function Rating({ minute, onCounts }: { minute: Minute; onCounts: (up: number, d
             accessibilityLabel={up ? `Thumbs up, ${minute.thumbs_up}` : `Thumbs down, ${minute.thumbs_down}`}
             onPress={() => (up ? send(true) : setAsking(true))}
             style={[styles.thumb, { borderColor: vote === up ? MM_ORANGE : t.rule, backgroundColor: vote === up ? MM_ORANGE : 'transparent' }]}>
-            <Text style={[styles.thumbText, { color: vote === up ? '#FFFFFF' : t.text }]}>
+            <Text style={[styles.thumbText, { color: vote === up ? INK_ON_ORANGE : t.text }]}>
               {up ? '👍' : '👎'} {up ? minute.thumbs_up : minute.thumbs_down}
             </Text>
           </Pressable>
@@ -140,7 +168,7 @@ function Rating({ minute, onCounts }: { minute: Minute; onCounts: (up: number, d
                 accessibilityState={{ checked: on }}
                 onPress={() => setReasons(on ? reasons.filter((x) => x !== r.key) : [...reasons, r.key])}
                 style={[styles.chip, { borderColor: on ? MM_ORANGE : t.rule, backgroundColor: on ? MM_ORANGE : 'transparent' }]}>
-                <Text style={[styles.chipText, { color: on ? '#FFFFFF' : t.text }]}>{r.label}</Text>
+                <Text style={[styles.chipText, { color: on ? INK_ON_ORANGE : t.text }]}>{r.label}</Text>
               </Pressable>
             );
           })}
@@ -155,6 +183,7 @@ function Rating({ minute, onCounts }: { minute: Minute; onCounts: (up: number, d
 
 function Conversation({ minute }: { minute: Minute }) {
   const t = useTheme();
+  const mmText = useMmTextColor();
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [rules, setRules] = useState<string[]>([]);
   const [agreed, setAgreed] = useState(false);
@@ -234,14 +263,14 @@ function Conversation({ minute }: { minute: Minute }) {
     <View key={c.id} style={[styles.comment, reply && styles.reply, { borderColor: t.rule }]}>
       <View style={styles.commentHead}>
         <Text style={[styles.author, { color: t.text }]}>{c.display_name}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Options for ${c.display_name}'s comment`} hitSlop={12} onPress={() => more(c)}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Options for ${c.display_name}'s comment`} hitSlop={8} onPress={() => more(c)} style={styles.tap}>
           <Text style={[styles.link, { color: t.muted }]}>•••</Text>
         </Pressable>
       </View>
       <Body>{c.body}</Body>
       {!reply && (
-        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setReplyTo(c)}>
-          <Text style={[styles.link, { color: MM_ORANGE }]}>Reply</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Reply to ${c.display_name}`} onPress={() => setReplyTo(c)} style={styles.tap}>
+          <Text style={[styles.link, { color: mmText }]}>Reply</Text>
         </Pressable>
       )}
     </View>
@@ -307,7 +336,10 @@ const styles = StyleSheet.create({
   num: { fontFamily: fonts.display, fontSize: 24, width: 22 },
   question: { borderWidth: 3, borderRadius: 8, padding: space.md, gap: space.xs },
   qLabel: { fontFamily: fonts.displayMedium, fontSize: 20 },
-  takeaway: { fontFamily: fonts.bodyBold, fontSize: 18 },
+  takeaway: { fontFamily: fonts.bodyBold, fontSize: 18, lineHeight: 25 },
+  takeawayBox: { borderLeftWidth: 5, paddingLeft: space.md, paddingVertical: space.xs },
+  hint: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
+  tap: { minHeight: 44, minWidth: 44, justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   links: { gap: space.md, marginTop: space.md },
   box: { borderWidth: 1, borderRadius: 8, padding: space.md, gap: space.sm, marginTop: space.sm },

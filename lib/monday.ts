@@ -75,7 +75,7 @@ async function fetchMinutes(): Promise<Minute[]> {
  * Published Monday Minutes, newest first. The saved copy comes back right away, so the first screen opens instantly on
  * a weak signal; `onFresh` gets the server's list when the background refresh lands.
  */
-export async function listMinutes(onFresh?: (list: Minute[]) => void): Promise<Minute[]> {
+export async function listMinutes(onFresh?: (list: Minute[]) => void, onOffline?: () => void): Promise<Minute[]> {
   const { value } = await savedFirst<Minute[]>(
     'monday',
     async () => {
@@ -83,7 +83,7 @@ export async function listMinutes(onFresh?: (list: Minute[]) => void): Promise<M
       return saved.length ? byWeek(saved) : null;
     },
     fetchMinutes,
-    { onFresh },
+    { onFresh, onOffline },
   );
   return value ?? [];
 }

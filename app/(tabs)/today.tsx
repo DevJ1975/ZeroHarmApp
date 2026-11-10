@@ -2,13 +2,14 @@ import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
+import { Body, Button, ComingSoon, Heading, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { AlertCard } from '@/components/feed';
 import { EpisodeCard } from '@/components/EpisodeCard';
 import { WeatherBar } from '@/components/WeatherBar';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed } from '@/lib/feed';
+import { markStale } from '@/lib/saved-first';
 import { arrangeTalks, issueNumber, listTalks, sendDay, Talk } from '@/lib/talks';
 
 /** Today: this week's talk as a safety placard, talks ready early, then past talks. */
@@ -19,27 +20,29 @@ export default function TodayScreen() {
   const [alerts, setAlerts] = useState<FeedItem[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
 
-  useFocusEffect(
-    useCallback(() => {
-      const show = (r: { talks: Talk[]; offline: boolean }) => {
-        setTalks(r.talks);
-        setOffline(r.offline);
-      };
-      listTalks(show).then(show);
-      listFeed(['alert'], setAlerts).then(setAlerts);
-      listEpisodes(setEpisodes).then(setEpisodes);
-    }, []),
-  );
+  const load = useCallback(() => {
+    const show = (r: { talks: Talk[]; offline: boolean }) => {
+      setTalks(r.talks);
+      setOffline(r.offline);
+    };
+    return Promise.all([listTalks(show).then(show), listFeed(['alert'], setAlerts).then(setAlerts), listEpisodes(setEpisodes).then(setEpisodes)]);
+  }, []);
+  useFocusEffect(useCallback(() => void load(), [load]));
+  const refresh = useCallback(() => {
+    ['talks', 'feed-alert', 'episodes'].forEach(markStale);
+    return load();
+  }, [load]);
 
   const { current, past, early } = arrangeTalks(talks ?? []);
 
   return (
-    <Screen>
+    <Screen onRefresh={refresh}>
       <View style={styles.topRow}>
         <Heading>Today</Heading>
         <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
       </View>
       <WeatherBar />
+      {offline && talks !== null && <OfflineNote />}
 
       {talks === null && <ActivityIndicator />}
 
@@ -99,7 +102,7 @@ export default function TodayScreen() {
         <Body muted>Safety questions answered from Zero Harm talks and OSHA General Industry rules. Works with no signal.</Body>
       </Pressable>
 
-      {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
+      
 
       {early.length > 0 && (
         <View style={{ gap: space.sm }}>

@@ -123,7 +123,7 @@ def _comment_out(c: MondayComment, replies=None) -> dict:
 
 @router.get("", response=MinuteList, summary="Published Monday Minutes, newest first")
 def list_minutes(request: HttpRequest):
-    return {"minutes": [m.as_api() for m in MondayMinute.objects.released().select_related("topic").with_counts()[:30]]}
+    return {"minutes": [m.as_api() for m in MondayMinute.objects.released().select_related("topic").with_counts().order_by("-week")[:30]]}
 
 
 @router.get("/{minute_id}", response=MinuteOut)

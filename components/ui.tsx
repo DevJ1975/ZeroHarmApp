@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,17 +18,51 @@ export function Screen({
   children,
   scroll = true,
   scrollEnabled = true,
+  onRefresh,
 }: {
   children: ReactNode;
   scroll?: boolean;
   scrollEnabled?: boolean;
+  /** Pull down to reload. The spinner stays until the returned promise settles. */
+  onRefresh?: () => Promise<unknown>;
 }) {
   const t = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
   const body = <View style={{ padding: space.md, gap: space.md }}>{children}</View>;
+  const refresh = onRefresh && (
+    <RefreshControl
+      refreshing={refreshing}
+      tintColor={t.muted}
+      onRefresh={() => {
+        setRefreshing(true);
+        onRefresh().finally(() => setRefreshing(false));
+      }}
+    />
+  );
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.background }}>
-      {scroll ? <ScrollView scrollEnabled={scrollEnabled} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: space.xl }}>{body}</ScrollView> : body}
+      {scroll ? (
+        <ScrollView
+          scrollEnabled={scrollEnabled}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: space.xl }}
+          refreshControl={refresh || undefined}>
+          {body}
+        </ScrollView>
+      ) : (
+        body
+      )}
     </SafeAreaView>
+  );
+}
+
+/** A quiet line that says the screen is showing what's saved on the phone. */
+export function OfflineNote({ text = 'No signal. Showing the copy saved on this phone.' }: { text?: string }) {
+  const t = useTheme();
+  return (
+    <View accessibilityRole="alert" style={[styles.offline, { borderColor: t.rule, backgroundColor: t.surface }]}>
+      <Text style={[styles.label, { color: t.muted }]}>{text}</Text>
+    </View>
   );
 }
 
@@ -112,6 +147,7 @@ const styles = StyleSheet.create({
   input: { fontFamily: fonts.body, fontSize: 17, borderWidth: 1, borderRadius: 6, padding: 12 },
   button: { borderWidth: 2, borderRadius: 6, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' },
   buttonText: { fontFamily: fonts.bodyBold, fontSize: 17 },
+  offline: { borderWidth: 1, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 12 },
   soon: { borderWidth: 1, borderRadius: 6, padding: space.md, gap: space.sm },
   soonTitle: { fontFamily: fonts.displayMedium, fontSize: 22 },
 });

@@ -5,7 +5,11 @@ import { Body } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { Minute, weekLabel } from '@/lib/monday';
 
+/** Monday Minute orange for marks, borders and fills. Too light for small text on a light background. */
 export const MM_ORANGE = '#FF6A13';
+
+/** Orange that stays readable as text: darker on light backgrounds (5:1), brighter on dark ones. */
+export const useMmTextColor = () => (useColorScheme() === 'dark' ? '#FF8A45' : '#A84300');
 
 /** The Monday Minute lockup, light or dark to match the theme. */
 export function MondayMinuteLogo({ height = 44 }: { height?: number }) {
@@ -23,6 +27,7 @@ export function MondayMinuteLogo({ height = 44 }: { height?: number }) {
 /** This week's Monday Minute on the Today screen. */
 export function MondayMinuteCard({ minute }: { minute: Minute }) {
   const t = useTheme();
+  const mmText = useMmTextColor();
   return (
     <Pressable
       accessibilityRole="button"
@@ -32,7 +37,7 @@ export function MondayMinuteCard({ minute }: { minute: Minute }) {
       <View style={styles.top}>
         <Image source={require('@/assets/images/monday-minute-mark.png')} style={styles.mark} accessibilityIgnoresInvertColors />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.kicker, { color: MM_ORANGE }]}>MONDAY MINUTE · {weekLabel(minute).toUpperCase()}</Text>
+          <Text style={[styles.kicker, { color: mmText }]}>MONDAY MINUTE · {weekLabel(minute).toUpperCase()}</Text>
           <Text style={[styles.title, { color: t.text }]}>{minute.title}</Text>
         </View>
       </View>

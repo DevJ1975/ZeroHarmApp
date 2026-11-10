@@ -172,6 +172,8 @@ class ApiTests(TestCase):
             data = self.client.get("/api/v2/monday-minute").json()["minutes"]
         self.assertEqual(len(data), 6)
         self.assertEqual((data[1]["thumbs_up"], data[1]["comment_count"]), (1, 1))
+        weeks = [m["week"] for m in data]
+        self.assertEqual(weeks, sorted(weeks, reverse=True))  # newest first: the app shows the first one as this week's
 
     def test_thumbs_one_vote_per_phone(self):
         r = self.post(f"/{self.m.pk}/feedback", {"install_id": INSTALL, "helpful": True}).json()

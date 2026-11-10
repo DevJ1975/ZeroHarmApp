@@ -29,6 +29,6 @@ export function RegLinks({ links, title = 'Read the regulation' }: { links: RegL
 const styles = StyleSheet.create({
   wrap: { gap: 2, marginTop: space.sm },
   title: { fontFamily: fonts.bodyBold, fontSize: 16 },
-  row: { minHeight: 36, justifyContent: 'center' },
+  row: { minHeight: 44, justifyContent: 'center' },
   link: { fontFamily: fonts.bodyMedium, fontSize: 16, textDecorationLine: 'underline' },
 });
