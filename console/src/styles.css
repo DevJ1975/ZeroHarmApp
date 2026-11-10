@@ -73,10 +73,10 @@ main:focus { outline: none; }
 main { padding: 28px 32px 64px; max-width: 1320px; width: 100%; }
 
 @media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); padding: 14px 16px; }
   .brand { margin-bottom: 12px; }
-  .nav ul { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .nav ul { grid-template-columns: repeat(auto-fill, minmax(min(132px, 100%), 1fr)); }
   .nav-note { display: none; }
   main { padding: 20px 16px 48px; }
   h1 { font-size: 28px; }
@@ -90,7 +90,7 @@ main { padding: 28px 32px 64px; max-width: 1320px; width: 100%; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
 .card-warn { border-left: 5px solid var(--danger); }
 .card-warn h2 { margin-bottom: 8px; }
-.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 16px; }
 ul.plain { list-style: none; margin: 0; padding: 0; }
 .list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--rule); }
 .list-row:first-child { border-top: 0; }
@@ -101,7 +101,7 @@ ul.plain { list-style: none; margin: 0; padding: 0; }
 .banner p { margin: 4px 0 0; }
 
 /* Stats */
-.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(132px, 100%), 1fr)); gap: 12px; margin-bottom: 16px; }
 .stat { text-align: left; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px; cursor: pointer; color: var(--text); font: inherit; }
 .stat:hover { border-color: var(--muted); }
 .stat-value { display: block; font: 700 36px/1 var(--display); }
@@ -139,7 +139,7 @@ ul.plain { list-style: none; margin: 0; padding: 0; }
 
 /* Forms */
 .form { display: grid; gap: 14px; }
-.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px; }
 .form-row.compact { align-items: end; }
 .form-heading { margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--rule); }
 .field { display: grid; gap: 4px; }
@@ -181,7 +181,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .source-line { font-size: 13px; font-weight: 600; color: var(--muted); }
 .detail { min-width: 0; }
 @media (max-width: 1100px) {
-  .master-detail { grid-template-columns: 1fr; }
+  .master-detail { grid-template-columns: minmax(0, 1fr); }
   .master { position: static; max-height: 340px; }
 }
 
@@ -192,14 +192,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
 .preview-col { position: sticky; top: 16px; display: grid; gap: 10px; justify-items: center; }
 @media (max-width: 1280px) {
-  .editor-grid { grid-template-columns: 1fr; }
+  .editor-grid { grid-template-columns: minmax(0, 1fr); }
   .preview-col { position: static; }
 }
 .save-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .save-bar .result { flex-basis: 100%; }
 
-.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--rule); }
-.tab { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 14px; font: 600 15px var(--body); color: var(--muted); cursor: pointer; }
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--rule); overflow-x: auto; scrollbar-width: none; }
+.tab { flex: none; white-space: nowrap; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 14px; font: 600 15px var(--body); color: var(--muted); cursor: pointer; }
 .tab[aria-selected='true'] { color: var(--text); border-bottom-color: var(--text); }
 
 .segmented { display: inline-flex; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; }
@@ -207,7 +207,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .segmented button[aria-checked='true'] { background: var(--text); color: var(--bg); }
 
 /* ---------- Phone preview, styled like the app ---------- */
-.phone { width: 360px; max-width: 100%; border: 10px solid #0d1318; border-radius: 40px; background: var(--bg); overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
+.phone { width: min(360px, 100%); border: 10px solid #0d1318; border-radius: 40px; background: var(--bg); overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
 .phone-notch { width: 120px; height: 24px; background: #0d1318; border-radius: 0 0 14px 14px; margin: 0 auto; }
 .phone-screen { height: 640px; overflow-y: auto; padding: 12px 16px 24px; }
 .phone-hero { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; margin-bottom: 12px; background: var(--surface); }
@@ -238,7 +238,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .notif-android .notif-heading { color: #fff; }
 
 /* Broadcast */
-.radio-group { border: 0; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.radio-group { border: 0; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 8px; }
 .radio-card { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--rule); border-radius: 8px; padding: 12px; cursor: pointer; background: var(--surface); }
 .radio-card input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--text); flex: none; }
 .radio-card-on { border: 2px solid var(--text); padding: 11px; }
