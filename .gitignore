@@ -46,3 +46,5 @@ yarn-error.*
 __pycache__/
 *.pyc
 backend/db.sqlite3
+# City database downloaded by `python manage.py geo_update`
+backend/geo/

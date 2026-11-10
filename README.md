@@ -63,7 +63,9 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
   sign-ups, Monday Minute thumbs and comments, OTIS ratings, the most-used talks, and a *Needs your attention* list
   (pulled talks, paused topics, OSHA rule changes, comments waiting, sheets that didn't reach GHL, talks held for
   bracketed notes, new suggestions). Every item links to the right admin page.
-- **What it can't show:** installs and screen views. The app doesn't track them.
+- **Where the app is used:** phones active in the last 7 days and in the chosen period, iPhone and Android, and the top
+  countries, states and cities (see *Where the app is used* below).
+- **What it can't show:** screen views. The app doesn't track them.
 - **Access:** set `BACKOFFICE_KEY` on the web service to a long random value. The page opens with
   `https://<your-api-domain>/backoffice/?key=<BACKOFFICE_KEY>`, or for anyone signed in to the admin. Only GoHighLevel's
   domains may frame it. If you use a white-label app address, add it with `GHL_APP_DOMAINS=https://app.yourbrand.com`.
@@ -73,6 +75,29 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
 - **Admin from GoHighLevel:** add a second custom menu link to `https://<your-api-domain>/admin/` set to *Open in new
   tab*. That works in every browser. To show the admin inside the GHL frame, set `GHL_EMBED_ADMIN=1`: it needs login
   cookies that work inside a frame, which Safari and some Chrome settings block, so the new-tab link is the default.
+
+### Where the app is used (anonymous daily count)
+The back office shows how many phones use the app and roughly where: country, state and city.
+- **What the phone sends:** `POST /api/v2/app/open` at most once per day, and only while *Anonymous usage count* is on in
+  the app's settings (on by default). The body is `{"install_id", "platform": "ios"|"android", "app_version", "place"}`.
+  `place` (`{"city", "region", "country"}`) is sent only when the phone already knows it from the weather feature, which
+  means the person allowed approximate location. The answer is always `{"ok": true}`.
+- **What the server keeps:** one row per phone per day (`usage.AppOpen`): the day, the install id as the same salted hash
+  Monday Minute uses, platform, app version, city, state, country, and whether the place came from the phone or the
+  network. No names, emails or coordinates.
+- **What it never keeps:** the network address. When the phone sends no place, the server looks the address up in a city
+  database on its own disk to get an approximate place, then drops it. It is not stored and not written to logs.
+- **How accurate:** approximate. A phone on a company VPN or a cellular network can show up in another city. A phone
+  seen in several places is counted once, in the most recent place known.
+- **The city database:** the free [DB-IP](https://db-ip.com) "IP to City Lite" file (CC BY 4.0, so the back office shows
+  "IP geolocation by DB-IP"). `python manage.py geo_update` downloads this month's file to `GEOIP_DB_PATH`; the Docker
+  build runs it, so each deploy picks up the current month. If the download fails the build still succeeds and places
+  from the network are blank until the next build. It adds roughly 130 MB to the image.
+- **Limits and clean-up:** 60 requests an hour per network, so one connection can't invent phones and flood the table.
+  `python manage.py usage_prune` deletes rows older than `USAGE_KEEP_DAYS`; the cron runs it once an hour.
+- **Settings (web and cron):** `USAGE_ENABLED` (default `1`; `0` stores nothing and phones still get a normal answer),
+  `GEOIP_DB_PATH` (default `backend/geo/dbip-city-lite.mmdb`, `/app/geo/...` in the image), `USAGE_KEEP_DAYS` (default `400`).
+- **Before release:** the privacy policy must mention this count (see `docs/app-store-readiness.md`).
 
 ### OSHA regulation library (RAG) and amendment watch
 `backend/regs/` keeps the official eCFR text of every OSHA section that Monday Minute and OTIS cite (49 sections).
@@ -127,7 +152,8 @@ Then open http://localhost:8000/admin/. Tests: `docker compose exec web python m
 - **web** service: this repo, root directory `/backend`, built from the Dockerfile, health check `/api/health/`.
 - **cron** service: same repo and root, start command `python manage.py cron`, schedule `*/15 * * * *` (every 15 minutes).
   Each run sends any due push (the Sunday talk, Monday Minute, Zero Hour, feed items) once only, runs queued GHL syncs,
-  writes next week's Monday Minute when it's due, screens held comments, and retries pending sign-in sheets.
+  writes next week's Monday Minute when it's due, screens held comments, retries pending sign-in sheets, and once an
+  hour deletes anonymous app-open rows older than `USAGE_KEEP_DAYS`.
 
 Variables (web and cron): `DJANGO_SECRET_KEY`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
 `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`.
@@ -136,6 +162,7 @@ Monday Minute's AI runs on your own **ollama** service by default (see below). S
 `LOCAL_AI_REVIEW_MODEL` (a bigger model for the safety review only, e.g. `qwen3:14b`), `LOCAL_AI_THREADS` (set it to the
 ollama service's vCPU limit) and `LOCAL_AI_TIMEOUT` (seconds per call, default 1800). To use Claude instead: `AI_PROVIDER=anthropic` and
 `ANTHROPIC_API_KEY` (optional `MONDAY_MODEL`, default `claude-opus-5-5`). `MONDAY_MINUTE_ENABLED=0` stops writing new talks.
+Usage count (optional, see *Where the app is used*): `USAGE_ENABLED` (default `1`), `USAGE_KEEP_DAYS` (default `400`), `GEOIP_DB_PATH`.
 
 - **ollama** service (local AI, CPU only, since Railway has no GPUs): deploy the Docker image `ollama/ollama`.
   Run it in the same region as Postgres (us-west2). Add a volume mounted at `/root/.ollama` so the model downloads once,

@@ -32,6 +32,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | Monday Minute (B1) | The AI published without having passed the safety test | Safety gate: talks wait for approval until the current AI setup passes the test |
 | Zero Harm Weekly (C1) | Early unlock opened the whole year and leaked "Last week's answer" | Only the next two talks open early, without last week's answer |
 | Monday Minute (gate) | A talk marked ready on Wednesday still published if the AI later failed its safety test; a small hand-picked test could open the gate; approving a backlog sent a push per talk | The gate is re-checked before release; only full tests count, with a floor per kind of mistake; one push per approval |
+| Measurement (G1) | The app recorded no installs or opens, so the back office couldn't show how many people use it or where | An anonymous once-a-day count per phone (hashed install id, approximate city, state and country, no network address stored) with a switch in the app's settings and `USAGE_ENABLED` on the server. The back office shows "Where the app is used". The privacy policy must mention it before release |
 | Zero Harm Weekly | A phone's saved copy kept saying "Ready early" after the send time; unusual answer headings slipped through | The label follows the clock; more heading shapes are caught |
 
 ## Findings
@@ -100,7 +101,6 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 
 | # | Severity | Finding | Proposed fix |
 |---|---|---|---|
-| G1 | Medium | The app records no installs or opens, so the back office can't show how many people use it, only what they submit. | A privacy-safe count: one anonymous ping per phone per day, hashed like the install id, with a switch to turn it off. Add it to the privacy policy first. |
 | G2 | Low | There is no measure of whether talks lead to newsletter sign-ups or demo requests. | Tag links from the app (already done for the newsletter) and show the counts from GHL on the back-office page. |
 
 ## Plan
@@ -122,7 +122,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 
 **Later**
 12. B5, B6, B7: moderation tests, display name rules, notes on the dashboard.
-13. G1, G2: usage counts and funnel numbers.
+13. G2: funnel numbers. (G1, usage counts, is done; see "Fixed during this audit".)
 14. A5: staging environment.
 15. C3: decide the roles of the two weekly programs.
 16. Spanish for Monday Minute and the highest-risk OTIS answers, with a human translator.

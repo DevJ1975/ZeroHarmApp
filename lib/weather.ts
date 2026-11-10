@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 
 import { api, isConfigured } from './config';
+import { rememberPlace } from './usage';
 
 export type Weather = {
   place: string;
@@ -36,6 +37,7 @@ export async function getWeather(ask = false): Promise<Weather | null> {
   try {
     const data = await api<Weather>(`/weather/?lat=${lat}&lon=${lon}`);
     cached = { at: Date.now(), data };
+    rememberPlace(data.place); // for the anonymous daily usage count; it does nothing when that is switched off
     return data;
   } catch {
     return null;

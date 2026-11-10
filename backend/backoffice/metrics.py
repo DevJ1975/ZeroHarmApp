@@ -1,6 +1,9 @@
-"""Numbers for the back-office dashboard. Everything comes from what the server already stores: no tracking in the app."""
+"""Numbers for the back-office dashboard. Everything comes from what the server already stores. The only thing the app
+reports about itself is the anonymous once-a-day usage count (usage/), which people can switch off."""
 import datetime as dt
-from collections import defaultdict
+from collections import Counter, defaultdict
+
+from django.conf import settings
 
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
@@ -9,8 +12,15 @@ from monday.gate import status as gate_status
 from monday.models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
 from regs.models import RegChange
 from talks.models import AppSignup, KbEntry, OtisFeedback, SigninSheet, TalkSuggestion, ToolboxTalk
+from usage import geo
+from usage.models import AppOpen
 
 WEEKS = 12
+TOP_PLACES = 10
+# Names for the countries most likely to show up. Any other country is shown by its two-letter code.
+COUNTRIES = {"US": "United States", "CA": "Canada", "MX": "Mexico", "PR": "Puerto Rico", "GB": "United Kingdom", "IE": "Ireland",
+             "AU": "Australia", "NZ": "New Zealand", "DE": "Germany", "FR": "France", "ES": "Spain", "IN": "India", "PH": "Philippines",
+             "BR": "Brazil", "CO": "Colombia"}
 
 
 def _monday(d: dt.date) -> dt.date:
@@ -45,6 +55,61 @@ def bars(series, width=640, height=180, pad=24):
         out.append({"week": week, "value": value, "path": path, "cx": round(x + bar_w / 2, 1), "y": y,
                     "label": value == peak and value > 0 or (i == len(series) - 1 and value > 0), "tick": i % 2 == (len(series) - 1) % 2})
     return {"bars": out, "width": width, "height": height, "baseline": height - pad, "pad": pad, "peak": peak}
+
+
+def _top(counts, row, top=TOP_PLACES):
+    """Table rows for the busiest places, then "All other places" and "Unknown" so every phone is in the table once."""
+    unknown = counts.pop(None, 0)
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    rows = [{**row(key), "phones": n} for key, n in ranked[:top]]
+    other = sum(n for _, n in ranked[top:])
+    if other:
+        rows.append({"name": "All other places", "within": "", "phones": other})
+    if unknown:
+        rows.append({"name": "Unknown", "within": "", "phones": unknown})
+    return rows
+
+
+def usage(days=30, today=None):
+    """Where the app is used: distinct phones in the last 7 and the last `days` days, by platform and by place.
+
+    A phone counts once however many days it opened the app. If it was seen in several places, it counts in the most
+    recent place that is known.
+    """
+    today = today or timezone.localdate()
+    since, week = today - dt.timedelta(days=days - 1), today - dt.timedelta(days=6)
+    phones = {}  # install hash -> [platform, last day seen, (country, region, city), where that place came from]
+    rows = (AppOpen.objects.filter(day__gte=since, day__lte=today).order_by("day", "id")
+            .values_list("install_hash", "day", "platform", "country", "region", "city", "source"))
+    for install, day, platform, country, region, city, source in rows.iterator(chunk_size=5000):
+        phone = phones.setdefault(install, [platform, day, ("", "", ""), ""])
+        phone[0], phone[1] = platform, day  # rows arrive oldest first, so the newest wins
+        if country or region or city:
+            phone[2], phone[3] = (country, region, city), source
+
+    countries, regions, cities, platforms, sources = Counter(), Counter(), Counter(), Counter(), Counter()
+    for platform, _, (country, region, city), source in phones.values():
+        platforms[platform] += 1
+        sources[source] += 1
+        countries[country or None] += 1
+        regions[(region, country) if region else None] += 1
+        cities[(city, region, country) if city else None] += 1
+
+    def country_name(code):
+        return COUNTRIES.get(code, code)
+
+    return {
+        "enabled": settings.USAGE_ENABLED,
+        "days": days,
+        "phones": len(phones),
+        "phones_week": sum(1 for p in phones.values() if p[1] >= week) if days >= 7 else len(phones),
+        "ios": platforms["ios"], "android": platforms["android"],
+        "from_phone": sources[AppOpen.PHONE], "from_network": sources[AppOpen.NETWORK], "unknown": sources[""],
+        "countries": _top(countries, lambda c: {"name": country_name(c), "within": ""}),
+        "regions": _top(regions, lambda k: {"name": k[0], "within": country_name(k[1])}),
+        "cities": _top(cities, lambda k: {"name": k[0], "within": ", ".join(x for x in (k[1], country_name(k[2])) if x)}),
+        "credit": geo.available() or sources[AppOpen.NETWORK] > 0,  # DB-IP's licence (CC BY 4.0) asks for a credit line wherever its data is used
+    }
 
 
 def dashboard(days=30, today=None):
@@ -109,4 +174,5 @@ def dashboard(days=30, today=None):
                      "status": {"ready": "Published", "pulled": "Pulled", "held": "Waiting for approval"}.get(m.status, m.get_status_display()), "pulled": m.status == MondayMinute.PULLED, "id": m.pk} for m in minutes],
         "top_talks": [{"title": t["talk_title"], "program": programs.get(t["program"], t["program"]), "sheets": t["n"], "people": t["people"] or 0} for t in top_talks],
         "attention": attention,
+        "usage": usage(days, today=today),
     }

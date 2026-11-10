@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "talks",
     "monday",
     "regs",
+    "usage",
     "backoffice",
 ]
 
@@ -145,6 +146,14 @@ TALKS_EARLY_COUNT = int(os.environ.get("TALKS_EARLY_COUNT", "2"))  # how many up
 # The app's look. "auto": phones show the holiday look each December on their own (the first season starts November 10,
 # 2026) and go back to normal on January 1. "default" turns the holiday look off now, "holiday" forces it on. No app update needed.
 APP_THEME = os.environ.get("APP_THEME", "auto")
+
+# Anonymous usage count: one row per phone per day with an approximate city, state and country, for the back office.
+# USAGE_ENABLED=0 stops storing anything (phones still get a normal answer). The network address is never stored.
+USAGE_ENABLED = os.environ.get("USAGE_ENABLED", "1") == "1"
+# MaxMind-format city database used to turn a network address into an approximate place. The Docker build downloads
+# the free DB-IP one here (python manage.py geo_update). Without the file, places from the network are blank.
+GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", str(BASE_DIR / "geo" / "dbip-city-lite.mmdb"))
+USAGE_KEEP_DAYS = int(os.environ.get("USAGE_KEEP_DAYS", "400"))  # usage_prune deletes older rows; 400 keeps a year-over-year view
 
 # Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly.
 MONDAY_MINUTE_ENABLED = os.environ.get("MONDAY_MINUTE_ENABLED", "1") == "1"

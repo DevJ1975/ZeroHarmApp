@@ -13,6 +13,7 @@ import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
 import { isHoliday, refreshSeason } from '@/lib/season';
 import { flushSheets } from '@/lib/sheets';
+import { reportOpen } from '@/lib/usage';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -45,6 +46,7 @@ export default function RootLayout() {
       flushSheets();
       flushVotes();
       refreshSeason();
+      reportOpen();
     };
     flush();
     const sub = AppState.addEventListener('change', (state) => state === 'active' && flush());

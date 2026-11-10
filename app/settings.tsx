@@ -9,6 +9,7 @@ import { api, config, isConfigured } from '@/lib/config';
 import { FeedbackPrefs, getFeedbackPrefs, saveFeedbackPrefs } from '@/lib/otis/feedback';
 import { getProfile, saveProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
+import { getUsageOn, setUsageOn } from '@/lib/usage';
 
 export default function SettingsScreen() {
   const t = useTheme();
@@ -19,10 +20,12 @@ export default function SettingsScreen() {
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [otis, setOtis] = useState<FeedbackPrefs>({ helpImprove: false, shareQuestion: false });
+  const [usage, setUsage] = useState(true);
 
   useEffect(() => {
     getPrefs().then(setLocal);
     getFeedbackPrefs().then(setOtis);
+    getUsageOn().then(setUsage);
     getProfile().then((p) => {
       setEmail(p.email);
       setFirstName(p.name.split(' ')[0] ?? '');
@@ -140,6 +143,15 @@ export default function SettingsScreen() {
         Monday Minute talks are written by AI and checked before they publish. OTIS is an AI assistant that runs on this phone. Trainovate
         Technologies is not part of OSHA or any government agency.
       </Body>
+      {otisRow(
+        'Anonymous usage count',
+        'Once a day the app tells Trainovate it was opened, with the app version and an approximate city. No name, email or exact location. Turning it off stops it.',
+        usage,
+        (v) => {
+          setUsage(v);
+          setUsageOn(v);
+        },
+      )}
       {config.privacyUrl !== '' && <Button kind="secondary" label="Privacy policy" onPress={() => WebBrowser.openBrowserAsync(config.privacyUrl)} />}
       {config.termsUrl !== '' && <Button kind="secondary" label="Terms of use" onPress={() => WebBrowser.openBrowserAsync(config.termsUrl)} />}
       {config.supportEmail !== '' && (

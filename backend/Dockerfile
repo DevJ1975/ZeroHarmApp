@@ -19,6 +19,11 @@ RUN DJANGO_SECRET_KEY=build-only python manage.py collectstatic --noinput
 RUN useradd --create-home appuser && chown -R appuser /app
 USER appuser
 
+# City database for the back office's "Where the app is used" (free DB-IP Lite, CC BY 4.0). Downloaded as appuser so
+# the file isn't copied again by the chown above. If db-ip.com can't be reached the build carries on without it:
+# places from the network are then blank until the next build. Same placeholder key as collectstatic.
+RUN DJANGO_SECRET_KEY=build-only python manage.py geo_update || echo "Geo: skipped, the build continues without the city database"
+
 EXPOSE 8000
 
 # Migrations run on every start (they are a no-op when nothing changed), then gunicorn serves on $PORT.

@@ -83,7 +83,49 @@
       </table></div>
     </div>
   </section>
-  <footer>Counts come from sign-in sheets saved to records, sign-ups, ratings and comments. The app doesn't track installs or screen views, so those aren't shown.</footer>
+  <section aria-labelledby="where-h">
+    <div class="card" style="margin-bottom:12px">
+      <h2 id="where-h">Where the app is used</h2>
+      <p class="sub">Phones that opened the app, counted once each. Places are approximate: they come from the phone's approximate location when the person allowed it, and otherwise from the network the phone was on. A phone on a company VPN or a cellular network can show up in another city. No names, exact locations or network addresses are kept.</p>
+      {% if usage.phones %}
+      <div class="tiles" style="margin-bottom:0">
+        <div class="tile"><div class="label">Phones active, last 7 days</div><div class="value">{{ usage.phones_week }}</div></div>
+        <div class="tile"><div class="label">Phones active, last {{ usage.days }} days</div><div class="value">{{ usage.phones }}</div><div class="note">{{ usage.ios }} iPhone · {{ usage.android }} Android</div></div>
+        <div class="tile"><div class="label">How the place is known</div><div class="note">{{ usage.from_phone }} from the phone's location · {{ usage.from_network }} from the network · {{ usage.unknown }} unknown</div></div>
+      </div>
+      {% elif usage.enabled %}
+      <p class="ok">No app opens counted in the last {{ usage.days }} days. Phones start to appear here once people open an app version that has the anonymous usage count, and each phone reports at most once a day. People who switch the count off in the app's settings are never counted.</p>
+      {% else %}
+      <p class="ok">The usage count is switched off on the server (USAGE_ENABLED=0), so nothing is being recorded.</p>
+      {% endif %}
+    </div>
+    {% if usage.phones %}
+    <div class="grid">
+      <div class="card">
+        <h2>Countries</h2><p class="sub">Phones in the last {{ usage.days }} days.</p>
+        <div class="scroll"><table>
+          <tr><th scope="col">Country</th><th scope="col" class="num">Phones</th></tr>
+          {% for p in usage.countries %}<tr><td>{{ p.name }}</td><td class="num">{{ p.phones }}</td></tr>{% endfor %}
+        </table></div>
+      </div>
+      <div class="card">
+        <h2>States and regions</h2><p class="sub">Phones in the last {{ usage.days }} days.</p>
+        <div class="scroll"><table>
+          <tr><th scope="col">State or region</th><th scope="col">Country</th><th scope="col" class="num">Phones</th></tr>
+          {% for p in usage.regions %}<tr><td>{{ p.name }}</td><td>{{ p.within }}</td><td class="num">{{ p.phones }}</td></tr>{% endfor %}
+        </table></div>
+      </div>
+      <div class="card">
+        <h2>Cities</h2><p class="sub">Phones in the last {{ usage.days }} days.</p>
+        <div class="scroll"><table>
+          <tr><th scope="col">City</th><th scope="col">State and country</th><th scope="col" class="num">Phones</th></tr>
+          {% for p in usage.cities %}<tr><td>{{ p.name }}</td><td>{{ p.within }}</td><td class="num">{{ p.phones }}</td></tr>{% endfor %}
+        </table></div>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  <footer>Counts come from sign-in sheets saved to records, sign-ups, ratings and comments. Phones active is an anonymous once-a-day count that people can switch off in the app's settings. A phone that moved between places is counted in the latest place known. The app doesn't track screen views, so those aren't shown.{% if usage.credit %} <a href="https://db-ip.com" target="_blank" rel="noopener">IP geolocation by DB-IP</a>.{% endif %}</footer>
 </main>
 <div id="tip" role="status"></div>
 <script>

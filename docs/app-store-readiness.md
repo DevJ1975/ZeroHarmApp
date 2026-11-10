@@ -23,7 +23,7 @@ items under "Done in code" still need a check on a real build.
 1. **Apple Developer Program** for Trainovate Technologies (needs the D-U-N-S number), then `npx eas-cli@latest init` and create the app record for `ai.trainovate.zeroharm`.
 2. **Deploy the backend** on Railway: set `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `INGEST_KEY`, `BACKOFFICE_KEY` on web and cron. It must stay up through review.
 3. **Give the build its public values** in EAS (production environment): `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_ONESIGNAL_APP_ID`, `EXPO_PUBLIC_PRIVACY_URL`, `EXPO_PUBLIC_TERMS_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`. Without the first two the store build shows an empty app.
-4. **Privacy policy and terms of use** on a public page. The policy must cover: email, name, company, crew names, signatures, crew photos, comments, ratings, push token, approximate location, the random install id, OneSignal, GoHighLevel, hosting, how long records are kept and how to ask for deletion. The terms need a no-tolerance line for abusive comments. Have a lawyer review both.
+4. **Privacy policy and terms of use** on a public page. The policy must cover: email, name, company, crew names, signatures, crew photos, comments, ratings, push token, approximate location, the random install id, the anonymous daily usage count (once a day the app tells the server that a phone opened it, with the platform, app version and an approximate city, state and country; the place comes from the phone's approximate location when allowed, otherwise it is worked out from the network address, which is not stored; people can switch the count off in Settings), DB-IP as the source of the network place lookup, OneSignal, GoHighLevel, hosting, how long records are kept and how to ask for deletion. The terms need a no-tolerance line for abusive comments. Have a lawyer review both.
 5. **A support email** that someone reads daily. Apple expects comment reports to be acted on within 24 hours.
 6. **Real content before review:** at least one approved Monday Minute (two or three is better), the text for Zero Harm Weekly issues 1 and 2, one alert and one Learn item. Empty screens are the most common rejection.
 7. **Push:** upload an APNs key (.p8) to OneSignal and send a test push to a TestFlight build.
@@ -39,8 +39,8 @@ items under "Done in code" still need a check on a real build.
 | Photos (crew photo on a saved sheet) | Yes | No | App functionality |
 | Other user content (signed sheets, comments, notes, suggestions, OTIS question if opted in) | Yes | No | App functionality; analytics |
 | Device ID (push id, hashed install id) | No | No | App functionality |
-| Product interaction (thumbs, OTIS ratings, notification opens) | No | No | Analytics; app functionality |
-| Coarse location (rounded to about 1 km for weather) | No | No | App functionality |
+| Product interaction (thumbs, OTIS ratings, notification opens, the anonymous once-a-day app open count) | No | No | Analytics; app functionality |
+| Coarse location (rounded to about 1 km for weather; city, state and country for the anonymous usage count) | No | No | App functionality; analytics |
 
 ## Notes for the reviewer (paste into App Store Connect)
 
