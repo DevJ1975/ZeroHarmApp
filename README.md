@@ -35,16 +35,18 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
   CSP role before use (`backend/monday/topics.json`, review record in `docs/monday-minute-topic-review.md`). Edit them
   in the admin under *Monday Minute topics*.
 - **Weekly run, no human approval:** from Wednesday, the cron picks a topic (in season, well rated, not used in two years),
-  and Claude writes the talk from that one brief. Hard checks run on every draft: required lines word for word, no number
-  that isn't in the brief, no links, one crew question. A second Claude call then reviews it as a Certified Safety
-  Professional. Any MUST FIX finding means a rewrite, up to 3 tries on each of 2 topics. If nothing passes, that week
+  and the AI (your local model, or Claude) writes the talk from that one brief. Hard checks run on every draft: required lines word for word, no number
+  that isn't in the brief, no links, one crew question. A second AI call then reviews it as a Certified Safety
+  Professional and maps every point to a brief line. Any MUST FIX finding or ungrounded point means a rewrite, up to
+  3 tries on each of 2 topics. With the local model, a second, independent review must also pass, and both must be
+  highly confident. If nothing passes, that week
   doesn't publish. Talks publish Monday at 5:00 AM Pacific with a push to devices with *Monday Minute* turned on.
   *Write next week's Monday Minute now* in the admin runs it on demand.
 - **Crews:** read it, print it with a paper sign-in sheet, or sign on the phone (finger signatures and/or a group
   photo). Then print, email or save the signed sheet. Every sheet is kept on the phone (*My sign-in sheets*).
 - **Thumbs up/down** (one per phone per talk), with reasons on a thumbs down. Three "isn't safe or isn't right"
   reports pull the talk and pause its topic until someone reviews it. Ratings also steer which topics come next.
-- **Comments and replies**, screened by AI moderation before they show. Held if moderation is down. Two reports hide a
+- **Comments and replies**, screened by AI moderation before they show (in the background with the local model). Held if moderation is down. Two reports hide a
   comment. Anyone can block a commenter on their phone, and people agree to community rules before their first comment.
   The admin can hide or restore any comment.
 - API: `/api/v2/monday-minute` (list, detail, `/feedback`, `/comments`, `/comments/{id}/report`).
@@ -86,8 +88,16 @@ Then open http://localhost:8000/admin/. Tests: `docker compose exec web python m
 
 Variables (web and cron): `DJANGO_SECRET_KEY`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
 `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`.
-Monday Minute also needs `ANTHROPIC_API_KEY` (web and cron). Optional: `MONDAY_MINUTE_ENABLED=0` to stop writing new talks,
-`MONDAY_MODEL` (default `claude-opus-5-5`).
+Monday Minute's AI runs on your own **ollama** service by default (see below). Set on web and cron:
+`AI_PROVIDER=local`, `LOCAL_AI_URL=http://ollama.railway.internal:11434`, optionally `LOCAL_AI_MODEL` (default `qwen3:8b`)
+and `LOCAL_AI_TIMEOUT` (seconds per call, default 1800). To use Claude instead: `AI_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY` (optional `MONDAY_MODEL`, default `claude-opus-5-5`). `MONDAY_MINUTE_ENABLED=0` stops writing new talks.
+
+- **ollama** service (local AI, CPU only, since Railway has no GPUs): deploy the Docker image `ollama/ollama`.
+  Add a volume mounted at `/root/.ollama` so the model downloads once, and set the variables `OLLAMA_HOST=[::]:11434`
+  (listen on Railway's private network) and `OLLAMA_KEEP_ALIVE=10m` (unload when idle, so memory and cost drop between
+  runs). Don't give it a public domain: only web and cron talk to it, over the private network. The first cron run pulls
+  the model (about 5 GB for `qwen3:8b`). While loaded it uses about 6 GB of memory; a talk takes several minutes on CPU.
 Create the admin login once with `railway ssh` → `python manage.py createsuperuser`.
 
 ## Still to do before App Store submission
