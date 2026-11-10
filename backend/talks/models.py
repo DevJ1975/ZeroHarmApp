@@ -284,3 +284,83 @@ class Episode(models.Model):
             "references": self.references, "video_url": self.video_url or None, "thumbnail_url": self.thumbnail_url or None,
             "card_pdf_url": self.card_pdf_url or None, "released_at": self.release_at.isoformat(),
         }
+
+
+# ---- OTIS on-device AI: rollout, pinned model files, opt-in feedback -----------------------------
+
+class OtisRollout(models.Model):
+    """One row of switches the phones read in their OTIS manifest. Edit it in the admin; no app update needed."""
+
+    ios_enabled = models.BooleanField(default=True, help_text="Turn OTIS off on iPhone and iPad")
+    android_enabled = models.BooleanField(default=True, help_text="Turn OTIS off on Android")
+    min_app_version = models.CharField(max_length=20, blank=True, help_text="Older app versions are asked to update before using OTIS, e.g. 1.2.0")
+    feedback_enabled = models.BooleanField(default=True, help_text="Accept 'Was this helpful?' ratings from people who opted in")
+    message = models.CharField(max_length=200, blank=True, help_text="Shown when OTIS is off. Blank = 'OTIS is taking a short break.'")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "OTIS rollout"
+        verbose_name_plural = "OTIS rollout"
+
+    def __str__(self):
+        return "OTIS rollout switches"
+
+    @classmethod
+    def current(cls):
+        return cls.objects.order_by("pk").first() or cls()
+
+
+class OtisModelRelease(models.Model):
+    """A pinned copy of the model files the phones download. With none active, phones use the library's built-in model."""
+
+    PLATFORMS = [("ios", "iPhone / iPad"), ("android", "Android")]
+    BACKENDS = [("mlx", "MLX (Apple)"), ("coreml", "Core ML (Apple)"), ("xnnpack", "XNNPACK (CPU, any phone)"), ("vulkan", "Vulkan (Android GPU)")]
+
+    key = models.SlugField(max_length=60, unique=True, help_text="Stable id, e.g. qwen3-1.7b-mlx-int4-2026-11. Change it to make phones download again.")
+    label = models.CharField(max_length=80, help_text="What the setup screen calls it, e.g. OTIS standard")
+    platform = models.CharField(max_length=10, choices=PLATFORMS)
+    backend = models.CharField(max_length=10, choices=BACKENDS, help_text="The phone only gets a release its app build can run")
+    min_memory_gb = models.DecimalField(max_digits=4, decimal_places=1, default=0, help_text="Phones with at least this much memory. The biggest match wins.")
+    model_url = models.URLField(max_length=500, help_text="HTTPS link to the .pte file")
+    tokenizer_url = models.URLField(max_length=500, help_text="HTTPS link to tokenizer.json")
+    tokenizer_config_url = models.URLField(max_length=500, help_text="HTTPS link to tokenizer_config.json")
+    size_mb = models.PositiveIntegerField(help_text="Download size shown on the setup screen")
+    active = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, help_text="What you tested this on")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["platform", "-min_memory_gb"]
+        verbose_name = "OTIS model release"
+
+    def __str__(self):
+        return f"{self.get_platform_display()} · {self.label} ({self.key})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        for field in ("model_url", "tokenizer_url", "tokenizer_config_url"):
+            if not getattr(self, field).startswith("https://"):
+                raise ValidationError({field: "Use an HTTPS link."})
+
+
+class OtisFeedback(models.Model):
+    """A 'Was this helpful?' rating from someone who turned on Help improve OTIS. No name, email or device id."""
+
+    helpful = models.BooleanField()
+    question = models.TextField(blank=True, help_text="Only sent when the person also chose to share their question")
+    source_ids = models.JSONField(default=list, blank=True, help_text="Which knowledge base passages OTIS used")
+    model_key = models.CharField(max_length=60, blank=True)
+    platform = models.CharField(max_length=10, blank=True)
+    app_version = models.CharField(max_length=20, blank=True)
+    lang = models.CharField(max_length=2, default="en")
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "OTIS feedback"
+        verbose_name_plural = "OTIS feedback"
+
+    def __str__(self):
+        return f"{'Helpful' if self.helpful else 'Not helpful'} · {self.created_at:%Y-%m-%d}"

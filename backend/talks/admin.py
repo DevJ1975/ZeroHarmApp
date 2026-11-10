@@ -174,3 +174,34 @@ class EpisodeAdmin(admin.ModelAdmin):
         for ep in queryset:
             ok, detail = send_episode_push(ep)
             self.message_user(request, f"EP {ep.number}: {'sent' if ok else detail}", messages.SUCCESS if ok else messages.ERROR)
+
+
+# ---- OTIS on-device AI ---------------------------------------------------------------------------
+from .models import OtisFeedback, OtisModelRelease, OtisRollout
+
+
+@admin.register(OtisRollout)
+class OtisRolloutAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "ios_enabled", "android_enabled", "min_app_version", "feedback_enabled", "updated_at")
+
+    def has_add_permission(self, request):
+        return not OtisRollout.objects.exists()  # one row of switches
+
+
+@admin.register(OtisModelRelease)
+class OtisModelReleaseAdmin(admin.ModelAdmin):
+    list_display = ("key", "label", "platform", "backend", "min_memory_gb", "size_mb", "active", "updated_at")
+    list_filter = ("platform", "backend", "active")
+    search_fields = ("key", "label", "notes")
+
+
+@admin.register(OtisFeedback)
+class OtisFeedbackAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "helpful", "short_question", "platform", "model_key", "lang", "reviewed")
+    list_filter = ("helpful", "platform", "lang", "reviewed")
+    search_fields = ("question",)
+    readonly_fields = ("helpful", "question", "source_ids", "model_key", "platform", "app_version", "lang", "created_at")
+
+    @admin.display(description="Question")
+    def short_question(self, obj):
+        return (obj.question[:80] + "…") if len(obj.question) > 80 else (obj.question or "(not shared)")

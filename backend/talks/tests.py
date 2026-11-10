@@ -289,3 +289,109 @@ class ZeroHourTests(TestCase):
         with patch("django.utils.timezone.now", return_value=datetime(2026, 11, 7, tzinfo=dt_tz.utc)):
             items = self.client.get("/api/otis/kb/").json()["items"]
         self.assertTrue(any("E-stop" in i["text"] and i.get("episode") == 1 for i in items))
+
+
+# ---- API v2 (Django Ninja): OTIS on-device manifest, KB sync, feedback -----------------------------
+import json as _json
+
+from .models import OtisFeedback, OtisModelRelease, OtisRollout
+
+
+def _release(**kw):
+    base = dict(key="qwen3-1.7b-mlx", label="OTIS standard", platform="ios", backend="mlx", min_memory_gb=6,
+                model_url="https://cdn.example.com/m.pte", tokenizer_url="https://cdn.example.com/t.json",
+                tokenizer_config_url="https://cdn.example.com/tc.json", size_mb=1100, active=True)
+    base.update(kw)
+    return OtisModelRelease.objects.create(**base)
+
+
+class ApiV2ManifestTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def manifest(self, **device):
+        body = {"platform": "ios", "memory_gb": 8, "app_version": "1.0.0", "backends": ["mlx", "xnnpack"]}
+        body.update(device)
+        return self.client.post("/api/v2/otis/manifest", _json.dumps(body), content_type="application/json")
+
+    def test_builtin_model_by_memory(self):
+        big = self.manifest(memory_gb=8).json()
+        self.assertTrue(big["enabled"])
+        self.assertEqual(big["model"]["builtin"], "QWEN3_1_7B")
+        self.assertIsNone(big["model"]["files"])
+        small = self.manifest(platform="android", memory_gb=4, backends=["xnnpack"]).json()
+        self.assertEqual(small["model"]["builtin"], "QWEN3_0_6B")
+
+    def test_pinned_release_matches_platform_backend_and_memory(self):
+        _release()
+        _release(key="qwen3-0.6b-mlx", min_memory_gb=0, size_mb=450, label="OTIS compact")
+        _release(key="qwen3-1.7b-android", platform="android", backend="xnnpack")
+        self.assertEqual(self.manifest(memory_gb=8).json()["model"]["key"], "qwen3-1.7b-mlx")
+        self.assertEqual(self.manifest(memory_gb=4).json()["model"]["key"], "qwen3-0.6b-mlx")
+        # An app build without MLX never gets the MLX file; it falls back to the built-in model.
+        self.assertEqual(self.manifest(backends=["xnnpack"]).json()["model"]["builtin"], "QWEN3_1_7B")
+        android = self.manifest(platform="android", backends=["vulkan", "xnnpack"]).json()["model"]
+        self.assertEqual((android["key"], android["files"]["model_url"]), ("qwen3-1.7b-android", "https://cdn.example.com/m.pte"))
+
+    def test_inactive_release_ignored(self):
+        _release(active=False)
+        self.assertEqual(self.manifest().json()["model"]["builtin"], "QWEN3_1_7B")
+
+    def test_platform_switch_and_min_version(self):
+        OtisRollout.objects.create(android_enabled=False, min_app_version="1.2.0", message="Back Monday.")
+        off = self.manifest(platform="android", backends=["xnnpack"]).json()
+        self.assertEqual((off["enabled"], off["message"], off["model"]), (False, "Back Monday.", None))
+        old = self.manifest(app_version="1.1.9").json()
+        self.assertEqual((old["enabled"], old["update_required"]), (False, True))
+        self.assertTrue(self.manifest(app_version="1.10.0").json()["enabled"])
+
+    def test_rejects_bad_platform(self):
+        self.assertEqual(self.manifest(platform="windows").status_code, 422)
+
+    def test_kb_version_and_304(self):
+        man = self.manifest(kb_version="").json()["kb"]
+        self.assertTrue(man["changed"])
+        res = self.client.get("/api/v2/otis/kb")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["version"], man["version"])
+        self.assertEqual(res["ETag"], f'"{man["version"]}"')
+        self.assertEqual(self.client.get("/api/v2/otis/kb", HTTP_IF_NONE_MATCH=res["ETag"]).status_code, 304)
+        self.assertFalse(self.manifest(kb_version=man["version"]).json()["kb"]["changed"])
+        KbEntry.objects.create(title="New entry", body="Something new.")
+        cache.clear()
+        self.assertEqual(self.client.get("/api/v2/otis/kb", HTTP_IF_NONE_MATCH=res["ETag"]).status_code, 200)
+
+    def test_feedback_saved_and_switch(self):
+        post = lambda body: self.client.post("/api/v2/otis/feedback", _json.dumps(body), content_type="application/json")
+        self.assertEqual(post({"helpful": True, "source_ids": ["k1", "t3-1"], "platform": "ios", "lang": "es"}).status_code, 201)
+        fb = OtisFeedback.objects.get()
+        self.assertEqual((fb.helpful, fb.source_ids, fb.question, fb.lang), (True, ["k1", "t3-1"], "", "es"))
+        self.assertEqual(post({"helpful": False, "question": "x" * 501}).status_code, 422)
+        OtisRollout.objects.create(feedback_enabled=False)
+        self.assertEqual(post({"helpful": False}).status_code, 403)
+
+    def test_openapi_schema(self):
+        paths = self.client.get("/api/v2/openapi.json").json()["paths"]
+        self.assertTrue({"/api/v2/otis/manifest", "/api/v2/otis/kb", "/api/v2/otis/feedback"} <= set(paths))
+
+
+class OshaKbTests(TestCase):
+    def test_general_industry_entries_seeded_and_cited(self):
+        osha = KbEntry.objects.filter(source__startswith="OSHA 29 CFR")
+        self.assertGreaterEqual(osha.count(), 39)
+        for e in osha:
+            self.assertRegex(e.source, r"^OSHA 29 CFR 19(10|04)\.", e.title)
+            self.assertLessEqual(len(e.body.split()), 130, f"{e.title} is too long for OTIS to quote")
+
+    def test_safety_critical_wording(self):
+        body = lambda t: KbEntry.objects.get(title=t).body
+        self.assertIn("Verify isolation", body("Lockout/tagout: the steps"))
+        self.assertIn("removed by the person who put it on", body("Lockout/tagout: whose lock comes off"))
+        self.assertIn("do not go in after them", body("Permit-required confined spaces"))
+        self.assertIn("no gloves", body("Gloves, and when not to wear them"))
+        self.assertTrue(body("Reporting a death or serious injury to OSHA").startswith("If someone is hurt, call 911 first."))
+        self.assertIn("OSHA General Industry", body("What OTIS is"))
+
+    def test_otis_finds_osha_answers(self):
+        items = self.client.get("/api/otis/kb/").json()["items"]
+        self.assertTrue(any(i["source"] == "OSHA 29 CFR 1910.147(d)" for i in items))

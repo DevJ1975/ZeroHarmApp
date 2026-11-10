@@ -4,6 +4,7 @@ import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { api, isConfigured } from '@/lib/config';
+import { FeedbackPrefs, getFeedbackPrefs, saveFeedbackPrefs } from '@/lib/otis/feedback';
 import { getProfile, saveProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
 
@@ -15,9 +16,11 @@ export default function SettingsScreen() {
   const [firstName, setFirstName] = useState('');
   const [company, setCompany] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [otis, setOtis] = useState<FeedbackPrefs>({ helpImprove: false, shareQuestion: false });
 
   useEffect(() => {
     getPrefs().then(setLocal);
+    getFeedbackPrefs().then(setOtis);
     getProfile().then((p) => {
       setEmail(p.email);
       setFirstName(p.name.split(' ')[0] ?? '');
@@ -30,6 +33,22 @@ export default function SettingsScreen() {
     setLocal(result.prefs);
     setDenied(result.permissionDenied);
   }
+
+  async function toggleOtis(next: FeedbackPrefs) {
+    const clean = { helpImprove: next.helpImprove, shareQuestion: next.helpImprove && next.shareQuestion };
+    setOtis(clean);
+    await saveFeedbackPrefs(clean);
+  }
+
+  const otisRow = (label: string, detail: string, value: boolean, onChange: (v: boolean) => void, disabled = false) => (
+    <View style={[styles.row, { borderColor: t.rule, opacity: disabled ? 0.5 : 1 }]}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.rowLabel, { color: t.text }]}>{label}</Text>
+        <Body muted>{detail}</Body>
+      </View>
+      <Switch accessibilityLabel={label} value={value} disabled={disabled} onValueChange={onChange} trackColor={{ true: t.accent }} />
+    </View>
+  );
 
   async function signUp() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim()) || !isConfigured()) {
@@ -82,6 +101,22 @@ export default function SettingsScreen() {
           <Body>Notifications are blocked for Zero Harm on this phone.</Body>
           <Button kind="secondary" label="Open phone settings" onPress={() => Linking.openSettings()} />
         </View>
+      )}
+
+      <Text style={[styles.section, { color: t.text }]}>OTIS</Text>
+      <Body muted>OTIS runs on this phone. Nothing you ask leaves it unless you turn this on.</Body>
+      {otisRow(
+        'Help improve OTIS',
+        'Shows “Was this helpful?” under answers. A tap sends yes or no and which sources OTIS used. No name, email or phone id.',
+        otis.helpImprove,
+        (v) => toggleOtis({ ...otis, helpImprove: v }),
+      )}
+      {otisRow(
+        'Include my question',
+        'Also send the question you asked with your rating. Leave out names and anything that identifies an injured person.',
+        otis.shareQuestion,
+        (v) => toggleOtis({ ...otis, shareQuestion: v }),
+        !otis.helpImprove,
       )}
 
       <Text style={[styles.section, { color: t.text }]}>Get the talk by email too</Text>

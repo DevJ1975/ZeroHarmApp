@@ -1,103 +1,117 @@
-import * as Device from 'expo-device';
 import { router, Stack } from 'expo-router';
 import Storage from 'expo-sqlite/kv-store';
 import { ComponentRef, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { models, setTelemetryEnabled, useLLMChatSession } from 'react-native-executorch';
+import { setTelemetryEnabled, useLLMChatSession } from 'react-native-executorch';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Body, Button } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { api, isConfigured } from '@/lib/config';
+import { getFeedbackPrefs, sendFeedback } from '@/lib/otis/feedback';
 import { KbItem, loadKb, search } from '@/lib/otis/kb';
+import { getManifest, llmModel, Manifest, sizeLabel } from '@/lib/otis/manifest';
 import { clean, looksSpanish, SYSTEM, userTurn } from '@/lib/otis/prompt';
 import { looksUrgent } from '@/lib/otis/safety';
 
 setTelemetryEnabled(false); // OTIS keeps everything on the phone, so no download analytics either
 
-type ModelName = 'QWEN3_1_7B' | 'QWEN3_0_6B';
-type Config = { enabled: boolean; model: ModelName; small_model: ModelName; min_memory_gb_for_model: number };
-type Msg = { id: number; role: 'user' | 'otis' | 'urgent'; text: string; sources?: KbItem[]; pending?: boolean };
+type OtisModel = NonNullable<Manifest['model']>;
+type Msg = {
+  id: number;
+  role: 'user' | 'otis' | 'urgent';
+  text: string;
+  sources?: KbItem[];
+  pending?: boolean;
+  question?: string;
+  lang?: 'en' | 'es';
+  rated?: boolean;
+};
 
-const SIZE: Record<ModelName, string> = { QWEN3_1_7B: '1.3 GB', QWEN3_0_6B: '510 MB' };
-const DEFAULT_CONFIG: Config = { enabled: true, model: 'QWEN3_1_7B', small_model: 'QWEN3_0_6B', min_memory_gb_for_model: 6 };
+/** The model set up on this phone, saved as the manifest's model (JSON). OTIS v1 saved a bare built-in name here. */
 const OK_KEY = 'otis_downloaded_model';
+
+function savedModel(raw: string | null): OtisModel | null {
+  if (!raw) return null;
+  if (raw === 'QWEN3_1_7B' || raw === 'QWEN3_0_6B')
+    return { key: `builtin-${raw}`, label: 'OTIS', size_mb: 0, builtin: raw, files: null };
+  try {
+    return JSON.parse(raw) as OtisModel;
+  } catch {
+    return null;
+  }
+}
 const NOT_COVERED = {
   en: "I don't have that in my Zero Harm knowledge base. Ask your supervisor or safety lead.",
   es: 'No tengo eso en mi base de conocimientos de Zero Harm. Pregunte a su supervisor o al encargado de seguridad.',
 };
 
-/** The bigger model on phones with enough memory; the small one otherwise. */
-function pickModel(cfg: Config): ModelName {
-  const gb = (Device.totalMemory ?? 0) / 1024 ** 3;
-  return gb >= cfg.min_memory_gb_for_model ? cfg.model : cfg.small_model;
-}
-
 export default function OtisScreen() {
   const t = useTheme();
-  const [cfg, setCfg] = useState<Config | null>(null);
-  const [chosen, setChosen] = useState<ModelName | null>(null);
+  const [man, setMan] = useState<Manifest | null>(null);
+  const [chosen, setChosen] = useState<OtisModel | null>(null);
+  const [later, setLater] = useState(false);
   const [chatKey, setChatKey] = useState(0);
 
   useEffect(() => {
     (async () => {
-      let c = DEFAULT_CONFIG;
-      if (isConfigured()) {
-        try {
-          c = await api<Config>('/otis/config/');
-        } catch {
-          // offline: defaults
-        }
-      }
-      setCfg(c);
-      const saved = (await Storage.getItem(OK_KEY)) as ModelName | null;
-      if (saved) setChosen(saved);
+      const m = await getManifest();
+      setMan(m);
+      setChosen(savedModel(await Storage.getItem(OK_KEY)));
     })();
   }, []);
 
-  if (!cfg) return <SafeAreaView style={{ flex: 1, backgroundColor: t.background }}><ActivityIndicator /></SafeAreaView>;
+  if (!man) return <SafeAreaView style={{ flex: 1, backgroundColor: t.background }}><ActivityIndicator /></SafeAreaView>;
 
-  if (!cfg.enabled)
+  if (man.update_required || !man.enabled || !man.model)
     return (
       <SafeAreaView edges={['bottom']} style={[styles.fill, { backgroundColor: t.background, padding: space.md }]}>
-        <Body>OTIS is taking a short break. Check back soon.</Body>
+        <Body>
+          {man.update_required
+            ? 'Update Zero Harm from the App Store or Google Play to keep using OTIS.'
+            : man.message || 'OTIS is taking a short break. Check back soon.'}
+        </Body>
       </SafeAreaView>
     );
 
-  if (!chosen) {
-    const model = pickModel(cfg);
+  const model = man.model;
+  if (chosen && later) return <OtisChat key={chatKey} model={chosen} feedbackOn={man.feedback_enabled} onNewChat={() => setChatKey((k) => k + 1)} />;
+  if (chosen?.key !== model.key) {
+    const updating = chosen !== null;
+    const size = sizeLabel(model.size_mb);
     return (
       <SafeAreaView edges={['bottom']} style={[styles.fill, { backgroundColor: t.background }]}>
         <ScrollView contentContainerStyle={{ padding: space.md, gap: space.md }}>
-          <Text style={[styles.h1, { color: t.text }]}>Meet OTIS</Text>
+          <Text style={[styles.h1, { color: t.text }]}>{updating ? 'OTIS has an update' : 'Meet OTIS'}</Text>
           <Body>
-            OTIS answers safety questions from Zero Harm Weekly talks and the Zero Harm knowledge base, and tells you where each answer comes from.
+            OTIS answers safety questions from Zero Harm Weekly talks, Zero Hour huddle cards and plain-language OSHA General Industry rules, and
+            tells you where each answer comes from.
           </Body>
           <Body>
             OTIS runs entirely on this phone. Your questions never leave it, and OTIS works with no signal once it is set up.
           </Body>
           <Body muted>
-            Setup downloads OTIS once ({SIZE[model]}). Use Wi-Fi if you can. OTIS can be wrong: always follow your site’s written steps and ask
-            your supervisor when you are not sure. If someone is hurt, call 911 first.
+            {updating ? `The update downloads once (${size}).` : `Setup downloads OTIS once (${size}).`} Use Wi-Fi if you can. OTIS can be wrong:
+            always follow your site’s written steps and ask your supervisor when you are not sure. If someone is hurt, call 911 first.
           </Body>
           <Button
-            label={`Set up OTIS (${SIZE[model]})`}
+            label={updating ? `Update OTIS (${size})` : `Set up OTIS (${size})`}
             onPress={async () => {
-              await Storage.setItem(OK_KEY, model);
+              await Storage.setItem(OK_KEY, JSON.stringify(model));
               setChosen(model);
             }}
           />
+          {updating && <Button kind="secondary" label="Not now, keep using OTIS as it is" onPress={() => setLater(true)} />}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  return <OtisChat key={chatKey} model={chosen} onNewChat={() => setChatKey((k) => k + 1)} />;
+  return <OtisChat key={chatKey} model={model} feedbackOn={man.feedback_enabled} onNewChat={() => setChatKey((k) => k + 1)} />;
 }
 
-function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => void }) {
+function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedbackOn: boolean; onNewChat: () => void }) {
   const t = useTheme();
-  const llm = useLLMChatSession(models.llm[model].DEFAULT, {
+  const llm = useLLMChatSession(llmModel(model), {
     initialMessages: [{ role: 'system', content: SYSTEM }],
     generationConfig: { temperature: 0.2, maxNewTokens: 320 },
   });
@@ -109,9 +123,12 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
   const nextId = useRef(1);
   const turns = msgs.filter((m) => m.role === 'user').length;
 
+  const [canRate, setCanRate] = useState(false);
+
   useEffect(() => {
     loadKb().then(setKb);
-  }, []);
+    getFeedbackPrefs().then((p) => setCanRate(feedbackOn && p.helpImprove));
+  }, [feedbackOn]);
 
   const add = (m: Omit<Msg, 'id'>) => {
     const id = nextId.current++;
@@ -132,7 +149,7 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
       add({ role: 'otis', text: NOT_COVERED[lang] });
       return;
     }
-    const id = add({ role: 'otis', text: '', sources, pending: true });
+    const id = add({ role: 'otis', text: '', sources, pending: true, question: q, lang });
     setBusy(true);
     let streamed = '';
     try {
@@ -181,7 +198,7 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
             </View>
           )}
           {msgs.length === 0 && !loading && (
-            <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
+            <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, OSHA rules, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
           )}
           {msgs.map((m) =>
             m.role === 'urgent' ? (
@@ -207,6 +224,31 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
                     <Text style={[styles.sourceText, { color: t.muted }]}>[{i + 1}] {s.source}</Text>
                   </Pressable>
                 ))}
+                {canRate && !m.pending && !!m.sources?.length && (
+                  <View style={styles.rate}>
+                    {m.rated ? (
+                      <Text style={[styles.sourceText, { color: t.muted }]}>Thanks. That helps us improve OTIS.</Text>
+                    ) : (
+                      <>
+                        <Text style={[styles.sourceText, { color: t.muted }]}>Was this helpful?</Text>
+                        {([true, false] as const).map((helpful) => (
+                          <Pressable
+                            key={String(helpful)}
+                            accessibilityRole="button"
+                            accessibilityLabel={helpful ? 'Yes, helpful' : 'No, not helpful'}
+                            hitSlop={10}
+                            onPress={() => {
+                              update(m.id, { rated: true });
+                              sendFeedback({ helpful, question: m.question ?? '', sourceIds: m.sources!.map((s) => s.id), modelKey: model.key, lang: m.lang ?? 'en' });
+                            }}
+                            style={[styles.rateBtn, { borderColor: t.rule }]}>
+                            <Text style={[styles.rateText, { color: t.text }]}>{helpful ? 'Yes' : 'No'}</Text>
+                          </Pressable>
+                        ))}
+                      </>
+                    )}
+                  </View>
+                )}
               </View>
             ),
           )}
@@ -254,6 +296,9 @@ const styles = StyleSheet.create({
   msg: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   source: { borderTopWidth: 1, paddingTop: 6 },
   sourceText: { fontFamily: fonts.bodyMedium, fontSize: 14 },
+  rate: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: 6 },
+  rateBtn: { borderWidth: 1, borderRadius: 6, minHeight: 36, minWidth: 52, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center' },
+  rateText: { fontFamily: fonts.bodyBold, fontSize: 15 },
   urgent: { borderRadius: 8, padding: space.md, gap: space.sm },
   urgentText: { fontFamily: fonts.bodyBold, fontSize: 18, color: '#FFFFFF' },
   composer: { flexDirection: 'row', gap: space.sm, padding: space.sm, borderTopWidth: 1, alignItems: 'center' },

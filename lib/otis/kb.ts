@@ -1,6 +1,7 @@
 import Storage from 'expo-sqlite/kv-store';
 
-import { api, isConfigured } from '../config';
+import { api, apiFetch, isConfigured } from '../config';
+import { kbVersionKey } from './manifest';
 
 /** One searchable passage: a KB entry or one section of a released talk. */
 export type KbItem = { id: string; title: string; text: string; source: string; lang: 'en' | 'es'; issue: number | null; episode?: number; tags?: string };
@@ -8,22 +9,44 @@ export type KbItem = { id: string; title: string; text: string; source: string; 
 const KEY = 'otis_kb';
 let memo: KbItem[] | null = null;
 
-/** Fetches the knowledge base when there's signal and keeps a copy on the phone, so OTIS works on the dock with none. */
+async function saved(): Promise<KbItem[] | null> {
+  if (memo) return memo;
+  const raw = await Storage.getItem(KEY);
+  memo = raw ? (JSON.parse(raw) as KbItem[]) : null;
+  return memo;
+}
+
+async function keep(items: KbItem[], version: string) {
+  await Storage.setItem(KEY, JSON.stringify(items));
+  await Storage.setItem(kbVersionKey, version);
+  memo = items;
+}
+
+/**
+ * Keeps the knowledge base on the phone so OTIS works on the dock with no signal. With signal, asks /api/v2/otis/kb
+ * with the version already saved; the server answers 304 when nothing changed, so the phone downloads only real updates.
+ */
 export async function loadKb(): Promise<KbItem[]> {
+  const copy = await saved();
   if (isConfigured()) {
     try {
-      const { items } = await api<{ items: KbItem[] }>('/otis/kb/');
-      await Storage.setItem(KEY, JSON.stringify(items));
-      memo = items;
+      const version = copy ? await Storage.getItem(kbVersionKey) : null;
+      const res = await apiFetch('/v2/otis/kb', { headers: version ? { 'If-None-Match': `"${version}"` } : {} });
+      if (res.status === 304 && copy) return copy;
+      if (res.ok) {
+        const body = (await res.json()) as { version: string; items: KbItem[] };
+        await keep(body.items, body.version);
+        return body.items;
+      }
+      // Older server without v2: the original endpoint.
+      const { items, version: v1 } = await api<{ items: KbItem[]; version: string }>('/otis/kb/');
+      await keep(items, `v1-${v1}`);
       return items;
     } catch {
       // no signal: use the saved copy
     }
   }
-  if (memo) return memo;
-  const raw = await Storage.getItem(KEY);
-  memo = raw ? (JSON.parse(raw) as KbItem[]) : [];
-  return memo;
+  return copy ?? [];
 }
 
 const STOP = new Set(

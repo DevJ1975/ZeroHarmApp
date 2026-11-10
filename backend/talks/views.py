@@ -255,7 +255,14 @@ def _talk_chunks(talk, lang="en"):
 
 @require_GET
 def otis_kb(request):
-    """Everything OTIS may answer from: reviewed KB entries plus every released talk (English, and approved Spanish)."""
+    """Everything OTIS may answer from (v1). The app now uses /api/v2/otis/kb, which only downloads when it changed."""
+    items = kb_items()
+    version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.released()], default=None)
+    return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
+
+
+def kb_items():
+    """Reviewed KB entries plus every released talk (English, and approved Spanish) and Zero Hour huddle card."""
     items = [{"id": f"k{e.pk}", "title": e.title, "text": e.body, "source": e.source or e.title, "lang": "en", "tags": e.tags, "issue": None}
              for e in KbEntry.objects.filter(published=True)]
     for talk in ToolboxTalk.objects.released():
@@ -264,8 +271,7 @@ def otis_kb(request):
             items += _talk_chunks(talk, "es")
     for ep in Episode.objects.released():
         items += _episode_chunks(ep)
-    version = max([e.updated_at for e in KbEntry.objects.all()] + [t.updated_at for t in ToolboxTalk.objects.released()], default=None)
-    return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
+    return items
 
 
 @require_GET

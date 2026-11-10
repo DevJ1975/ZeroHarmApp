@@ -23,3 +23,18 @@ export async function api<T>(path: string, init?: RequestInit, timeoutMs = 10000
     clearTimeout(timer);
   }
 }
+
+/** Like api(), but hands back the Response so callers can read headers and 304 Not Modified. */
+export async function apiFetch(path: string, init?: RequestInit, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(`${config.apiUrl}/api${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...init?.headers },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}

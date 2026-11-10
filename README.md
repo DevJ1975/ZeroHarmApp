@@ -29,6 +29,26 @@ Run it:
 - All 52 issues of 2027 load automatically on the first migrate.
 - `python manage.py cron` sends any due Sunday push (once only) and retries pending GHL syncs.
 
+### OTIS on-device AI (API v2, Django Ninja)
+OTIS's model runs on the phone with ExecuTorch: MLX or Core ML on iPhone, XNNPACK or Vulkan on Android. The server never runs it.
+API v2 (`/api/v2/`, docs at `/api/v2/docs`) tells each phone what to run:
+- `POST /api/v2/otis/manifest` takes the platform, memory, app version and the ExecuTorch backends the build links. It returns
+  the on/off switch, the model to download (a pinned release, or the library's built-in Qwen3 chosen by memory) and the
+  knowledge base version.
+- `GET /api/v2/otis/kb` returns the knowledge base with an ETag. Phones send `If-None-Match` and get a 304 when nothing changed.
+- `POST /api/v2/otis/feedback` takes "Was this helpful?" ratings, only from people who turn on *Help improve OTIS* in Settings
+  (off by default). The question text is sent only if they also turn on *Include my question*.
+
+In the admin:
+- **OTIS rollout:** turn OTIS off per platform, set a minimum app version, or pause feedback.
+- **OTIS model releases:** pin the exact model files (HTTPS links to the `.pte`, `tokenizer.json` and `tokenizer_config.json`)
+  per platform, backend and memory tier. Change a release's key and phones offer an "Update OTIS" download. With no active
+  release, phones use the built-in model.
+- **OTIS feedback:** review the ratings.
+
+The v1 endpoints (`/api/otis/kb/`, `/api/otis/config/`) stay up for app builds already installed.
+The OSHA General Industry knowledge base and its safety review: `docs/otis-osha-kb-review.md`.
+
 Run it locally with OrbStack or Docker Desktop:
 ```
 cd backend

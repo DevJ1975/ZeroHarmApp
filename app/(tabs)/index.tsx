@@ -94,7 +94,7 @@ export default function TodayScreen() {
         onPress={() => router.push('/otis')}
         style={[styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
         <Text style={[styles.otisTitle, { color: t.text }]}>Ask OTIS</Text>
-        <Body muted>Safety questions answered from Zero Harm talks. Works with no signal.</Body>
+        <Body muted>Safety questions answered from Zero Harm talks and OSHA General Industry rules. Works with no signal.</Body>
       </Pressable>
 
       {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
