@@ -28,7 +28,7 @@ function sendError(res: ServerResponse, status: number, error: string) {
  * The key travels in the Authorization header, so the API must be https.
  * Plain http is only allowed for a backend running on this Mac.
  */
-function apiUrlProblem(apiUrl: string): string {
+export function apiUrlProblem(apiUrl: string): string {
   if (!apiUrl) return 'Set CONSOLE_API_URL in console/.env.local, then restart npm run dev.';
   let url: URL;
   try {
@@ -41,7 +41,7 @@ function apiUrlProblem(apiUrl: string): string {
   return 'CONSOLE_API_URL must start with https:// (http:// only for a backend on this Mac), so the key is never sent in the clear.';
 }
 
-function guard(apiUrl: string, key: string): Connect.NextHandleFunction {
+export function guard(apiUrl: string, key: string): Connect.NextHandleFunction {
   const urlProblem = apiUrlProblem(apiUrl);
   return (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
     if (!req.url?.startsWith('/api')) return next();
