@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Image, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
@@ -65,6 +66,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, { opacity: whole }]} accessibilityViewIsModal>
+      <StatusBar style="light" />
       <Pressable style={StyleSheet.absoluteFill} onPress={finish} accessibilityLabel="Zero Harm. Tap to skip the intro." accessibilityRole="button">
         {/* The poster sits under the video, so a slow or failed video still shows a real frame. */}
         <Image source={POSTER} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -99,11 +101,11 @@ const styles = StyleSheet.create({
   dim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(19,35,63,0.28)' },
   scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '48%', backgroundColor: 'rgba(19,35,63,0.62)' },
   brand: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 28, gap: 14 },
-  lockup: { width: 250, aspectRatio: LOGO_RATIO },
+  lockup: { width: 250, height: 250 / LOGO_RATIO }, // explicit size: aspectRatio alone lets the 4326 px PNG render at full size
   rule: { width: 56, height: 5, backgroundColor: palette.safetyYellow },
   tagline: { fontFamily: fonts.bodyMedium, fontSize: 20, lineHeight: 26, color: '#FFFFFF', maxWidth: 320 },
   cover: { alignItems: 'center', justifyContent: 'center' },
-  coverLogo: { width: 300, aspectRatio: LOGO_RATIO }, // matches the iOS native splash imageWidth in app.json
+  coverLogo: { width: 300, height: 300 / LOGO_RATIO }, // matches the iOS native splash imageWidth in app.json
   skipWrap: { position: 'absolute', right: 16 },
   skip: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(23,33,43,0.55)' },
   skipText: { fontFamily: fonts.bodyBold, fontSize: 16, color: '#FFFFFF' },

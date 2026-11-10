@@ -69,7 +69,7 @@ export default function OtisScreen() {
     const model = pickModel(cfg);
     return (
       <SafeAreaView edges={['bottom']} style={[styles.fill, { backgroundColor: t.background }]}>
-        <ScrollView contentContainerStyle={{ padding: space.md, gap: space.md }}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.md, gap: space.md }}>
           <Text style={[styles.h1, { color: t.text }]}>Meet OTIS</Text>
           <Body>
             OTIS answers safety questions from Zero Harm Weekly talks and the Zero Harm knowledge base, and tells you where each answer comes from.
@@ -165,6 +165,7 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
         <ScrollView
           ref={scroller}
+          contentInsetAdjustmentBehavior="automatic"
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
           contentContainerStyle={{ padding: space.md, gap: space.md }}>
           {loading && (
