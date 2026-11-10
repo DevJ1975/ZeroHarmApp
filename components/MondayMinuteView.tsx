@@ -3,7 +3,8 @@ import Storage from 'expo-sqlite/kv-store';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { MM_ORANGE, MondayMinuteLogo, useMmTextColor } from '@/components/MondayMinuteCard';
+import { HolidayBanner, HolidayTagline } from '@/components/Holiday';
+import { MM_ORANGE, MondayMinuteLogo, useMmBorderColor, useMmTextColor } from '@/components/MondayMinuteCard';
 import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Field, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
@@ -14,6 +15,7 @@ import {
   reportComment, rulesAccepted, savedDisplayName, weekLabel,
 } from '@/lib/monday';
 import { regLinks } from '@/lib/regs';
+import { useHoliday } from '@/lib/season';
 import { getProfile } from '@/lib/profile';
 import { startSession } from '@/lib/signins';
 
@@ -21,6 +23,15 @@ const LAST_LOCATION = 'last_signin_location';
 const INK_ON_ORANGE = '#17212B'; // white on this orange is too faint to read
 
 /** One Monday Minute: the talk, print and email, crew sign-in, thumbs up/down and the crew conversation. */
+/** The same five rules the server sends, kept in the app so the box is never empty on a weak signal. */
+const FALLBACK_RULES = [
+  'Talk about the topic and your own site. Share what works and what you’ve seen.',
+  'No names or details that could identify an injured person, a coworker or a company.',
+  'No insults, harassment, threats, hate, sexual content or profanity aimed at anyone.',
+  'No ads, links, emails or phone numbers.',
+  'Don’t tell others to skip a safety step. If you see something dangerous at work, stop and tell your supervisor.',
+];
+
 export function MondayMinuteView({
   minute: m,
   onChange,
@@ -34,6 +45,8 @@ export function MondayMinuteView({
 }) {
   const t = useTheme();
   const mmText = useMmTextColor();
+  const mmBorder = useMmBorderColor();
+  const festive = useHoliday();
   const [supervisor, setSupervisor] = useState('');
   const [location, setLocation] = useState('');
 
@@ -63,7 +76,14 @@ export function MondayMinuteView({
 
   return (
     <Screen onRefresh={onRefresh}>
-      <MondayMinuteLogo />
+      {festive ? (
+        <HolidayBanner>
+          <MondayMinuteLogo onDark />
+          <HolidayTagline />
+        </HolidayBanner>
+      ) : (
+        <MondayMinuteLogo />
+      )}
       {offline && <OfflineNote />}
       <Text style={[styles.kicker, { color: mmText }]}>WEEK OF {weekLabel(m).toUpperCase()} · {m.category.toUpperCase()}</Text>
       <Text style={[styles.title, { color: t.text }]} accessibilityRole="header">{m.title}</Text>
@@ -85,11 +105,11 @@ export function MondayMinuteView({
       <Text style={[styles.h2, { color: t.text }]} accessibilityRole="header">Close call: {m.story_title}</Text>
       <Body>{m.story}</Body>
 
-      <View style={[styles.question, { borderColor: MM_ORANGE }]}>
+      <View style={[styles.question, { borderColor: mmBorder }]}>
         <Text style={[styles.qLabel, { color: t.text }]}>Ask your crew</Text>
         <Body>{m.crew_question}</Body>
       </View>
-      <View style={[styles.takeawayBox, { borderColor: MM_ORANGE }]}>
+      <View style={[styles.takeawayBox, { borderColor: mmBorder }]}>
         <Text style={[styles.takeaway, { color: t.text }]}>{m.takeaway}</Text>
       </View>
       <RegLinks links={regLinks(...m.references)} />
@@ -109,6 +129,7 @@ export function MondayMinuteView({
       <View style={styles.links}>
         <Link href="/monday" style={[styles.link, { color: t.text }]}>Past Monday Minutes →</Link>
         <Link href="/sheets" style={[styles.link, { color: t.text }]}>My sign-in sheets →</Link>
+        <Link href="/settings" style={[styles.link, { color: t.text }]}>Settings →</Link>
       </View>
     </Screen>
   );
@@ -251,6 +272,8 @@ function Conversation({ minute }: { minute: Minute }) {
         style: 'destructive',
         onPress: async () => {
           await blockAuthor(c.author_key);
+          // Blocking also tells us, so a person can look at the comment within a day.
+          reportComment(c.id, 'blocked').catch(() => {});
           setMsg('You won’t see their comments on this phone.');
           load();
         },
@@ -292,7 +315,8 @@ function Conversation({ minute }: { minute: Minute }) {
       {showRules && !agreed && (
         <View style={[styles.box, { borderColor: MM_ORANGE, backgroundColor: t.surface }]}>
           <Text style={[styles.qLabel, { color: t.text }]}>Community rules</Text>
-          {rules.map((r, i) => <Body key={i}>• {r}</Body>)}
+          {(rules.length ? rules : FALLBACK_RULES).map((r, i) => <Body key={i}>• {r}</Body>)}
+          <Body muted>Comments that break these rules are removed, and people who post them lose the ability to comment. Reports are looked at within 24 hours.</Body>
           <Body muted>Comments are public to Zero Harm app users and are checked before they show. Abusive comments are removed, and you can report or block anyone.</Body>
           <Button
             label="I agree"

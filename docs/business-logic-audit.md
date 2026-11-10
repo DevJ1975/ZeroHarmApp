@@ -31,6 +31,8 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | Weak signal | A vote made with no signal was lost | Votes queue and send later |
 | Monday Minute (B1) | The AI published without having passed the safety test | Safety gate: talks wait for approval until the current AI setup passes the test |
 | Zero Harm Weekly (C1) | Early unlock opened the whole year and leaked "Last week's answer" | Only the next two talks open early, without last week's answer |
+| Monday Minute (gate) | A talk marked ready on Wednesday still published if the AI later failed its safety test; a small hand-picked test could open the gate; approving a backlog sent a push per talk | The gate is re-checked before release; only full tests count, with a floor per kind of mistake; one push per approval |
+| Zero Harm Weekly | A phone's saved copy kept saying "Ready early" after the send time; unusual answer headings slipped through | The label follows the clock; more heading shapes are caught |
 
 ## Findings
 

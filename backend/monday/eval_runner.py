@@ -29,10 +29,16 @@ def run_eval(topics, compare=True) -> MondayEvalRun:
             results[key(not want["rag"])] = ev.run(topics, rag=not want["rag"], strict=want["strict"], progress=tick)
         configured = results[key(want["rag"])]
         scores = gate.score(configured)
-        run.passed, run.verdict = gate.judge(configured)
+        run.conclusive, why = gate.conclusive(configured, run.topics)
+        if run.conclusive:
+            run.passed, run.verdict = gate.judge(configured)
+            label = "PASSED: " if run.passed else "NOT PASSED: "
+        else:
+            run.passed, run.verdict = False, f"exploratory run, does not count toward the safety gate: {why}"[:300]
+            label = "EXPLORATORY: "
         run.catch_rate, run.false_block_rate = scores["catch_rate"], scores["false_block_rate"]
         run.results = results
-        run.summary = (("PASSED: " if run.passed else "NOT PASSED: ") + run.verdict + "\n\n"
+        run.summary = (label + run.verdict + "\n\n"
                        + "\n\n".join(ev.summarize(r) for r in results.values()))
         run.status = "done"
     except Exception as err:
@@ -40,4 +46,9 @@ def run_eval(topics, compare=True) -> MondayEvalRun:
     run.finished_at = timezone.now()
     run.progress = f"{done[0]} of {total} talks"
     run.save()
+    # A talk written while an earlier pass stood must not publish on its own after this run says otherwise.
+    held = gate.hold_unpublished()
+    if held:
+        run.summary += f"\n\n{held} talk(s) that had not published yet were moved back to waiting for approval."
+        run.save(update_fields=["summary"])
     return run

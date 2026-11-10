@@ -76,6 +76,7 @@ class MondayMinute(models.Model):
     check_log = models.TextField(blank=True, help_text="What the hard checks and the safety review said, attempt by attempt")
     model = models.CharField(max_length=60, blank=True)
     push_sent_at = models.DateTimeField(null=True, blank=True)
+    approved_by_person = models.BooleanField(default=False, help_text="A person approved or restored this talk in the admin, so the safety gate leaves it alone")
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = MondayMinuteQuerySet.as_manager()
@@ -205,6 +206,7 @@ class MondayEvalRun(models.Model):
     catch_rate = models.FloatField(null=True, blank=True)
     false_block_rate = models.FloatField(null=True, blank=True)
     verdict = models.CharField(max_length=300, blank=True)
+    conclusive = models.BooleanField(default=False, help_text="Big and clean enough to count toward the safety gate. Other runs are exploratory.")
 
     class Meta:
         ordering = ["-created_at"]

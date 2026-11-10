@@ -3,17 +3,29 @@ import { Image, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-
 
 import { Body } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
+import { useHoliday } from '@/lib/season';
 import { Minute, weekLabel } from '@/lib/monday';
 
 /** Monday Minute orange for marks, borders and fills. Too light for small text on a light background. */
 export const MM_ORANGE = '#FF6A13';
 
 /** Orange that stays readable as text: darker on light backgrounds (5:1), brighter on dark ones. */
-export const useMmTextColor = () => (useColorScheme() === 'dark' ? '#FF8A45' : '#A84300');
+export function useMmTextColor() {
+  const dark = useColorScheme() === 'dark';
+  // Holiday look: evergreen (mint on dark) in place of orange for the small print and the numbers.
+  if (useHoliday()) return dark ? '#7FD1A6' : '#1F6B4A';
+  return dark ? '#FF8A45' : '#A84300';
+}
+
+/** The border around "Ask your crew" and the takeaway: orange all year, evergreen over the holidays. */
+export function useMmBorderColor() {
+  const dark = useColorScheme() === 'dark';
+  return useHoliday() ? (dark ? '#7FD1A6' : '#1F6B4A') : MM_ORANGE;
+}
 
 /** The Monday Minute lockup, light or dark to match the theme. */
-export function MondayMinuteLogo({ height = 44 }: { height?: number }) {
-  const dark = useColorScheme() === 'dark';
+export function MondayMinuteLogo({ height = 44, onDark = false }: { height?: number; onDark?: boolean }) {
+  const dark = useColorScheme() === 'dark' || onDark;
   return (
     <Image
       source={dark ? require('@/assets/images/monday-minute-lockup-dark.png') : require('@/assets/images/monday-minute-lockup.png')}

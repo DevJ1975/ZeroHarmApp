@@ -579,7 +579,7 @@ class GateTests(TestCase):
     def run_record(self, passed=True, **kw):
         from .models import MondayEvalRun
         want = self.gate.setup()
-        defaults = dict(model=want["model"], rag=want["rag"], strict=want["strict"], status="done", passed=passed,
+        defaults = dict(model=want["model"], rag=want["rag"], strict=want["strict"], status="done", passed=passed, conclusive=True,
                         verdict="caught 95%", finished_at=timezone.now())
         defaults.update(kw)
         return MondayEvalRun.objects.create(**defaults)
@@ -623,22 +623,177 @@ class GateTests(TestCase):
     def test_gate_can_be_switched_off(self):
         self.assertEqual(self.write().status, MondayMinute.READY)
 
-    def test_approve_publishes_now_and_only_touches_held_talks(self):
+    def approve(self, queryset=None):
         from django.contrib.admin.sites import site
         from django.test import RequestFactory
         from .admin import MondayMinuteAdmin
-        held = MondayMinute.objects.create(week=dt.date(2026, 11, 2), publish_at=timezone.now() - dt.timedelta(days=3), topic=self.t, status=MondayMinute.HELD)
-        blocked = MondayMinute.objects.create(week=dt.date(2026, 11, 9), publish_at=timezone.now(), topic=self.t, status=MondayMinute.BLOCKED)
         admin = MondayMinuteAdmin(MondayMinute, site)
-        request = RequestFactory().post("/")
-        with patch.object(admin, "message_user"):
-            admin.approve(request, MondayMinute.objects.all())
+        with patch.object(admin, "message_user") as said:
+            admin.approve(RequestFactory().post("/"), queryset if queryset is not None else MondayMinute.objects.all())
+        return said.call_args[0][1]
+
+    def minute(self, week, status=MondayMinute.HELD, **kw):
+        kw.setdefault("publish_at", g.publish_time(week))
+        return MondayMinute.objects.create(week=week, topic=self.t, status=status, title="T", **kw)
+
+    def test_approve_publishes_now_and_only_touches_held_talks(self):
+        this_week = g.next_week() - dt.timedelta(days=7)
+        held = self.minute(this_week, publish_at=timezone.now() - dt.timedelta(days=1))
+        blocked = self.minute(this_week - dt.timedelta(days=7), status=MondayMinute.BLOCKED)
+        said = self.approve()
         held.refresh_from_db()
         blocked.refresh_from_db()
-        self.assertEqual(held.status, MondayMinute.READY)
+        self.assertEqual((held.status, held.approved_by_person), (MondayMinute.READY, True))
         self.assertGreater(held.publish_at, timezone.now() - dt.timedelta(minutes=1))  # so the Monday push still goes out
+        self.assertIsNone(held.push_sent_at)
         self.assertEqual(blocked.status, MondayMinute.BLOCKED)
         self.assertTrue(MondayMinute.objects.released().filter(pk=held.pk).exists())
+        self.assertIn("Approved 1 talk(s). 1 will send a push", said)
+
+    def test_approving_a_backlog_notifies_once(self):
+        from django.core.management import call_command
+        this_week = g.next_week() - dt.timedelta(days=7)
+        recent = timezone.now() - dt.timedelta(hours=2)  # inside the cron's push window, so only the approve logic stops a push
+        newest = self.minute(this_week, publish_at=recent)
+        older = [self.minute(this_week - dt.timedelta(days=7 * i), publish_at=recent) for i in (1, 2)]
+        said = self.approve()
+        self.assertIn("Approved 3 talk(s). 1 will send a push", said)
+        pushed = []
+        with patch("monday.management.commands.monday_minute.send_minute_push", lambda m: (pushed.append(m.pk), (True, ""))[1]), \
+                patch("monday.management.commands.monday_minute.due_week", lambda: None), \
+                patch("monday.management.commands.monday_minute.ai.available", lambda: False):
+            call_command("monday_minute")
+        self.assertEqual(pushed, [newest.pk])
+        for m in older:
+            m.refresh_from_db()
+            self.assertEqual(m.status, MondayMinute.READY)
+            self.assertIsNotNone(m.push_sent_at)
+            self.assertEqual(m.publish_at, recent)  # published quietly, in its own place
+
+    def test_approving_only_old_talks_notifies_nobody(self):
+        old = self.minute(g.next_week() - dt.timedelta(days=21))
+        self.assertIn("0 will send a push", self.approve())
+        old.refresh_from_db()
+        self.assertEqual(old.publish_at, g.publish_time(old.week))
+        self.assertIsNotNone(old.push_sent_at)
+        self.assertTrue(MondayMinute.objects.released().filter(pk=old.pk).exists())
+
+    # ---- The gate is checked again after the talk was written -------------------------------------------
+
+    def test_a_later_failed_test_holds_a_talk_that_has_not_published(self):
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=2))
+        ahead = self.minute(g.next_week(), status=MondayMinute.READY, check_log="Attempt 1: passed.")
+        out = self.minute(g.next_week() - dt.timedelta(days=7), status=MondayMinute.READY)
+        approved = self.minute(g.next_week() + dt.timedelta(days=7), status=MondayMinute.READY, approved_by_person=True)
+        self.assertEqual(self.gate.hold_unpublished(), 0)  # the pass still stands
+        self.run_record(passed=False, verdict="caught 60%")
+        self.assertEqual(self.gate.hold_unpublished(), 1)
+        for m in (ahead, out, approved):
+            m.refresh_from_db()
+        self.assertEqual(ahead.status, MondayMinute.HELD)
+        self.assertTrue(ahead.check_log.startswith("Attempt 1: passed.\nSafety gate ("))
+        self.assertIn("caught 60%", ahead.check_log)
+        self.assertEqual(out.status, MondayMinute.READY)       # already published
+        self.assertEqual(approved.status, MondayMinute.READY)  # a person approved it
+
+    def test_cron_rechecks_the_gate_before_releasing(self):
+        from io import StringIO
+        from django.core.management import call_command
+        ahead = self.minute(g.next_week(), status=MondayMinute.READY)  # written while a pass stood; none on record now
+        out = StringIO()
+        with patch("monday.management.commands.monday_minute.due_week", lambda: None), \
+                patch("monday.management.commands.monday_minute.ai.available", lambda: False):
+            call_command("monday_minute", stdout=out)
+        ahead.refresh_from_db()
+        self.assertEqual(ahead.status, MondayMinute.HELD)
+        self.assertIn("1 talk(s) moved back to waiting for approval", out.getvalue())
+        with override_settings(MONDAY_GATE=False):
+            ahead.status = MondayMinute.READY
+            ahead.save()
+            self.assertEqual(self.gate.hold_unpublished(), 0)
+
+    def test_restore_marks_the_talk_as_approved_by_a_person(self):
+        from django.contrib.admin.sites import site
+        from django.test import RequestFactory
+        from .admin import MondayMinuteAdmin
+        m = self.minute(g.next_week(), status=MondayMinute.PULLED)
+        MondayMinuteAdmin(MondayMinute, site).restore(RequestFactory().post("/"), MondayMinute.objects.all())
+        self.assertEqual(self.gate.hold_unpublished(), 0)
+        m.refresh_from_db()
+        self.assertEqual((m.status, m.approved_by_person), (MondayMinute.READY, True))
+
+    # ---- Which runs count -------------------------------------------------------------------------------
+
+    def test_only_conclusive_runs_count(self):
+        from . import safety_eval as ev
+        slugs = ev.DEFAULT_TOPICS
+        self.assertEqual(self.gate.conclusive(self.result(), slugs), (True, ""))
+        self.assertIn("did not cover every default topic", self.gate.conclusive(self.result(), slugs[:-1])[1])
+        self.assertIn("only 10 planted", self.gate.conclusive(self.result(caught=10, planted=10), slugs)[1])
+        self.assertIn("only 5 good talks", self.gate.conclusive(self.result(good=5), slugs)[1])
+        self.assertIn("calls failed", self.gate.conclusive(self.result(errors=10), slugs)[1])
+
+    def test_an_exploratory_run_neither_opens_nor_closes_the_gate(self):
+        self.run_record(passed=True, conclusive=False, verdict="exploratory run")
+        self.assertFalse(self.gate.status().ok)  # a small passing run does not open it
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=2))
+        self.run_record(passed=False, conclusive=False, verdict="exploratory run")
+        self.assertTrue(self.gate.status().ok)   # and an inconclusive one does not take a real pass away
+
+    def test_rows_from_before_the_gate_are_skipped(self):
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=2))
+        self.run_record(passed=False, verdict="")  # no verdict: it was never judged
+        self.assertTrue(self.gate.status().ok)
+
+    def test_each_kind_of_planted_mistake_has_a_floor(self):
+        plants = {k: {"n": 6, "caught": 6, "missed": []} for k in "abcdefg"}
+        plants["g"] = {"n": 6, "caught": 3, "missed": ["x"] * 3}  # 39 of 42 overall, but one kind is half missed
+        r = dict(self.result(), plants=plants)
+        ok, why = self.gate.judge(r)
+        self.assertFalse(ok)
+        self.assertIn("caught only 3 of 6 'g' mistakes", why)
+        plants["g"]["caught"] = 5
+        self.assertTrue(self.gate.judge(r)[0])
+        plants["g"]["caught"] = 3
+        with override_settings(MONDAY_GATE_MIN_CATCH_PER_KIND=0.5):
+            self.assertTrue(self.gate.judge(r)[0])
+
+    @override_settings(AI_PROVIDER="anthropic")
+    def test_ai_outage_fails_the_run_instead_of_counting_errors(self):
+        from . import safety_eval as ev
+        from .eval_runner import run_eval
+
+        def down(*a, **k):
+            raise ai.AIUnavailable("Local AI server unavailable: timed out")
+
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=2))
+        with patch.object(ev, "review", down):
+            run = run_eval([self.t], compare=False)
+        self.assertEqual((run.status, run.conclusive, run.passed), ("failed", False, False))
+        self.assertIn("unavailable", run.summary)
+        self.assertTrue(self.gate.status().ok)  # the earlier pass still stands
+
+        def bad_output(*a, **k):
+            raise ai.GenerationError("Not valid JSON")
+
+        with patch.object(ev, "review", bad_output):
+            self.assertEqual(ev.run([self.t], rag=True, strict=False)["errors"], 1 + len(ev.PLANTS))  # still counted per case
+
+    @override_settings(AI_PROVIDER="anthropic")
+    def test_a_conclusive_failed_run_holds_talks_when_it_finishes(self):
+        from . import safety_eval as ev
+        from .eval_runner import run_eval
+        topics = [topic(slug=s) for s in ev.DEFAULT_TOPICS]
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=2))
+        ahead = self.minute(g.next_week(), status=MondayMinute.READY)
+        passing = {"verdict": "pass", "findings": [], "confidence": "high", "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
+        with patch.object(ev, "review", lambda *a, **k: (passing, "m")):  # a reviewer that catches nothing
+            run = run_eval(topics, compare=False)
+        self.assertEqual((run.status, run.conclusive, run.passed), ("done", True, False))
+        self.assertTrue(run.summary.startswith("NOT PASSED"))
+        self.assertIn("1 talk(s) that had not published yet", run.summary)
+        ahead.refresh_from_db()
+        self.assertEqual(ahead.status, MondayMinute.HELD)
 
     @override_settings(AI_PROVIDER="anthropic")
     def test_runner_records_the_verdict_for_the_configured_setup(self):
@@ -648,9 +803,11 @@ class GateTests(TestCase):
         passing = {"verdict": "pass", "findings": [], "confidence": "high", "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
         with patch.object(ev, "review", lambda *a, **k: (passing, "m")):
             run = run_eval(topics, compare=False)
-        self.assertEqual((run.status, run.passed), ("done", False))  # one topic is too few planted mistakes
-        self.assertIn("only 7 planted mistakes", run.verdict)
+        self.assertEqual((run.status, run.passed, run.conclusive), ("done", False, False))  # one hand-picked topic is exploratory
+        self.assertIn("exploratory run", run.verdict)
+        self.assertIn("did not cover every default topic", run.verdict)
         self.assertEqual((run.model, run.rag, run.strict), (self.gate.reviewer_model(), True, False))
         self.assertEqual(run.false_block_rate, 0.0)
         self.assertEqual(run.catch_rate, 0.0)
-        self.assertTrue(run.summary.startswith("NOT PASSED"))
+        self.assertTrue(run.summary.startswith("EXPLORATORY"))
+        self.assertFalse(self.gate.status().ok)

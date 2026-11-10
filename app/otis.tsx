@@ -266,6 +266,9 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
             <Body muted>Long chats slow OTIS down on a phone. Tap New chat to start fresh.</Body>
           )}
         </ScrollView>
+        <Text style={[styles.aiNote, { color: t.muted, backgroundColor: t.background }]}>
+          OTIS is an AI assistant and can be wrong. Not legal or medical advice. Emergency: call 911.
+        </Text>
         <View style={[styles.composer, { borderColor: t.rule, backgroundColor: t.surface }]}>
           <TextInput
             value={input}
@@ -293,6 +296,7 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
 }
 
 const styles = StyleSheet.create({
+  aiNote: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, textAlign: 'center', paddingHorizontal: space.md, paddingVertical: 6 },
   fill: { flex: 1 },
   h1: { fontFamily: fonts.display, fontSize: 34 },
   link: { fontFamily: fonts.bodyBold, fontSize: 16 },

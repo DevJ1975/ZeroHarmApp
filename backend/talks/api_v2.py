@@ -154,6 +154,17 @@ def pick_model(device: DeviceIn) -> ModelOut:
 
 # ---- Endpoints --------------------------------------------------------------------------------------
 
+class AppConfigOut(Schema):
+    theme: Literal["auto", "default", "holiday"] = Field(
+        description="auto: the phone follows the calendar (holiday look in December). default or holiday force it.")
+
+
+@api.get("/app/config", response=AppConfigOut, tags=["App"], summary="Switches the app checks when it opens")
+def app_config(request: HttpRequest):
+    theme = settings.APP_THEME if settings.APP_THEME in ("auto", "default", "holiday") else "auto"
+    return {"theme": theme}
+
+
 @api.post("/otis/manifest", response=ManifestOut, tags=["OTIS"], summary="What this phone should run")
 def manifest(request: HttpRequest, device: DeviceIn):
     rollout = OtisRollout.current()

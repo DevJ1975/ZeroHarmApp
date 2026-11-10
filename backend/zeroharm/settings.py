@@ -142,6 +142,10 @@ OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 TALKS_UNLOCK_EARLY = os.environ.get("TALKS_UNLOCK_EARLY", "1") == "1"
 TALKS_EARLY_COUNT = int(os.environ.get("TALKS_EARLY_COUNT", "2"))  # how many upcoming talks open early
 
+# The app's look. "auto": phones show the holiday look each December on their own (the first season starts November 10,
+# 2026) and go back to normal on January 1. "default" turns the holiday look off now, "holiday" forces it on. No app update needed.
+APP_THEME = os.environ.get("APP_THEME", "auto")
+
 # Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly.
 MONDAY_MINUTE_ENABLED = os.environ.get("MONDAY_MINUTE_ENABLED", "1") == "1"
 # Where its AI runs: "local" = your own Ollama server (private network, CPU), "anthropic" = Claude (needs ANTHROPIC_API_KEY).

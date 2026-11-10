@@ -92,7 +92,7 @@ def parse_issue(html_text, title):
                 break
             intro.append(nxt)
 
-    points = _between(lines, "Talk it through", ["THE FIX", "CLOSE CALL", "WHAT OSHA"])
+    points = _between(lines, "Talk it through", ["THE FIX", "CLOSE CALL", "WHAT OSHA", "LAST WEEK", "CREW CHECK"])
     story = _between(lines, "CLOSE CALL", ["WHAT OSHA", "LAST WEEK", "CREW CHECK"])
     osha = _between(lines, "WHAT OSHA SAYS", ["LAST WEEK", "CREW CHECK"])
     last = _between(lines, "LAST WEEK", ["CREW CHECK"])

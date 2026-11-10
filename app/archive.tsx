@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { arrangeTalks, issueNumber, listTalks, Talk } from '@/lib/talks';
+import { arrangeTalks, issueNumber, listTalks, Talk, isEarly } from '@/lib/talks';
 
 const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -29,8 +29,8 @@ export default function ArchiveScreen() {
   }, [talks, q, theme]);
   const groups = useMemo(() => {
     const { current, past, early } = arrangeTalks(shown);
-    const sent = current && !current.early ? [current, ...past] : past;
-    const ahead = current?.early ? [current, ...early] : early;
+    const sent = current && !isEarly(current) ? [current, ...past] : past;
+    const ahead = current && isEarly(current) ? [current, ...early] : early;
     return [
       { label: 'Ready early', talks: ahead },
       { label: 'Past talks', talks: sent },

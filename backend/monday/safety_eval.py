@@ -9,7 +9,7 @@ import time
 
 from django.conf import settings
 
-from .ai import GenerationError, is_local
+from .ai import AIUnavailable, GenerationError, is_local
 from .generate import judge, review
 from .models import MondayTopic
 
@@ -69,6 +69,8 @@ def run(topics, rag: bool, strict=None, progress=None) -> dict:
                 continue
             try:
                 blocked, secs, why = verdict_for(topic, talk, rag, strict)
+            except AIUnavailable:
+                raise  # the AI server is down or timing out: the whole run fails instead of scoring a broken test
             except GenerationError:
                 result["errors"] += 1
                 continue

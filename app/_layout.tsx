@@ -3,13 +3,15 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-goog
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import { AppState, useColorScheme } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { HolidaySplash } from '@/components/Holiday';
 import { fonts } from '@/constants/theme';
 import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
+import { isHoliday, refreshSeason } from '@/lib/season';
 import { flushSheets } from '@/lib/sheets';
 
 export { ErrorBoundary } from 'expo-router';
@@ -20,6 +22,9 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+  // The holiday opening screen plays once per cold start, decided by the date when the app opens.
+  const [opening, setOpening] = useState(isHoliday);
+  const closeOpening = useCallback(() => setOpening(false), []);
   const [loaded, error] = useFonts({
     Barlow_400Regular,
     Barlow_500Medium,
@@ -39,6 +44,7 @@ export default function RootLayout() {
     const flush = () => {
       flushSheets();
       flushVotes();
+      refreshSeason();
     };
     flush();
     const sub = AppState.addEventListener('change', (state) => state === 'active' && flush());
@@ -52,6 +58,7 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
+    <View style={{ flex: 1 }}>
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerTitleStyle: { fontFamily: fonts.displayMedium }, headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -70,5 +77,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
+    {opening && <HolidaySplash onDone={closeOpening} />}
+    </View>
   );
 }

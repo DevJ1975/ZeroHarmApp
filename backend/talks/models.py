@@ -19,14 +19,20 @@ class ToolboxTalkQuerySet(models.QuerySet):
         base = self.filter(published=True, needs_review=False)
         ready = models.Q(send_at__lte=now)
         if settings.TALKS_UNLOCK_EARLY and settings.TALKS_EARLY_COUNT > 0:
-            upcoming = list(base.filter(send_at__gt=now).order_by("send_at").values_list("pk", flat=True)[: settings.TALKS_EARLY_COUNT])
-            ready |= models.Q(pk__in=upcoming) & ~models.Q(body_md="")
+            # Only talks that have their text count toward the early slots, so an empty one can't use a slot up.
+            upcoming = list(base.filter(send_at__gt=now).exclude(body_md="").order_by("send_at", "pk")
+                            .values_list("pk", flat=True)[: settings.TALKS_EARLY_COUNT])
+            ready |= models.Q(pk__in=upcoming)
         return base.filter(ready)
 
 
 def _is_answer_heading(heading: str) -> bool:
     h = heading.lower().replace("’", "'")
-    return ("last week" in h and "answer" in h) or ("respuesta" in h and ("semana pasada" in h or "semana anterior" in h))
+    return ("last week" in h and "answer" in h) or ("respuesta" in h and "semana" in h)
+
+
+# A section heading: "## Title" with or without the space, any heading level, or a line that is only bold text.
+_HEADING = re.compile(r"^\s*(#{1,6}\s*\S|\*\*[^*]+\*\*\s*$)")
 
 
 def without_last_weeks_answer(body: str) -> str:
@@ -34,9 +40,13 @@ def without_last_weeks_answer(body: str) -> str:
     talk opened early must not show it before that answer goes out with the Sunday newsletter."""
     if not body:
         return body
-    kept = [part for part in re.split(r"\n\s*\n(?=##\s)", body.strip())
-            if not (part.startswith("#") and _is_answer_heading(part.split("\n", 1)[0]))]
-    return "\n\n".join(kept)
+    kept, skipping = [], False
+    for line in body.strip().split("\n"):
+        if _HEADING.match(line):
+            skipping = _is_answer_heading(line)
+        if not skipping:
+            kept.append(line)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
 class ToolboxTalk(models.Model):

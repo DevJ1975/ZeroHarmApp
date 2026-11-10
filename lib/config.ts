@@ -3,6 +3,10 @@ export const config = {
   apiUrl: (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, ''),
   oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? '',
   newsletterUrl: 'https://go.trainovate.ai/zero-harm-weekly-page',
+  // Shown in Settings once set. Apple needs the privacy policy and a support contact before the app can be approved.
+  privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL ?? '',
+  termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? '',
+  supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '',
 };
 
 export const isConfigured = () => Boolean(config.apiUrl);

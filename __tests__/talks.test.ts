@@ -1,4 +1,4 @@
-import { arrangeTalks, issueNumber, type Talk } from '@/lib/talks';
+import { arrangeTalks, isEarly, issueNumber, type Talk } from '@/lib/talks';
 
 jest.mock('@/lib/db', () => ({ getDb: jest.fn() }));
 
@@ -20,6 +20,15 @@ describe('arrangeTalks', () => {
     expect(current?.issue).toBe(1);
     expect(past).toEqual([]);
     expect(early.map((t) => t.issue)).toEqual([2]);
+  });
+
+  it('stops calling a saved talk early once its send time has passed', () => {
+    const saved = { ...talk(3, '2027-01-18', true), send_at: '2027-01-17T20:00:00Z' };
+    expect(isEarly(saved, new Date('2027-01-15T12:00:00Z'))).toBe(true);
+    expect(isEarly(saved, new Date('2027-01-18T14:00:00Z'))).toBe(false);
+    const monday = arrangeTalks([saved, talk(2, '2027-01-11')], new Date('2027-01-18T14:00:00Z'));
+    expect(monday.current?.issue).toBe(3);
+    expect(monday.early).toEqual([]);
   });
 
   it('handles no talks', () => {

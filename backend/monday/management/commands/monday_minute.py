@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from monday import ai
+from monday import ai, gate
 from monday.api import screen_pending
 from monday.generate import due_week, generate_week
 from monday.models import MondayLock, MondayMinute
@@ -25,6 +25,9 @@ class Command(BaseCommand):
         if target:
             self.write(target)
         now = timezone.now()
+        held = gate.hold_unpublished(now)  # the gate is checked again here, not only when the talk was written
+        if held:
+            self.stdout.write(f"Monday Minute: {held} talk(s) moved back to waiting for approval. The AI setup no longer has a passing safety test.")
         for m in MondayMinute.objects.released().filter(push_sent_at__isnull=True, publish_at__gte=now - timedelta(hours=12)):
             ok, detail = send_minute_push(m)
             self.stdout.write(f"Monday Minute push {m.week}: {'OK' if ok else detail}")

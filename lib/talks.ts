@@ -34,10 +34,15 @@ export const sendDay = (t: Talk, locale?: string) =>
  * Splits the talks the app has into this week's talk, past talks (newest first) and talks ready early (soonest first).
  * This week's talk is the newest one already sent; before the first Sunday, it's the first talk that's ready early.
  */
-export function arrangeTalks(talks: Talk[]) {
+/** "Ready early" only until the newsletter's send time. A copy saved on Friday must not still say early on Monday. */
+export function isEarly(t: Talk, now = new Date()) {
+  return Boolean(t.early) && (!t.send_at || new Date(t.send_at) > now);
+}
+
+export function arrangeTalks(talks: Talk[], now = new Date()) {
   const byDate = (a: Talk, b: Talk) => a.issue_date.localeCompare(b.issue_date);
-  const released = talks.filter((t) => !t.early).sort((a, b) => byDate(b, a));
-  const early = talks.filter((t) => t.early).sort(byDate);
+  const released = talks.filter((t) => !isEarly(t, now)).sort((a, b) => byDate(b, a));
+  const early = talks.filter((t) => isEarly(t, now)).sort(byDate);
   const current = released[0] ?? early[0] ?? null;
   return {
     current,

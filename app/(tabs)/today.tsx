@@ -5,16 +5,19 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Body, Button, ComingSoon, Heading, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { AlertCard } from '@/components/feed';
+import { holiday, HolidayBanner, HomeSafeCard } from '@/components/Holiday';
 import { EpisodeCard } from '@/components/EpisodeCard';
 import { WeatherBar } from '@/components/WeatherBar';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed } from '@/lib/feed';
 import { markStale } from '@/lib/saved-first';
-import { arrangeTalks, issueNumber, listTalks, sendDay, Talk } from '@/lib/talks';
+import { useHoliday } from '@/lib/season';
+import { arrangeTalks, isEarly, issueNumber, listTalks, sendDay, Talk } from '@/lib/talks';
 
 /** Today: this week's talk as a safety placard, talks ready early, then past talks. */
 export default function TodayScreen() {
   const t = useTheme();
+  const festive = useHoliday();
   const [talks, setTalks] = useState<Talk[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [alerts, setAlerts] = useState<FeedItem[]>([]);
@@ -37,10 +40,17 @@ export default function TodayScreen() {
 
   return (
     <Screen onRefresh={refresh}>
-      <View style={styles.topRow}>
-        <Heading>Today</Heading>
-        <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
-      </View>
+      {festive ? (
+        <HolidayBanner>
+          <Text accessibilityRole="header" style={[styles.festiveHeading, { color: holiday.paper }]}>Today</Text>
+          <Link href="/settings" style={[styles.link, styles.festiveLink, { color: holiday.paper }]}>Settings</Link>
+        </HolidayBanner>
+      ) : (
+        <View style={styles.topRow}>
+          <Heading>Today</Heading>
+          <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
+        </View>
+      )}
       <WeatherBar />
       {offline && talks !== null && <OfflineNote />}
 
@@ -48,8 +58,8 @@ export default function TodayScreen() {
 
       {talks !== null && !current && (
         <ComingSoon
-          title="The first talk lands Sunday, January 3"
-          detail="Zero Harm Weekly starts in January. Turn on reminders in Settings and we'll let you know when it's ready for Monday's meeting."
+          title="This week's talk isn't out yet"
+          detail="Zero Harm Weekly lands on Sundays, ready for Monday's meeting. Turn on reminders in Settings and we'll let you know."
         />
       )}
 
@@ -60,13 +70,13 @@ export default function TodayScreen() {
           onPress={() => router.push(`/talk/${current.issue}`)}
           style={[styles.placard, { borderColor: t.text, backgroundColor: t.surface }]}>
           <View style={[styles.band, { backgroundColor: t.accent }]}>
-            <Text style={[styles.bandText, { color: t.onAccent }]}>{current.early ? 'Ready early' : 'This week’s talk'}</Text>
+            <Text style={[styles.bandText, { color: t.onAccent }]}>{isEarly(current) ? 'Ready early' : 'This week’s talk'}</Text>
             <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {issueNumber(current)}</Text>
           </View>
           <View style={styles.placardBody}>
             <Text style={[styles.title, { color: t.text }]}>{current.title}</Text>
             <Body muted>{current.month_theme}</Body>
-            {current.early && <Body muted>The newsletter goes out {sendDay(current)}. You can run it with your crew now.</Body>}
+            {isEarly(current) && <Body muted>The newsletter goes out {sendDay(current)}. You can run it with your crew now.</Body>}
             <Body>{current.crew_question}</Body>
             <Button label="Open the talk" onPress={() => router.push(`/talk/${current.issue}`)} />
           </View>
@@ -92,6 +102,8 @@ export default function TodayScreen() {
           <EpisodeCard ep={episodes[0]} compact />
         </View>
       )}
+
+      {festive && <HomeSafeCard />}
 
       <Pressable
         accessibilityRole="button"
@@ -151,6 +163,8 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   link: { fontFamily: fonts.bodyMedium, fontSize: 16 },
+  festiveHeading: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34 },
+  festiveLink: { paddingVertical: 12 },
   placard: { borderWidth: 3, borderRadius: 8, overflow: 'hidden' },
   band: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 10 },
   bandText: { fontFamily: fonts.display, fontSize: 18 },

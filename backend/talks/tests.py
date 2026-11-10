@@ -359,6 +359,13 @@ class ApiV2ManifestTests(TestCase):
     def test_rejects_bad_platform(self):
         self.assertEqual(self.manifest(platform="windows").status_code, 422)
 
+    def test_app_config_theme_switch(self):
+        self.assertEqual(self.client.get("/api/v2/app/config").json(), {"theme": "auto"})
+        with self.settings(APP_THEME="default"):
+            self.assertEqual(self.client.get("/api/v2/app/config").json(), {"theme": "default"})
+        with self.settings(APP_THEME="christmas"):  # a typo must not break the app
+            self.assertEqual(self.client.get("/api/v2/app/config").json(), {"theme": "auto"})
+
     def test_kb_version_and_304(self):
         man = self.manifest(kb_version="").json()["kb"]
         self.assertTrue(man["changed"])
@@ -482,6 +489,17 @@ class EarlyUnlockTests(TestCase):
         self.assertEqual(without_last_weeks_answer("Intro only."), "Intro only.")
         self.assertEqual(without_last_weeks_answer(""), "")
         self.assertEqual(without_last_weeks_answer("A\n\n## La respuesta de la semana anterior\n\nZ"), "A")
+        # Headings a translator or a hand edit could plausibly produce must be caught too.
+        for heading in ("## La respuesta de la última semana", "### Last week's answer", "##Last week’s answer", "**Last week's answer**"):
+            self.assertEqual(without_last_weeks_answer(f"A\n\n{heading}\n\nSECRET\n\n## Next\n\nY"), "A\n\n## Next\n\nY", heading)
+        self.assertEqual(without_last_weeks_answer(f"A\n## Last week's answer\nSECRET"), "A")
+
+    def test_an_empty_talk_does_not_use_up_an_early_slot(self):
+        upcoming = list(ToolboxTalk.objects.filter(send_at__gt=timezone.now()).order_by("send_at")[:3])
+        self.assertEqual(len(upcoming), 3)
+        ToolboxTalk.objects.filter(pk=upcoming[0].pk).update(body_md="")
+        early = sorted(t.pk for t in ToolboxTalk.objects.available() if t.early)
+        self.assertEqual(early, sorted([upcoming[1].pk, upcoming[2].pk]))
 
 
 class OtisRegulationTests(TestCase):

@@ -59,7 +59,6 @@ function EpisodeView({ ep }: { ep: Episode }) {
           style={styles.video}
           nativeControls
           contentFit="contain"
-          allowsPictureInPicture
           fullscreenOptions={{ enable: true }}
           accessibilityLabel={`Zero Hour episode ${ep.number}, ${ep.title}`}
         />

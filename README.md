@@ -150,3 +150,23 @@ Create the admin login once with `railway ssh` → `python manage.py createsuper
 - Paste the talk text for each issue in the admin, and clear the open pre-send flags in the topic ledger.
 - Privacy policy URL and App Privacy answers (email, push token, crash data).
 - Apple Developer account under Trainovate Technologies (D-U-N-S) and Google Play account.
+
+## Holiday look
+
+From December 1 to December 31 each year the app shows a holiday look on its own: an animated opening screen, string
+lights across the Monday and Today tabs, and an evergreen accent. The first season starts early, on November 10, 2026.
+On January 1 it goes back to normal. It follows the phone's date, so it works with no signal and needs no app update.
+
+To override it without a new build, set `APP_THEME` on the backend: `auto` (follow the calendar), `default` (off now) or
+`holiday` (on now). The app icon and the very first launch image are part of the build and do not change.
+
+Design: `docs/holiday-splash.png`, `docs/holiday-monday.png`, `docs/holiday-today-dark.png`.
+
+## App Store
+
+See `docs/app-store-readiness.md` for what is done in code and what is still needed from the owner.
+
+## iPhone Simulator
+
+On a Mac with Xcode: `npm install`, then `npx expo run:ios`. Or build in the cloud with
+`npx eas-cli@latest build --profile simulator --platform ios` and drag the result onto the Simulator.

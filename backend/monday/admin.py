@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib import admin, messages
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -35,7 +37,8 @@ class MondayTopicAdmin(admin.ModelAdmin):
 
         threading.Thread(target=go, daemon=True).start()
         self.message_user(request, f"Safety test started on {len(topics)} topic(s). Results appear under Monday Minute safety test runs. "
-                                   "On the local model this can take a few hours.")
+                                   "On the local model this can take a few hours. Only a run that includes all the default topics counts toward "
+                                   "the safety gate; smaller runs are exploratory.")
 
     @admin.display(description="Used", ordering="n")
     def times_used(self, obj):
@@ -62,7 +65,7 @@ class FeedbackInline(admin.TabularInline):
 class MondayMinuteAdmin(admin.ModelAdmin):
     list_display = ("week", "title", "topic", "status", "attempts", "ups", "downs", "unsafe", "comments_count")
     list_filter = ("status", "topic__category")
-    readonly_fields = ("check_log", "model", "attempts", "push_sent_at", "created_at")
+    readonly_fields = ("check_log", "model", "attempts", "push_sent_at", "approved_by_person", "created_at")
     inlines = [FeedbackInline]
     actions = ("approve", "pull", "restore", "write_next_week")
 
@@ -92,14 +95,22 @@ class MondayMinuteAdmin(admin.ModelAdmin):
     @admin.action(description="Approve and publish the selected talks that are waiting for approval")
     def approve(self, request, queryset):
         now = timezone.now()
-        n = 0
-        for m in queryset.filter(status=MondayMinute.HELD):
-            m.status = MondayMinute.READY
-            if m.publish_at < now:
-                m.publish_at = now  # publish now, and the cron still sends the Monday push
-            m.save(update_fields=["status", "publish_at"])
-            n += 1
-        self.message_user(request, f"Approved {n} talk(s). Only talks waiting for approval are changed.")
+        held = list(queryset.filter(status=MondayMinute.HELD).order_by("-week", "-pk"))
+        # Only the newest talk may notify, and only if it is for this week or next. Older ones publish quietly, so
+        # approving a backlog doesn't send a push for each.
+        current_week = next_week(now) - timedelta(days=7)
+        notify = 0
+        for i, m in enumerate(held):
+            m.status, m.approved_by_person = MondayMinute.READY, True
+            if i == 0 and m.week >= current_week:
+                if m.publish_at < now:
+                    m.publish_at = now  # publish now, and the cron still sends the Monday push
+                notify += m.push_sent_at is None
+            elif m.push_sent_at is None:
+                m.push_sent_at = now  # marks the push as handled so the cron skips it
+            m.save(update_fields=["status", "approved_by_person", "publish_at", "push_sent_at"])
+        self.message_user(request, f"Approved {len(held)} talk(s). {notify} will send a push notification; older talks publish quietly. "
+                                   "Only talks waiting for approval are changed.")
 
     @admin.action(description="Pull the selected talks from the app")
     def pull(self, request, queryset):
@@ -107,7 +118,7 @@ class MondayMinuteAdmin(admin.ModelAdmin):
 
     @admin.action(description="Restore the selected talks (only if they passed the checks)")
     def restore(self, request, queryset):
-        queryset.filter(status=MondayMinute.PULLED).update(status=MondayMinute.READY)
+        queryset.filter(status=MondayMinute.PULLED).update(status=MondayMinute.READY, approved_by_person=True)
 
     @admin.action(description="Write next week's Monday Minute now")
     def write_next_week(self, request, queryset):
@@ -165,9 +176,9 @@ class MondayCommentAdmin(admin.ModelAdmin):
 
 @admin.register(MondayEvalRun)
 class MondayEvalRunAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "model", "rag", "strict", "status", "passed", "caught", "wrongly_blocked", "progress")
-    list_filter = ("passed", "status", "model")
-    readonly_fields = ("created_at", "finished_at", "model", "rag", "strict", "topics", "status", "progress", "passed", "verdict",
+    list_display = ("created_at", "model", "rag", "strict", "status", "conclusive", "passed", "caught", "wrongly_blocked", "progress")
+    list_filter = ("passed", "conclusive", "status", "model")
+    readonly_fields = ("created_at", "finished_at", "model", "rag", "strict", "topics", "status", "progress", "conclusive", "passed", "verdict",
                        "catch_rate", "false_block_rate", "summary", "results")
 
     @admin.display(description="Caught")

@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { api, isConfigured } from '@/lib/config';
+import { api, config, isConfigured } from '@/lib/config';
 import { FeedbackPrefs, getFeedbackPrefs, saveFeedbackPrefs } from '@/lib/otis/feedback';
 import { getProfile, saveProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
@@ -130,8 +131,28 @@ export default function SettingsScreen() {
       <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
       <Field label="Company" value={company} onChangeText={setCompany} />
       <Button label="Sign up" onPress={signUp} busy={status === 'saving'} />
-      {status === 'saved' && <Body>Signed up. Your first issue arrives Sunday.</Body>}
+      {status === 'saved' && <Body>Signed up. Zero Harm Weekly comes by email on Sundays.</Body>}
       {status === 'error' && <Body>Check the email address and your connection, then tap Sign up again.</Body>}
+
+      <Text style={[styles.section, { color: t.text }]}>About and privacy</Text>
+      <Body muted>
+        Zero Harm gives general safety awareness. It adds to your site training and doesn’t replace it, and it isn’t legal or medical advice.
+        Monday Minute talks are written by AI and checked before they publish. OTIS is an AI assistant that runs on this phone. Trainovate
+        Technologies is not part of OSHA or any government agency.
+      </Body>
+      {config.privacyUrl !== '' && <Button kind="secondary" label="Privacy policy" onPress={() => WebBrowser.openBrowserAsync(config.privacyUrl)} />}
+      {config.termsUrl !== '' && <Button kind="secondary" label="Terms of use" onPress={() => WebBrowser.openBrowserAsync(config.termsUrl)} />}
+      {config.supportEmail !== '' && (
+        <>
+          <Button kind="secondary" label="Contact support" onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Zero%20Harm%20app`)} />
+          <Button
+            kind="secondary"
+            label="Delete my data"
+            onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%20and%20comments.`)}
+          />
+          <Body muted>Delete my data opens an email to us. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions and comments.</Body>
+        </>
+      )}
     </Screen>
   );
 }
