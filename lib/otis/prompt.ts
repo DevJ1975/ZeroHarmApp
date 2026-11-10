@@ -13,10 +13,44 @@ Rules:
 - Reply in the same language as the question (English or Spanish).
 /no_think`;
 
-/** The user turn: the question plus the passages OTIS may use, numbered for citation. */
+/** The phone's model has a small context window, so the sources it reads are capped: each passage, and all together. */
+const PER_SOURCE = 1100;
+const ALL_SOURCES = 3600;
+
+/**
+ * The part of a long passage that best matches the question: the run of sentences with the most question words.
+ * Short passages come back whole. Regulation paragraphs can be 2,500 characters, far more than the phone model can read.
+ */
+export function excerpt(text: string, question: string, max = PER_SOURCE): string {
+  if (text.length <= max) return text;
+  const want = new Set(question.toLowerCase().match(/[a-z0-9áéíóúñ]{4,}/g) ?? []);
+  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) ?? [text];
+  const score = (s: string) => (s.toLowerCase().match(/[a-z0-9áéíóúñ]{4,}/g) ?? []).filter((w) => want.has(w)).length;
+  let best = { start: 0, end: 0, score: -1 };
+  for (let start = 0; start < sentences.length; start++) {
+    let len = 0;
+    let total = 0;
+    for (let end = start; end < sentences.length && len + sentences[end].length <= max; end++) {
+      len += sentences[end].length;
+      total += score(sentences[end]);
+      if (total > best.score) best = { start, end, score: total };
+    }
+  }
+  const picked = sentences.slice(best.start, best.end + 1).join('').trim() || text.slice(0, max);
+  return `${best.start > 0 ? '… ' : ''}${picked}${best.end < sentences.length - 1 ? ' …' : ''}`;
+}
+
+/** The user turn: the question plus the passages OTIS may use, numbered for citation and trimmed to fit the phone model. */
 export function userTurn(question: string, sources: KbItem[]) {
+  let room = ALL_SOURCES;
   const listed = sources.length
-    ? sources.map((s, i) => `[${i + 1}] ${s.title}${s.id.startsWith('r') ? ` (${s.source})` : ''}\n${s.text}`).join('\n\n')
+    ? sources
+        .map((s, i) => {
+          const body = excerpt(s.text, question, Math.max(300, Math.min(PER_SOURCE, room)));
+          room -= body.length;
+          return `[${i + 1}] ${s.title}${s.id.startsWith('r') ? ` (${s.source})` : ''}\n${body}`;
+        })
+        .join('\n\n')
     : '(no matching sources)';
   return `SOURCES:\n${listed}\n\nQUESTION: ${question}`;
 }

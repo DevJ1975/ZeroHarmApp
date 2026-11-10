@@ -7,6 +7,13 @@ export const config = {
 
 export const isConfigured = () => Boolean(config.apiUrl);
 
+/** The server answered, but not with success. `status` tells "it's gone" (404) from "try again later". */
+export class ApiError extends Error {
+  constructor(public status: number) {
+    super(`API ${status}`);
+  }
+}
+
 /** Small fetch wrapper for the Django API with a timeout, so a dead dock signal fails fast. */
 export async function api<T>(path: string, init?: RequestInit, timeoutMs = 10000): Promise<T> {
   const controller = new AbortController();
@@ -17,7 +24,7 @@ export async function api<T>(path: string, init?: RequestInit, timeoutMs = 10000
       signal: controller.signal,
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...init?.headers },
     });
-    if (!res.ok) throw new Error(`API ${res.status}`);
+    if (!res.ok) throw new ApiError(res.status);
     return (await res.json()) as T;
   } finally {
     clearTimeout(timer);

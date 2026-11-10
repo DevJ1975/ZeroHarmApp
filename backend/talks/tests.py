@@ -382,6 +382,9 @@ class ApiV2ManifestTests(TestCase):
         self.assertEqual(post({"helpful": False}).status_code, 403)
 
     def test_openapi_schema(self):
+        from django.contrib.auth import get_user_model
+        self.assertEqual(self.client.get("/api/v2/openapi.json").status_code, 302)  # docs are for signed-in staff
+        self.client.force_login(get_user_model().objects.create_user("staff", password="x", is_staff=True))
         paths = self.client.get("/api/v2/openapi.json").json()["paths"]
         self.assertTrue({"/api/v2/otis/manifest", "/api/v2/otis/kb", "/api/v2/otis/feedback"} <= set(paths))
 

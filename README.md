@@ -109,8 +109,9 @@ Then open http://localhost:8000/admin/. Tests: `docker compose exec web python m
 Variables (web and cron): `DJANGO_SECRET_KEY`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
 `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`.
 Monday Minute's AI runs on your own **ollama** service by default (see below). Set on web and cron:
-`AI_PROVIDER=local`, `LOCAL_AI_URL=http://ollama.railway.internal:11434`, optionally `LOCAL_AI_MODEL` (default `qwen3:8b`)
-and `LOCAL_AI_TIMEOUT` (seconds per call, default 1800). To use Claude instead: `AI_PROVIDER=anthropic` and
+`AI_PROVIDER=local`, `LOCAL_AI_URL=http://ollama.railway.internal:11434`, optionally `LOCAL_AI_MODEL` (default `qwen3:8b`),
+`LOCAL_AI_REVIEW_MODEL` (a bigger model for the safety review only, e.g. `qwen3:14b`), `LOCAL_AI_THREADS` (set it to the
+ollama service's vCPU limit) and `LOCAL_AI_TIMEOUT` (seconds per call, default 1800). To use Claude instead: `AI_PROVIDER=anthropic` and
 `ANTHROPIC_API_KEY` (optional `MONDAY_MODEL`, default `claude-opus-5-5`). `MONDAY_MINUTE_ENABLED=0` stops writing new talks.
 
 - **ollama** service (local AI, CPU only, since Railway has no GPUs): deploy the Docker image `ollama/ollama`.

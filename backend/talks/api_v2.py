@@ -10,6 +10,7 @@ from decimal import Decimal
 from typing import Literal
 
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from ninja import NinjaAPI, Schema
@@ -18,7 +19,9 @@ from pydantic import Field
 
 from .models import OtisFeedback, OtisModelRelease, OtisRollout
 
-api = NinjaAPI(title="Zero Harm API", version="2.0.0", urls_namespace="api-v2", docs_url="/docs")
+# The interactive docs describe every endpoint; keep them for people signed in to the admin.
+api = NinjaAPI(title="Zero Harm API", version="2.0.0", urls_namespace="api-v2", docs_url="/docs",
+               docs_decorator=staff_member_required)
 
 
 def _mount_routers():
@@ -117,7 +120,7 @@ def _version_tuple(v: str):
 
 
 def current_kb():
-    """The knowledge base and a content hash, cached briefly. The hash changes whenever any passage does."""
+    """(version, JSON body) of the knowledge base, cached briefly. The version is a content hash: it changes whenever any passage does."""
     hit = cache.get(KB_CACHE_KEY)
     if hit:
         return hit
@@ -125,8 +128,10 @@ def current_kb():
 
     items = kb_items()
     version = hashlib.sha256(json.dumps(items, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
-    cache.set(KB_CACHE_KEY, (version, items), KB_CACHE_SECONDS)
-    return version, items
+    # Keep the finished JSON too: serving it skips validating and re-encoding a few hundred passages per request.
+    body = json.dumps({"version": version, "items": items}, ensure_ascii=False, separators=(",", ":")).encode()
+    cache.set(KB_CACHE_KEY, (version, body), KB_CACHE_SECONDS)
+    return version, body
 
 
 def pick_model(device: DeviceIn) -> ModelOut:
@@ -168,17 +173,15 @@ def manifest(request: HttpRequest, device: DeviceIn):
 
 
 @api.get("/otis/kb", response={200: KbOut, 304: None}, tags=["OTIS"], summary="Knowledge base, only when it changed")
-def kb(request: HttpRequest, response: HttpResponse):
+def kb(request: HttpRequest):
     """Send `If-None-Match` with the version you have. A 304 means the copy on the phone is current."""
-    version, items = current_kb()
+    version, body = current_kb()
     etag = f'"{version}"'
-    response["ETag"] = etag
-    response["Cache-Control"] = "no-cache"
-    if request.headers.get("If-None-Match") in (etag, version):
-        res = HttpResponse(status=304)
-        res["ETag"] = etag
-        return res
-    return 200, {"version": version, "items": items}
+    sent = request.headers.get("If-None-Match", "").removeprefix("W/")
+    res = HttpResponse(status=304) if sent in (etag, version) else HttpResponse(body, content_type="application/json")
+    res["ETag"] = etag
+    res["Cache-Control"] = "no-cache"
+    return res
 
 
 @api.post("/otis/feedback", response={201: Ok, 403: Error}, tags=["OTIS"], summary="Opt-in 'Was this helpful?' rating",

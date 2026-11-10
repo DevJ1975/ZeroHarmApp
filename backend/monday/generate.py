@@ -204,7 +204,7 @@ def write(topic: MondayTopic, findings: list[str], call=None):
         user += "\n\nYOUR LAST DRAFT FAILED THESE CHECKS. Fix every one:\n- " + "\n- ".join(findings)
     if call:
         return call(WRITER_SYSTEM, user, TALK_SCHEMA, "high")
-    return ai_json(WRITER_SYSTEM, user, TALK_SCHEMA, "high", think=False)
+    return ai_json(WRITER_SYSTEM, user, TALK_SCHEMA, role="write", think=False)
 
 
 _EXAMPLES = None
@@ -255,7 +255,7 @@ def review(topic: MondayTopic, talk: dict, call=None, second=False, rag=None):
     system = REVIEWER_SYSTEM + (SECOND_REVIEW if second else "")
     if call:
         return call(system, user, REVIEW_SCHEMA, "high")
-    return ai_json(system, user, REVIEW_SCHEMA, "high", think=True)
+    return ai_json(system, user, REVIEW_SCHEMA, role="review", think=True, seed=2 if second else 1)
 
 
 def judge(topic: MondayTopic, talk: dict, verdict: dict, strict: bool) -> tuple[list[str], list[str]]:

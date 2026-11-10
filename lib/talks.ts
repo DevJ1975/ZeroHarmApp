@@ -67,6 +67,8 @@ export async function listTalks(): Promise<{ talks: Talk[]; offline: boolean }> 
   if (isConfigured()) {
     try {
       const { talks } = await api<{ talks: Talk[] }>('/talks/');
+      const db = await getDb();
+      await db.runAsync('DELETE FROM talks_cache'); // a talk held back for review must not stay in the offline copy
       await cache(talks);
       return { talks, offline: false };
     } catch {

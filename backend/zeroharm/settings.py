@@ -135,6 +135,8 @@ AI_PROVIDER = os.environ.get("AI_PROVIDER", "local")
 LOCAL_AI_URL = os.environ.get("LOCAL_AI_URL", "")            # e.g. http://ollama.railway.internal:11434
 LOCAL_AI_MODEL = os.environ.get("LOCAL_AI_MODEL", "qwen3:8b")
 LOCAL_AI_TIMEOUT = float(os.environ.get("LOCAL_AI_TIMEOUT", "1800"))  # seconds per call; CPU is slow
+LOCAL_AI_REVIEW_MODEL = os.environ.get("LOCAL_AI_REVIEW_MODEL", "")  # optional bigger model for the safety review only, e.g. qwen3:14b
+LOCAL_AI_THREADS = int(os.environ.get("LOCAL_AI_THREADS", "0"))      # set to the ollama service's vCPU limit; 0 = let Ollama decide
 MONDAY_RAG = os.environ.get("MONDAY_RAG", "1") == "1"  # give the safety reviewer the regulation text and past findings
 MONDAY_MODEL = os.environ.get("MONDAY_MODEL", "claude-opus-5-5")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")

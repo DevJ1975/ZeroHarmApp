@@ -1,7 +1,7 @@
 import Storage from 'expo-sqlite/kv-store';
 import { Platform } from 'react-native';
 
-import { api, isConfigured } from './config';
+import { api, ApiError, isConfigured } from './config';
 import { getDb } from './db';
 import { installId } from './install';
 
@@ -43,6 +43,18 @@ async function cache(list: Minute[]) {
   for (const m of list) await db.runAsync('INSERT OR REPLACE INTO monday_cache (id, json) VALUES (?, ?)', m.id, JSON.stringify(m));
 }
 
+/** Makes the saved copy match the server's list, so a talk that was pulled doesn't live on in the phone's offline copy. */
+async function replaceCache(list: Minute[]) {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM monday_cache');
+  await cache(list);
+}
+
+async function forget(id: number) {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM monday_cache WHERE id = ?', id);
+}
+
 async function readCache(): Promise<Minute[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<{ json: string }>('SELECT json FROM monday_cache ORDER BY id DESC');
@@ -54,7 +66,7 @@ export async function listMinutes(): Promise<Minute[]> {
   if (isConfigured()) {
     try {
       const { minutes } = await api<{ minutes: Minute[] }>('/v2/monday-minute');
-      await cache(minutes);
+      await replaceCache(minutes);
       return minutes;
     } catch {
       // no signal: saved copy
@@ -69,8 +81,12 @@ export async function getMinute(id: number): Promise<Minute | null> {
       const m = await api<Minute>(`/v2/monday-minute/${id}`);
       await cache([m]);
       return m;
-    } catch {
-      // fall through
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        await forget(id); // pulled or unpublished: don't show the saved copy
+        return null;
+      }
+      // no signal: fall through to the saved copy
     }
   }
   return (await readCache()).find((m) => m.id === id) ?? null;

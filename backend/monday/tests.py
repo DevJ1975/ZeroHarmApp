@@ -403,7 +403,23 @@ class OllamaTests(TestCase):
         self.assertEqual((data, model), ({"allow": True}, "local:qwen3:8b"))
         self.assertEqual(sent["url"], "http://ollama.test:11434/api/chat")
         self.assertEqual((sent["format"], sent["think"], sent["stream"]), ({"type": "object"}, False, False))
+        self.assertEqual((sent["options"]["num_ctx"], sent["options"]["temperature"]), (16384, 0.0))  # review role
         self.assertEqual(sent["messages"][0]["role"], "system")
+
+    @override_settings(LOCAL_AI_REVIEW_MODEL="qwen3:14b", LOCAL_AI_THREADS=8)
+    def test_roles_tune_model_context_and_threads(self):
+        sent = []
+
+        def fake(req, timeout):
+            sent.append(json.loads(req.data))
+            return self.reply({"done_reason": "stop", "message": {"content": "{}"}})
+
+        with patch("urllib.request.urlopen", fake):
+            ai.ai_json("s", "u", {}, role="moderate", think=False)
+            ai.ai_json("s", "u", {}, role="review", seed=2)
+        mod, rev = sent
+        self.assertEqual((mod["model"], mod["options"]["num_ctx"], mod["options"]["num_predict"]), ("qwen3:8b", 4096, 200))
+        self.assertEqual((rev["model"], rev["options"]["seed"], rev["options"]["num_thread"]), ("qwen3:14b", 2, 8))
 
     def test_cut_off_and_down_raise(self):
         with patch("urllib.request.urlopen", lambda req, timeout: self.reply({"done_reason": "length", "message": {"content": "{"}})):
