@@ -3,12 +3,13 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-goog
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { IntroSplash } from '@/components/IntroSplash';
-import { fonts } from '@/constants/theme';
+import { fonts, themes } from '@/constants/theme';
 import { startLive } from '@/lib/live';
 import { startPush } from '@/lib/push';
 import { flushSheets } from '@/lib/sheets';
@@ -33,6 +34,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (error) throw error;
   }, [error]);
+
+  // The root view sits behind every screen (transitions, keyboard): match it to the theme, not app.json's splash yellow.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(themes[scheme === 'dark' ? 'dark' : 'light'].background);
+  }, [scheme]);
 
   useEffect(() => {
     startPush();
