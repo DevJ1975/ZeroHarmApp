@@ -13,7 +13,7 @@ function icon(name: IconName) {
   return TabIcon;
 }
 
-/** Tabs, ordered by a supervisor's shift: Monday Minute first (the app opens here), then today's talk, inspect, report, calculate, learn. */
+/** Tabs, ordered by a supervisor's shift: Monday Minute first (the app opens here), then Zero Harm Weekly, tools, learn. */
 export default function TabLayout() {
   const t = useTheme();
   return (
@@ -27,8 +27,6 @@ export default function TabLayout() {
       }}>
       <Tabs.Screen name="index" options={{ title: 'Monday', tabBarIcon: icon({ ios: 'stopwatch', android: 'timer', web: 'timer' }) }} />
       <Tabs.Screen name="today" options={{ title: 'Today', tabBarIcon: icon({ ios: 'sun.max', android: 'today', web: 'today' }) }} />
-      <Tabs.Screen name="inspect" options={{ title: 'Inspect', tabBarIcon: icon({ ios: 'checklist', android: 'checklist', web: 'checklist' }) }} />
-      <Tabs.Screen name="report" options={{ title: 'Report', tabBarIcon: icon({ ios: 'exclamationmark.triangle', android: 'report', web: 'report' }) }} />
       <Tabs.Screen name="tools" options={{ title: 'Tools', tabBarIcon: icon({ ios: 'wrench.and.screwdriver', android: 'build', web: 'build' }) }} />
       <Tabs.Screen name="learn" options={{ title: 'Learn', tabBarIcon: icon({ ios: 'book', android: 'menu_book', web: 'menu_book' }) }} />
     </Tabs>

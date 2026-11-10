@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, ComingSoon, Field, Heading, Screen } from '@/components/ui';
+import { Body, Field, Heading, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 
 const num = (s: string) => Number(s.replace(/,/g, ''));
@@ -39,8 +39,6 @@ export default function ToolsScreen() {
         <Body muted>Cases per 100 full-time workers per year. This is guidance, not a substitute for your recordkeeping professional.</Body>
       </View>
 
-      <ComingSoon title="Is it recordable?" detail="A step-by-step check against OSHA's recordkeeping rule. Arrives in the first update." />
-      <ComingSoon title="Heat stress planner" detail="Live heat index with water, rest and shade guidance. Planned for May." />
     </Screen>
   );
 }

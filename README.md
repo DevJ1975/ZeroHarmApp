@@ -13,7 +13,7 @@ The free Zero Harm safety app from Trainovate Technologies, plus the Django back
 - **Crew sign-in:** pass the phone around, type a name, sign, share a branded PDF sign-in sheet. Stored on the phone only.
 - **Tools:** TRIR and DART rate calculator (200,000-hour base).
 - **Settings:** two separate switches, "Weekly toolbox talk" and "News and offers" (promotional, off by default), plus optional email sign-up.
-- **Inspect, Report, Learn:** placeholders for the first updates.
+- **Learn:** Zero Hour episodes, free courses and tools published from GoHighLevel, and the newsletter sign-up.
 
 Run it:
 1. `npm install`
