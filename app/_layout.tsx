@@ -3,11 +3,13 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-goog
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
+import { IntroSplash } from '@/components/IntroSplash';
 import { fonts } from '@/constants/theme';
+import { startLive } from '@/lib/live';
 import { startPush } from '@/lib/push';
 import { flushSheets } from '@/lib/sheets';
 
@@ -19,6 +21,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const scheme = useColorScheme();
+  const [introDone, setIntroDone] = useState(false); // the footage intro plays once per cold start
   const [loaded, error] = useFonts({
     Barlow_400Regular,
     Barlow_500Medium,
@@ -33,6 +36,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     startPush();
+    startLive(); // reload lists when new talks, alerts or episodes are published
     flushSheets(); // sheets saved with no signal go out now
   }, []);
 
@@ -57,6 +61,7 @@ export default function RootLayout() {
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
+      {!introDone && <IntroSplash onDone={() => setIntroDone(true)} />}
     </ThemeProvider>
   );
 }

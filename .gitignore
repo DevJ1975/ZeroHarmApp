@@ -41,3 +41,11 @@ yarn-error.*
 /android
 
 .env
+
+# content console (local only)
+console/.env.local
+console/node_modules
+console/dist
+
+# local Django database
+backend/db.sqlite3

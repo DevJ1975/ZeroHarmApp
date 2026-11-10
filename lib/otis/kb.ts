@@ -1,6 +1,7 @@
 import Storage from 'expo-sqlite/kv-store';
 
 import { api, isConfigured } from '../config';
+import { noteStaleContent } from '../live';
 
 /** One searchable passage: a KB entry or one section of a released talk. */
 export type KbItem = { id: string; title: string; text: string; source: string; lang: 'en' | 'es'; issue: number | null; episode?: number; tags?: string };
@@ -17,6 +18,7 @@ export async function loadKb(): Promise<KbItem[]> {
       memo = items;
       return items;
     } catch {
+      noteStaleContent(); // a content change seen now is retried on the next check
       // no signal: use the saved copy
     }
   }

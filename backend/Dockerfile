@@ -21,5 +21,7 @@ USER appuser
 
 EXPOSE 8000
 
-# Migrations run on every start (they are a no-op when nothing changed), then gunicorn serves on $PORT.
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --access-logfile -"]
+# Migrations and the shared cache table are set up on every start (both are a no-op when nothing changed),
+# then gunicorn serves on $PORT. The 150 s timeout lets a console Spanish draft (Claude, up to 120 s) finish
+# instead of the worker being killed at gunicorn's default 30 s.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py createcachetable && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --timeout 150 --access-logfile -"]

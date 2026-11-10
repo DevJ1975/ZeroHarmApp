@@ -1,8 +1,9 @@
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import Storage from 'expo-sqlite/kv-store';
-import { LogLevel, NotificationClickEvent, OneSignal } from 'react-native-onesignal';
+import { LogLevel, NotificationClickEvent, NotificationWillDisplayEvent, OneSignal } from 'react-native-onesignal';
 
 import { config } from './config';
+import { refreshContent } from './live';
 
 /**
  * Three separate opt-ins, matching Apple's rule that promotional pushes need their own consent:
@@ -25,14 +26,47 @@ export function startPush() {
   if (__DEV__) OneSignal.Debug.setLogLevel(LogLevel.Warn);
   OneSignal.initialize(config.oneSignalAppId); // does NOT prompt; we ask at a good moment instead
 
-  // Tapping the Sunday push opens that week's talk.
+  // A push arriving while the app is open still shows; if it says "refresh", reload the content now.
+  OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: NotificationWillDisplayEvent) => {
+    if (readData(event.getNotification().additionalData)?.refresh) refreshContent();
+  });
+
+  // Tapping a push opens what it is about.
   OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
-    const data = event.notification.additionalData as { issue?: number | string; feed_id?: number | string; kind?: string; episode?: number | string } | undefined;
-    if (data?.episode) router.push(`/zero-hour/${data.episode}`);
+    const data = readData(event.notification.additionalData);
+    if (data?.refresh) refreshContent();
+    const route = safeRoute(data?.route);
+    if (route) router.push(route);
+    else if (data?.episode) router.push(`/zero-hour/${data.episode}`);
     else if (data?.issue) router.push(`/talk/${data.issue}`);
     else if (data?.feed_id && data.kind === 'alert') router.push(`/alert/${data.feed_id}`);
     else if (data?.feed_id) router.push('/learn');
   });
+}
+
+type PushData = {
+  issue?: number | string;
+  feed_id?: number | string;
+  kind?: string;
+  episode?: number | string;
+  route?: unknown;
+  refresh?: boolean | string;
+};
+
+function readData(raw: object | undefined): (PushData & { refresh: boolean }) | undefined {
+  if (!raw) return undefined;
+  const data = raw as PushData;
+  return { ...data, refresh: data.refresh === true || data.refresh === 'true' };
+}
+
+// Only these screens can be opened from a push, so a bad payload can't send people somewhere odd.
+const FIXED_ROUTES = ['/learn', '/otis', '/archive'];
+const ID_ROUTE = /^\/(talk|alert|zero-hour)\/[A-Za-z0-9_-]{1,40}$/;
+
+function safeRoute(route: unknown): Href | null {
+  if (typeof route !== 'string') return null;
+  if (FIXED_ROUTES.includes(route) || ID_ROUTE.test(route)) return route as Href;
+  return null;
 }
 
 export async function getPrefs(): Promise<PushPrefs> {

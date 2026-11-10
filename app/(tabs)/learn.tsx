@@ -9,17 +9,15 @@ import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
 import { config } from '@/lib/config';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed, RESOURCE_KINDS } from '@/lib/feed';
+import { useContentRefresh } from '@/lib/live';
 
 /** Free courses, tools and videos, published from GoHighLevel. Featured items first. */
 export default function LearnScreen() {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [eps, setEps] = useState<Episode[]>([]);
-  useFocusEffect(
-    useCallback(() => {
-      listFeed(RESOURCE_KINDS).then(setItems);
-      listEpisodes().then(setEps);
-    }, []),
-  );
+  const load = useCallback(() => Promise.all([listFeed(RESOURCE_KINDS).then(setItems), listEpisodes().then(setEps)]), []);
+  useFocusEffect(useCallback(() => void load(), [load]));
+  useContentRefresh(load);
   return (
     <Screen>
       <Heading>Learn</Heading>

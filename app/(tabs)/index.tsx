@@ -8,6 +8,7 @@ import { AlertCard } from '@/components/feed';
 import { EpisodeCard } from '@/components/EpisodeCard';
 import { WeatherBar } from '@/components/WeatherBar';
 import { Episode, listEpisodes } from '@/lib/episodes';
+import { useContentRefresh } from '@/lib/live';
 import { FeedItem, listFeed } from '@/lib/feed';
 import { issueNumber, listTalks, Talk } from '@/lib/talks';
 
@@ -19,16 +20,20 @@ export default function TodayScreen() {
   const [alerts, setAlerts] = useState<FeedItem[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
 
-  useFocusEffect(
-    useCallback(() => {
-      listTalks().then((r) => {
-        setTalks(r.talks);
-        setOffline(r.offline);
-      });
-      listFeed(['alert']).then(setAlerts);
-      listEpisodes().then(setEpisodes);
-    }, []),
+  const load = useCallback(
+    () =>
+      Promise.all([
+        listTalks().then((r) => {
+          setTalks(r.talks);
+          setOffline(r.offline);
+        }),
+        listFeed(['alert']).then(setAlerts),
+        listEpisodes().then(setEpisodes),
+      ]),
+    [],
   );
+  useFocusEffect(useCallback(() => void load(), [load]));
+  useContentRefresh(load); // new content published while this screen is open
 
   const [current, ...past] = talks ?? [];
 

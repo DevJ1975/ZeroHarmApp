@@ -64,7 +64,12 @@ DATABASES = {
     )
 }
 
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+# "shared" lives in the database, so every gunicorn worker sees the same count (console wrong-key limit).
+# Its table is made by migration talks/0008 (and createcachetable in the Dockerfile start command).
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "shared": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "zeroharm_cache"},
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -102,6 +107,8 @@ GHL_PRIVATE_TOKEN = os.environ.get("GHL_PRIVATE_TOKEN", "")
 GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
 # Shared secret the GoHighLevel workflow sends in the X-ZeroHarm-Key header when publishing to the app
 INGEST_KEY = os.environ.get("INGEST_KEY", "")
+# Bearer key for the local content console (console/ folder). Blank turns the /api/console/ endpoints off.
+CONSOLE_KEY = os.environ.get("CONSOLE_KEY", "")
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 OTIS_MODEL = os.environ.get("OTIS_MODEL", "QWEN3_1_7B")

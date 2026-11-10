@@ -63,13 +63,16 @@ def sync_episodes(files=None):
         created = ep is None
         if created:
             ep = Episode(number=n, title=f"Episode {n}", hazard="", story="", needs_details=True, release_at=next_thursday_5am())
+        before = (ep.video_url, ep.video_full_url, ep.thumbnail_url, ep.card_pdf_url)
         if n in videos:
             f = videos[n][1]
             ep.video_url, ep.video_full_url = _stream_url(f), f.get("url", "")
             ep.thumbnail_url = (f.get("thumbnail") or {}).get("url", "") or ep.thumbnail_url
         if n in cards:
             ep.card_pdf_url = cards[n].get("url", "")
-        ep.save()
+        # Save only real changes: every save moves updated_at, which tells every phone to reload.
+        if created or (ep.video_url, ep.video_full_url, ep.thumbnail_url, ep.card_pdf_url) != before:
+            ep.save()
         state = "NEW, on hold until its huddle card text is added" if ep.needs_details else "linked"
         log.append(f"EP {n:02d}: {state}{'' if n in videos else ' (no video yet)'}{'' if n in cards else ' (no huddle card PDF yet)'}")
     return log or ["No Zero Hour files found in Media Storage."]

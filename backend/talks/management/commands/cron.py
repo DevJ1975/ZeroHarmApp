@@ -17,8 +17,8 @@ class Command(BaseCommand):
         call_command("send_talk_push")
 
         now = timezone.now()
-        due = FeedItem.objects.filter(published=True, send_push=True, push_sent_at__isnull=True,
-                                      publish_at__lte=now + timedelta(minutes=2), publish_at__gte=now - timedelta(days=1))
+        # Live items only (no early grace): the push makes phones refetch, so it must not land before the item shows.
+        due = FeedItem.objects.released().filter(send_push=True, push_sent_at__isnull=True, publish_at__gte=now - timedelta(days=1))
         for item in due:
             ok, detail = send_feed_push(item)
             self.stdout.write(f"Feed push {item.pk} {item.title}: {'OK' if ok else 'FAILED'} {'' if ok else detail}")

@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Body, Button } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { api, isConfigured } from '@/lib/config';
+import { useContentRefresh } from '@/lib/live';
 import { KbItem, loadKb, search } from '@/lib/otis/kb';
 import { clean, looksSpanish, SYSTEM, userTurn } from '@/lib/otis/prompt';
 import { looksUrgent } from '@/lib/otis/safety';
@@ -112,6 +113,7 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
   useEffect(() => {
     loadKb().then(setKb);
   }, []);
+  useContentRefresh(() => loadKb().then(setKb)); // new talks or KB entries reach OTIS without reopening
 
   const add = (m: Omit<Msg, 'id'>) => {
     const id = nextId.current++;

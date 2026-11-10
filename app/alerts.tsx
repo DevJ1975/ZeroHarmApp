@@ -5,11 +5,14 @@ import { ActivityIndicator } from 'react-native';
 import { AlertCard } from '@/components/feed';
 import { ComingSoon, Screen } from '@/components/ui';
 import { FeedItem, listFeed } from '@/lib/feed';
+import { useContentRefresh } from '@/lib/live';
 
 /** Every regulatory alert, newest first. */
 export default function AlertsScreen() {
   const [items, setItems] = useState<FeedItem[] | null>(null);
-  useFocusEffect(useCallback(() => void listFeed(['alert']).then(setItems), []));
+  const load = useCallback(() => listFeed(['alert']).then(setItems), []);
+  useFocusEffect(useCallback(() => void load(), [load]));
+  useContentRefresh(load);
   return (
     <Screen>
       {items === null && <ActivityIndicator />}

@@ -16,6 +16,7 @@
   ],
   "exclude": [
     "supabase/functions",
+    "console",
     "node_modules"
   ]
 }

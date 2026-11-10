@@ -1,5 +1,6 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
+import { noteStaleContent } from './live';
 
 export type TalkText = { title: string; story_title: string; crew_question: string; body_md: string };
 
@@ -46,6 +47,7 @@ export async function listTalks(): Promise<{ talks: Talk[]; offline: boolean }> 
       await cache(talks);
       return { talks, offline: false };
     } catch {
+      noteStaleContent(); // a content change seen now is retried on the next check
       // no signal or server unreachable: fall through to the copy on this phone
     }
   }

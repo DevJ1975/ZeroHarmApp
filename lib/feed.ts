@@ -1,5 +1,6 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
+import { noteStaleContent } from './live';
 
 export type FeedKind = 'alert' | 'course' | 'tool' | 'video' | 'newsletter';
 
@@ -33,6 +34,7 @@ export async function listFeed(kinds: FeedKind[]): Promise<FeedItem[]> {
       });
       return items;
     } catch {
+      noteStaleContent(); // a content change seen now is retried on the next check
       // no signal: fall back to the copy on this phone
     }
   }
