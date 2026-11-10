@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from .ai import ensure_model, is_local
 from .generate import generate_week, next_week
-from .models import MondayComment, MondayFeedback, MondayLock, MondayMinute, MondayTopic
+from .models import MondayComment, MondayEvalRun, MondayFeedback, MondayLock, MondayMinute, MondayTopic
 
 
 @admin.register(MondayTopic)
@@ -12,10 +12,30 @@ class MondayTopicAdmin(admin.ModelAdmin):
     list_display = ("title", "category", "active", "paused_reason", "times_used", "updated_at")
     list_filter = ("active", "category")
     search_fields = ("title", "slug", "hazard")
-    actions = ("pause", "resume")
+    actions = ("pause", "resume", "safety_test")
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(n=Count("talks", filter=Q(talks__status=MondayMinute.READY)))
+
+    @admin.action(description="Run the safety test on the selected topics (with and without RAG)")
+    def safety_test(self, request, queryset):
+        import threading
+
+        from django.db import connection
+
+        from .eval_runner import run_eval
+
+        topics = list(queryset[:12])
+
+        def go():
+            try:
+                run_eval(topics)
+            finally:
+                connection.close()
+
+        threading.Thread(target=go, daemon=True).start()
+        self.message_user(request, f"Safety test started on {len(topics)} topic(s). Results appear under Monday Minute safety test runs. "
+                                   "On the local model this can take a few hours.")
 
     @admin.display(description="Used", ordering="n")
     def times_used(self, obj):
@@ -129,3 +149,12 @@ class MondayCommentAdmin(admin.ModelAdmin):
     @admin.action(description="Show the selected comments")
     def show(self, request, queryset):
         queryset.update(status=MondayComment.VISIBLE, moderation="")
+
+
+@admin.register(MondayEvalRun)
+class MondayEvalRunAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "model", "status", "progress", "finished_at")
+    readonly_fields = ("created_at", "finished_at", "model", "topics", "status", "progress", "summary", "results")
+
+    def has_add_permission(self, request):
+        return False  # start one from the topics list: select topics, then "Run the safety test"

@@ -167,3 +167,23 @@ class MondayLock(models.Model):
     @classmethod
     def release(cls, name: str):
         cls.objects.filter(name=name).delete()
+
+
+class MondayEvalRun(models.Model):
+    """One run of the reviewer safety test (planted mistakes vs faithful talks), with and without RAG."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    model = models.CharField(max_length=60)
+    topics = models.JSONField(default=list)
+    status = models.CharField(max_length=10, default="running", choices=[("running", "Running"), ("done", "Done"), ("failed", "Failed")])
+    progress = models.CharField(max_length=40, blank=True)
+    summary = models.TextField(blank=True)
+    results = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Monday Minute safety test run"
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} · {self.model} · {self.status}"

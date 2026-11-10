@@ -448,3 +448,20 @@ class EarlyUnlockTests(TestCase):
         with patch("django.utils.timezone.now", return_value=self.now):
             call_command("send_talk_push", "--dry-run", stdout=out)
         self.assertIn("No talk is due", out.getvalue())
+
+
+class OtisRegulationTests(TestCase):
+    def test_kb_includes_official_regulation_text(self):
+        items = self.client.get("/api/otis/kb/").json()["items"]
+        regs = [i for i in items if i["id"].startswith("r")]
+        self.assertTrue(regs)
+        self.assertTrue(all(i["source"].startswith("29 CFR 19") for i in regs))
+        self.assertTrue(any(i["source"].startswith("29 CFR 1910.147(") for i in regs))
+        self.assertLessEqual(sum(len(i["text"]) for i in regs), 250_000)
+
+    def test_paused_entry_leaves_otis(self):
+        entry = KbEntry.objects.filter(source__startswith="OSHA 29 CFR 1910.147").first()
+        entry.published, entry.paused_reason = False, "OSHA changed 29 CFR 1910.147"
+        entry.save()
+        titles = {i["title"] for i in self.client.get("/api/otis/kb/").json()["items"]}
+        self.assertNotIn(entry.title, titles)

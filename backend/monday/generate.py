@@ -207,9 +207,51 @@ def write(topic: MondayTopic, findings: list[str], call=None):
     return ai_json(WRITER_SYSTEM, user, TALK_SCHEMA, "high", think=False)
 
 
-def review(topic: MondayTopic, talk: dict, call=None, second=False):
+_EXAMPLES = None
+
+
+def past_findings(topic: MondayTopic, k=4) -> list[dict]:
+    """Real findings from the CSP review of the topic bank, closest first: this topic, then its category, then by words."""
+    global _EXAMPLES
+    if _EXAMPLES is None:
+        from pathlib import Path
+
+        _EXAMPLES = json.loads((Path(__file__).resolve().parent / "review_examples.json").read_text())
+    want = set(re.findall(r"[a-z]{4,}", f"{topic.title} {topic.hazard}".lower()))
+
+    def score(ex):
+        overlap = len(want & set(re.findall(r"[a-z]{4,}", ex["finding"].lower())))
+        return (ex["slug"] == topic.slug) * 100 + (ex["category"] == topic.category) * 10 + (ex["severity"] == "must_fix") * 3 + overlap
+
+    return sorted(_EXAMPLES, key=score, reverse=True)[:k]
+
+
+def review_context(topic: MondayTopic, talk: dict) -> str:
+    """RAG for the reviewer: the official regulation paragraphs behind the brief and talk, plus past real findings."""
+    from regs.retrieve import for_review
+
+    parts = []
+    regs = for_review(topic.brief(), talk_text(talk))
+    if regs:
+        parts.append("OFFICIAL REGULATION TEXT (eCFR). Check every statement about what OSHA requires against it. A statement "
+                     "it does not support, or one the brief does not contain, is MUST FIX:\n\n"
+                     + "\n\n".join(f"[{cite}] {text}" for cite, text in regs))
+    examples = past_findings(topic)
+    if examples:
+        parts.append("PAST FINDINGS FROM A SAFETY PROFESSIONAL'S REVIEW (examples of the kind of problem to catch; they were "
+                     "about earlier drafts, not this talk):\n"
+                     + "\n".join(f"- [{e['severity'].replace('_', ' ').upper()}] {e['slug']}: {e['finding']} Fix: {e['fix']}" for e in examples))
+    return "\n\n".join(parts)
+
+
+def review(topic: MondayTopic, talk: dict, call=None, second=False, rag=None):
+    rag = settings.MONDAY_RAG if rag is None else rag
     user = ("TOPIC BRIEF (source of truth):\n" + json.dumps(topic.brief(), indent=2, ensure_ascii=False)
             + "\n\nTALK TO REVIEW:\n" + json.dumps(talk, indent=2, ensure_ascii=False))
+    if rag:
+        context = review_context(topic, talk)
+        if context:
+            user += "\n\n" + context
     system = REVIEWER_SYSTEM + (SECOND_REVIEW if second else "")
     if call:
         return call(system, user, REVIEW_SCHEMA, "high")

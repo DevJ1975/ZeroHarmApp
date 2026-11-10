@@ -273,7 +273,17 @@ def kb_items():
             items += _talk_chunks(talk, "es")
     for ep in Episode.objects.released():
         items += _episode_chunks(ep)
+    items += _regulation_chunks()
     return items
+
+
+def _regulation_chunks():
+    """The official OSHA wording behind OTIS's entries, so answers can quote and link the actual rule."""
+    from regs.retrieve import for_otis
+
+    return [{"id": f"r{c.pk}", "title": f"OSHA regulation text: {c.section.heading} {c.label}".strip(), "text": c.text,
+             "source": c.citation, "lang": "en", "issue": None, "tags": "osha regulation rule standard law"}
+            for c in for_otis()]
 
 
 @require_GET

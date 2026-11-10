@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "talks",
     "monday",
+    "regs",
 ]
 
 MIDDLEWARE = [
@@ -117,6 +118,7 @@ AI_PROVIDER = os.environ.get("AI_PROVIDER", "local")
 LOCAL_AI_URL = os.environ.get("LOCAL_AI_URL", "")            # e.g. http://ollama.railway.internal:11434
 LOCAL_AI_MODEL = os.environ.get("LOCAL_AI_MODEL", "qwen3:8b")
 LOCAL_AI_TIMEOUT = float(os.environ.get("LOCAL_AI_TIMEOUT", "1800"))  # seconds per call; CPU is slow
+MONDAY_RAG = os.environ.get("MONDAY_RAG", "1") == "1"  # give the safety reviewer the regulation text and past findings
 MONDAY_MODEL = os.environ.get("MONDAY_MODEL", "claude-opus-5-5")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OTIS_MODEL = os.environ.get("OTIS_MODEL", "QWEN3_1_7B")

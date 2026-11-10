@@ -132,7 +132,7 @@ from .models import KbEntry, TalkSuggestion
 
 @admin.register(KbEntry)
 class KbEntryAdmin(admin.ModelAdmin):
-    list_display = ("title", "source", "published", "updated_at")
+    list_display = ("title", "source", "published", "paused_reason", "updated_at")
     list_filter = ("published",)
     search_fields = ("title", "body", "tags")
 

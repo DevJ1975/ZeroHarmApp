@@ -426,3 +426,87 @@ class LockTests(TestCase):
         self.assertTrue(MondayLock.acquire("write"))
         MondayLock.release("write")
         self.assertTrue(MondayLock.acquire("write"))
+
+
+class ReviewRagTests(TestCase):
+    """RAG for the reviewer: regulation paragraphs from the library, plus past CSP findings."""
+
+    def test_review_prompt_includes_regulation_text_and_past_findings(self):
+        t = MondayTopic.objects.get(slug="loto-six-steps")
+        seen = {}
+
+        def fake(system, user, schema, effort):
+            seen["user"] = user
+            return PASS, "m"
+
+        g.review(t, talk(), call=fake, rag=True)
+        self.assertIn("OFFICIAL REGULATION TEXT", seen["user"])
+        self.assertIn("[29 CFR 1910.147(", seen["user"])
+        self.assertIn("PAST FINDINGS FROM A SAFETY PROFESSIONAL'S REVIEW", seen["user"])
+        g.review(t, talk(), call=fake, rag=False)
+        self.assertNotIn("OFFICIAL REGULATION TEXT", seen["user"])
+
+    def test_past_findings_prefer_the_same_topic_then_category(self):
+        t = MondayTopic.objects.get(slug="jam-clearing")
+        found = g.past_findings(t, k=4)
+        self.assertEqual(found[0]["slug"], "jam-clearing")
+        self.assertTrue(all(f["category"] == t.category or f["slug"] == t.slug for f in found[:2]))
+
+    @override_settings(MONDAY_RAG=False)
+    def test_rag_can_be_switched_off(self):
+        t = MondayTopic.objects.get(slug="loto-six-steps")
+        seen = {}
+        g.review(t, talk(), call=lambda s, u, sc, e: (seen.update(u=u) or (PASS, "m")))
+        self.assertNotIn("OFFICIAL REGULATION TEXT", seen["u"])
+
+
+class SafetyEvalTests(TestCase):
+    def test_faithful_talk_and_plants(self):
+        from . import safety_eval as ev
+
+        t = MondayTopic.objects.get(slug="loto-six-steps")
+        good = ev.faithful_talk(t)
+        self.assertTrue(good["crew_question"].endswith("?"))
+        bad = ev.planted(t, "skip_lockout")
+        self.assertIn(ev.PLANTS["skip_lockout"], bad["points"][1])
+        self.assertIn(t.never_say[0], ev.planted(t, "never_say")["points"][1])
+        self.assertNotEqual(good, bad)
+
+    def test_scoring_with_a_reviewer_that_catches_some_plants(self):
+        from . import safety_eval as ev
+
+        topics = list(MondayTopic.objects.filter(slug__in=["loto-six-steps", "permit-spaces"]))
+        grounded = {"verdict": "pass", "findings": [], "confidence": "high",
+                    "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
+        unsafe = dict(grounded, verdict="fail", findings=[{"severity": "must_fix", "where": "p2", "issue": "unsafe", "fix": "x"}])
+        caught = (ev.PLANTS["skip_lockout"], ev.PLANTS["untrained_rescue"])
+
+        def fake_review(topic, talk_, second=False, rag=None, call=None):
+            text = " ".join(talk_["points"])
+            return (unsafe if any(c in text for c in caught) else grounded), "m"
+
+        with patch.object(ev, "review", fake_review):
+            r = ev.run(topics, rag=True, strict=True)
+        self.assertEqual(r["good"], {"n": 2, "blocked": 0, "examples": []})
+        self.assertEqual(r["plants"]["skip_lockout"]["caught"], 2)
+        self.assertEqual(r["plants"]["made_up_rule"]["caught"], 0)
+        self.assertEqual(sorted(r["plants"]["made_up_rule"]["missed"]), sorted(t.slug for t in topics))
+        summary = ev.summarize(r)
+        self.assertIn("Planted mistakes caught: 4/14", summary)
+        self.assertIn("Good talks wrongly blocked: 0/2 (0%)", summary)
+
+    def test_runner_saves_results(self):
+        from . import safety_eval as ev
+        from .eval_runner import run_eval
+        from .models import MondayEvalRun
+
+        topics = list(MondayTopic.objects.filter(slug="loto-six-steps"))
+        passing = {"verdict": "pass", "findings": [], "confidence": "high",
+                   "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
+        with patch.object(ev, "review", lambda *a, **k: (passing, "m")), override_settings(AI_PROVIDER="anthropic"):
+            run = run_eval(topics, compare=True)
+        self.assertEqual(run.status, "done")
+        self.assertEqual(set(run.results), {"rag_on", "rag_off"})
+        self.assertIn("RAG on", run.summary)
+        self.assertEqual(run.progress, f"{2 * (1 + len(ev.PLANTS))} of {2 * (1 + len(ev.PLANTS))} talks")
+        self.assertEqual(MondayEvalRun.objects.count(), 1)

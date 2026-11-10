@@ -51,6 +51,26 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
   The admin can hide or restore any comment.
 - API: `/api/v2/monday-minute` (list, detail, `/feedback`, `/comments`, `/comments/{id}/report`).
 
+### OSHA regulation library (RAG) and amendment watch
+`backend/regs/` keeps the official eCFR text of every OSHA section that Monday Minute and OTIS cite (49 sections).
+They're split into paragraphs like 1910.147(d), with appendices kept separate.
+- **Seeded** with the exact text the topic bank and OTIS entries were reviewed against (eCFR as of 2026-11-06), so it
+  works on the first deploy.
+- **Weekly sync** (`python manage.py regs_sync`, run by the cron) re-downloads those sections. If OSHA changed one,
+  it records an *OSHA amendment* in the admin, pauses every Monday Minute topic that cites it, and takes every OTIS
+  entry that cites it out of OTIS (with the reason). Turn them back on once they're re-reviewed.
+- **Monday Minute reviewer:** each review also gets the regulation paragraphs behind the brief and the talk, plus the
+  closest real findings from the CSP review of the topic bank. Any OSHA claim the text doesn't support is MUST FIX.
+  `MONDAY_RAG=0` turns this off. The writer still sees only the brief.
+- **OTIS:** the phones' knowledge base includes the official paragraphs its entries and the Monday Minute facts point
+  to (main text, about 250K characters). Plain-language entries rank first, and OTIS cites and links the section.
+- **Safety test:** in the admin, select topics under *Monday Minute topics* and choose *Run the safety test*. Each
+  topic gets a faithful talk plus copies with planted mistakes (skipping lockout, gloves at rotating parts,
+  predicting a load's path, untrained rescue, a made-up OSHA rule, a shortcut, the topic's own never-say line). It
+  reports the catch rate, how often good talks are wrongly blocked, and the time per talk, with and without RAG.
+  Results are under *Monday Minute safety test runs*. CLI: `python manage.py monday_eval`. On the local CPU model,
+  expect hours.
+
 ### OTIS on-device AI (API v2, Django Ninja)
 OTIS's model runs on the phone with ExecuTorch: MLX or Core ML on iPhone, XNNPACK or Vulkan on Android. The server never runs it.
 API v2 (`/api/v2/`, docs at `/api/v2/docs`) tells each phone what to run:

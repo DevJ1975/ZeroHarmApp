@@ -215,6 +215,7 @@ class KbEntry(models.Model):
     source = models.CharField(max_length=200, blank=True, help_text="What OTIS cites, e.g. 'OSHA 1910.147' or 'Zero Harm app help'")
     tags = models.CharField(max_length=200, blank=True, help_text="Extra search words, comma separated")
     published = models.BooleanField(default=True)
+    paused_reason = models.CharField(max_length=200, blank=True, help_text="Why this entry was taken out of OTIS, e.g. OSHA changed a rule it cites")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
