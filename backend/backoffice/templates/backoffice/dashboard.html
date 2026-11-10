@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Zero Harm back office</title>
+<style>
+  :root { --bg:#f4f5f6; --surface:#fcfcfb; --text:#0b0b0b; --text2:#52514e; --rule:#dcdedf; --series:#2a78d6; --accent:#F5C400; --warn-bg:#fff4d6; --warn-text:#5c4300; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111214; --surface:#1a1a19; --text:#f0efec; --text2:#c3c2b7; --rule:#34353a; --series:#3987e5; --warn-bg:#3a2f0d; --warn-text:#ffe08a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 4px; } .sub { color:var(--text2); font-size:13px; margin:0 0 10px; }
+  .band { display:inline-block; background:var(--accent); color:#17212B; font-weight:700; font-size:12px; padding:3px 8px; border-radius:4px; margin-right:8px; }
+  nav a { display:inline-block; padding:8px 12px; border:1px solid var(--rule); border-radius:6px; color:var(--text); text-decoration:none; font-weight:600; font-size:13px; background:var(--surface); min-height:36px; }
+  nav a[aria-current] { background:var(--text); color:var(--surface); border-color:var(--text); }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:16px; }
+  .card { background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:14px 16px; }
+  .tile .label { color:var(--text2); font-size:13px; } .tile .value { font-size:32px; font-weight:700; line-height:1.15; } .tile .note { color:var(--text2); font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:16px; }
+  svg { width:100%; height:auto; display:block; overflow:visible; }
+  .bar { fill:var(--series); } .bar:hover, .bar:focus { opacity:.75; outline:none; }
+  .axis { stroke:var(--rule); stroke-width:1; } .tick, .val { fill:var(--text2); font-size:11px; } .val { fill:var(--text); font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th { text-align:left; color:var(--text2); font-weight:600; font-size:12px; border-bottom:1px solid var(--rule); padding:6px 8px; }
+  td { padding:8px; border-bottom:1px solid var(--rule); vertical-align:top; } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td { border-bottom:0; } .scroll { overflow-x:auto; }
+  details { margin-top:8px; } summary { cursor:pointer; color:var(--text2); font-size:13px; }
+  .attention { background:var(--warn-bg); color:var(--warn-text); border-color:transparent; margin-bottom:16px; }
+  .attention ul { margin:6px 0 0; padding-left:18px; } .attention a { color:inherit; font-weight:600; }
+  .ok { color:var(--text2); } .pill { font-size:12px; border:1px solid var(--rule); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  a { color:var(--series); } footer { color:var(--text2); font-size:12px; margin-top:8px; }
+  #tip { position:fixed; pointer-events:none; background:var(--text); color:var(--surface); padding:4px 8px; border-radius:4px; font-size:12px; display:none; z-index:5; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1><span class="band">ZERO HARM</span>Back office</h1>
+    <nav aria-label="Time range">
+      {% for value, label, current in ranges %}<a href="?days={{ value }}{% if key %}&amp;key={{ key|urlencode }}{% endif %}" {% if current %}aria-current="true"{% endif %}>{{ label }}</a> {% endfor %}
+      <a href="{{ admin_url }}" {% if not embed_admin %}target="_blank" rel="noopener"{% endif %}>Open admin{% if not embed_admin %} ↗{% endif %}</a>
+    </nav>
+  </header>
+
+  {% if attention %}
+  <section class="card attention" aria-label="Needs your attention">
+    <h2>Needs your attention</h2>
+    <ul>{% for a in attention %}<li><a href="{{ a.url }}" {% if not embed_admin %}target="_blank" rel="noopener"{% endif %}>{{ a.count }} {{ a.text }}</a></li>{% endfor %}</ul>
+  </section>
+  {% else %}
+  <p class="ok">Nothing needs your attention right now.</p>
+  {% endif %}
+
+  <section class="tiles" aria-label="Last {{ days }} days">
+    {% for t in tiles %}<div class="card tile"><div class="label">{{ t.label }}</div><div class="value">{{ t.value }}</div><div class="note">{{ t.note }}</div></div>{% endfor %}
+  </section>
+
+  <section class="grid">
+    {% include "backoffice/_bars.html" with chart=sheets_chart title="Sign-in sheets per week" unit="sheets" %}
+    {% include "backoffice/_bars.html" with chart=people_chart title="Crew members signed in per week" unit="people" %}
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Monday Minute talks</h2><p class="sub">Latest first. Thumbs and comments are all-time for each talk.</p>
+      <div class="scroll"><table>
+        <tr><th>Week</th><th>Talk</th><th class="num">Up</th><th class="num">Down</th><th class="num">Comments</th><th>Status</th></tr>
+        {% for m in minutes %}<tr><td style="white-space:nowrap">{{ m.week|date:"M j" }}</td><td><a href="/admin/monday/mondayminute/{{ m.id }}/change/" {% if not embed_admin %}target="_blank" rel="noopener"{% endif %}>{{ m.title }}</a></td>
+          <td class="num">{{ m.up }}</td><td class="num">{{ m.down }}</td><td class="num">{{ m.comments }}</td><td><span class="pill">{{ m.status }}</span></td></tr>
+        {% empty %}<tr><td colspan="6" class="ok">No Monday Minute has been published yet.</td></tr>{% endfor %}
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Most-used talks</h2><p class="sub">By crew members signed in, last {{ days }} days.</p>
+      <div class="scroll"><table>
+        <tr><th>Talk</th><th>Program</th><th class="num">Sheets</th><th class="num">People</th></tr>
+        {% for t in top_talks %}<tr><td>{{ t.title }}</td><td>{{ t.program }}</td><td class="num">{{ t.sheets }}</td><td class="num">{{ t.people }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="ok">No sign-in sheets in this period.</td></tr>{% endfor %}
+      </table></div>
+    </div>
+  </section>
+  <footer>Counts come from sign-in sheets saved to records, sign-ups, ratings and comments. The app doesn't track installs or screen views, so those aren't shown.</footer>
+</main>
+<div id="tip" role="status"></div>
+<script>
+  const tip = document.getElementById('tip');
+  document.querySelectorAll('.bar').forEach((b) => {
+    const show = (x, y) => { tip.textContent = b.dataset.tip; tip.style.display = 'block'; tip.style.left = Math.min(x + 12, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (y - 34) + 'px'; };
+    b.addEventListener('pointermove', (e) => show(e.clientX, e.clientY));
+    b.addEventListener('focus', () => { const r = b.getBoundingClientRect(); show(r.left, r.top); });
+    b.addEventListener('pointerleave', () => (tip.style.display = 'none'));
+    b.addEventListener('blur', () => (tip.style.display = 'none'));
+  });
+</script>
+</body>
+</html>

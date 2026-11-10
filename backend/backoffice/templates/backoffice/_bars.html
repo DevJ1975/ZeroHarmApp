@@ -1,0 +1,15 @@
+<div class="card">
+  <h2>{{ title }}</h2><p class="sub">Last 12 weeks, by the week the talk was held.</p>
+  <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="{{ title }}, last 12 weeks. A table of the same numbers follows.">
+    <line class="axis" x1="{{ chart.pad }}" x2="{{ chart.width|add:"-24" }}" y1="{{ chart.baseline }}" y2="{{ chart.baseline }}"/>
+    {% for b in chart.bars %}
+      {% if b.path %}<path class="bar" d="{{ b.path }}" tabindex="0" data-tip="Week of {{ b.week|date:"M j" }}: {{ b.value }} {{ unit }}"/>{% endif %}
+      {% if b.label %}<text class="val" x="{{ b.cx }}" y="{{ b.y|add:"-6" }}" text-anchor="middle">{{ b.value }}</text>{% endif %}
+      {% if b.tick %}<text class="tick" x="{{ b.cx }}" y="{{ chart.baseline|add:"15" }}" text-anchor="middle">{{ b.week|date:"M j" }}</text>{% endif %}
+    {% endfor %}
+  </svg>
+  <details><summary>Show as a table</summary>
+    <table><tr><th>Week of</th><th class="num">{{ unit|capfirst }}</th></tr>
+    {% for b in chart.bars %}<tr><td>{{ b.week|date:"M j, Y" }}</td><td class="num">{{ b.value }}</td></tr>{% endfor %}</table>
+  </details>
+</div>

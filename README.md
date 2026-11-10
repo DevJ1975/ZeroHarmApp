@@ -51,6 +51,23 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
   The admin can hide or restore any comment.
 - API: `/api/v2/monday-minute` (list, detail, `/feedback`, `/comments`, `/comments/{id}/report`).
 
+### Back office inside GoHighLevel
+`/backoffice/` is an analytics page built to sit inside GoHighLevel:
+- **What it shows:** sign-in sheets and crew members signed in (with 12-week charts), supervisors running talks, email
+  sign-ups, Monday Minute thumbs and comments, OTIS ratings, the most-used talks, and a *Needs your attention* list
+  (pulled talks, paused topics, OSHA rule changes, comments waiting, sheets that didn't reach GHL, talks held for
+  bracketed notes, new suggestions). Every item links to the right admin page.
+- **What it can't show:** installs and screen views. The app doesn't track them.
+- **Access:** set `BACKOFFICE_KEY` on the web service to a long random value. The page opens with
+  `https://<your-api-domain>/backoffice/?key=<BACKOFFICE_KEY>`, or for anyone signed in to the admin. Only GoHighLevel's
+  domains may frame it. If you use a white-label app address, add it with `GHL_APP_DOMAINS=https://app.yourbrand.com`.
+- **Install in GoHighLevel:** Agency view → Settings → Custom Menu Links → Create new. Give it a name (Zero Harm) and an
+  icon, paste the link above, choose *Open in iFrame*, and show it to agency and account admins only, since the link
+  holds the key.
+- **Admin from GoHighLevel:** add a second custom menu link to `https://<your-api-domain>/admin/` set to *Open in new
+  tab*. That works in every browser. To show the admin inside the GHL frame, set `GHL_EMBED_ADMIN=1`: it needs login
+  cookies that work inside a frame, which Safari and some Chrome settings block, so the new-tab link is the default.
+
 ### OSHA regulation library (RAG) and amendment watch
 `backend/regs/` keeps the official eCFR text of every OSHA section that Monday Minute and OTIS cite (49 sections).
 They're split into paragraphs like 1910.147(d), with appendices kept separate.

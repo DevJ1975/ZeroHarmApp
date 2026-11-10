@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "talks",
     "monday",
     "regs",
+    "backoffice",
 ]
 
 MIDDLEWARE = [
@@ -42,6 +43,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "backoffice.middleware.GhlFrameMiddleware",  # below XFrameOptions, so it can lift the frame ban for GoHighLevel
 ]
 
 ROOT_URLCONF = "zeroharm.urls"
@@ -121,6 +123,17 @@ GHL_PRIVATE_TOKEN = os.environ.get("GHL_PRIVATE_TOKEN", "")
 GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
 # Shared secret the GoHighLevel workflow sends in the X-ZeroHarm-Key header when publishing to the app
 INGEST_KEY = os.environ.get("INGEST_KEY", "")
+# Back office inside GoHighLevel: /backoffice/?key=<BACKOFFICE_KEY> as a GHL custom menu link (see README).
+BACKOFFICE_KEY = os.environ.get("BACKOFFICE_KEY", "")
+GHL_FRAME_ANCESTORS = ["https://app.gohighlevel.com", "https://*.gohighlevel.com", "https://app.leadconnectorhq.com", "https://*.leadconnectorhq.com"] + [
+    h.strip() for h in os.environ.get("GHL_APP_DOMAINS", "").split(",") if h.strip()  # your white-label app address, e.g. https://app.yourbrand.com
+]
+# Show the Django admin inside GoHighLevel too. Needs login cookies that work inside a frame (SameSite=None); Safari
+# and some Chrome setups block those, so the safer default is off: the dashboard's admin links open in a new tab.
+GHL_EMBED_ADMIN = os.environ.get("GHL_EMBED_ADMIN", "0") == "1"
+if GHL_EMBED_ADMIN and not DEBUG:
+    SESSION_COOKIE_SAMESITE = "None"
+    CSRF_COOKIE_SAMESITE = "None"
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 
