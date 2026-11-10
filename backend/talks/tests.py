@@ -412,45 +412,76 @@ class OshaKbTests(TestCase):
 
 
 class EarlyUnlockTests(TestCase):
-    """Talks with their text open in the app before their Sunday newsletter, with sign-in; others wait."""
+    """Only the next few talks open early, and never with last week's answer."""
+
+    BODY = "Intro.\n\n## Talk it through with your crew\n\n1. Do the thing.\n\n## Last week’s answer\n\nThe answer is X.\n\n## What OSHA says\n\nRule."
 
     def setUp(self):
         cache.clear()
         self.now = datetime(2026, 11, 10, 12, 0, tzinfo=dt_tz.utc)  # before issue #1's Jan 3, 2027 send
-        talk = ToolboxTalk.objects.get(issue=10)
-        talk.body_md = "Intro.\n\n## Talk it through with your crew\n\n1. Do the thing."
-        talk.save()
+        ToolboxTalk.objects.filter(issue__in=[1, 2, 3, 10]).update(body_md=self.BODY)
 
     def listed(self):
         with patch("django.utils.timezone.now", return_value=self.now):
             return self.client.get("/api/talks/").json()["talks"]
 
-    def test_talk_with_text_is_available_early(self):
+    def test_only_the_next_two_open_early(self):
         talks = self.listed()
-        self.assertEqual([t["issue"] for t in talks], [10])
-        self.assertTrue(talks[0]["early"])
-        self.assertEqual(talks[0]["send_at"], ToolboxTalk.objects.get(issue=10).send_at.isoformat())
+        self.assertEqual(sorted(t["issue"] for t in talks), [1, 2])
+        self.assertTrue(all(t["early"] for t in talks))
         with patch("django.utils.timezone.now", return_value=self.now):
-            self.assertEqual(self.client.get("/api/talks/10/").status_code, 200)
-            self.assertEqual(self.client.get("/api/talks/11/").status_code, 404)  # no text yet
+            self.assertEqual(self.client.get("/api/talks/2/").status_code, 200)
+            self.assertEqual(self.client.get("/api/talks/3/").status_code, 404)
+            self.assertEqual(self.client.get("/api/talks/10/").status_code, 404)
 
-    def test_held_for_review_stays_hidden(self):
-        ToolboxTalk.objects.filter(issue=10).update(needs_review=True)
+    def test_early_talks_hide_last_weeks_answer_until_their_send(self):
+        talk = self.listed()[0]
+        self.assertNotIn("Last week", talk["body_md"])
+        self.assertNotIn("The answer is X", talk["body_md"])
+        self.assertIn("## What OSHA says", talk["body_md"])
+        self.now = ToolboxTalk.objects.get(issue=1).send_at + timedelta(minutes=1)
+        released = next(t for t in self.listed() if t["issue"] == 1)
+        self.assertFalse(released["early"])
+        self.assertIn("The answer is X", released["body_md"])
+
+    def test_spanish_and_otis_hide_it_too(self):
+        ToolboxTalk.objects.filter(issue=1).update(
+            spanish_status="approved", title_es="T", crew_question_es="¿Q?",
+            body_md_es="Intro.\n\n## Respuesta de la semana pasada\n\nLa respuesta es X.\n\n## Lo que dice OSHA\n\nRegla.")
+        talk = next(t for t in self.listed() if t["issue"] == 1)
+        self.assertNotIn("La respuesta es X", talk["es"]["body_md"])
+        self.assertIn("Lo que dice OSHA", talk["es"]["body_md"])
+        with patch("django.utils.timezone.now", return_value=self.now):
+            items = self.client.get("/api/otis/kb/").json()["items"]
+        text = " ".join(i["title"] + " " + i["text"] for i in items if i.get("issue"))
+        self.assertNotIn("The answer is X", text)
+        self.assertNotIn("La respuesta es X", text)
+        self.assertIn("Do the thing", text)
+
+    def test_held_or_unpublished_talks_dont_use_up_a_slot(self):
+        ToolboxTalk.objects.filter(issue=1).update(needs_review=True)
+        self.assertEqual(sorted(t["issue"] for t in self.listed()), [2, 3])
+
+    @override_settings(TALKS_EARLY_COUNT=0)
+    def test_count_zero_waits_for_sunday(self):
         self.assertEqual(self.listed(), [])
 
     @override_settings(TALKS_UNLOCK_EARLY=False)
     def test_switch_off_waits_for_sunday(self):
         self.assertEqual(self.listed(), [])
 
-    def test_released_talk_is_not_early(self):
-        self.now = ToolboxTalk.objects.get(issue=10).send_at + timedelta(minutes=1)
-        self.assertFalse(self.listed()[0]["early"])
-
     def test_early_talk_does_not_push_early(self):
         out = StringIO()
         with patch("django.utils.timezone.now", return_value=self.now):
             call_command("send_talk_push", "--dry-run", stdout=out)
         self.assertIn("No talk is due", out.getvalue())
+
+    def test_answer_section_parser(self):
+        from .models import without_last_weeks_answer
+        self.assertEqual(without_last_weeks_answer("## Last week's answer\n\nX\n\n## Next\n\nY"), "## Next\n\nY")
+        self.assertEqual(without_last_weeks_answer("Intro only."), "Intro only.")
+        self.assertEqual(without_last_weeks_answer(""), "")
+        self.assertEqual(without_last_weeks_answer("A\n\n## La respuesta de la semana anterior\n\nZ"), "A")
 
 
 class OtisRegulationTests(TestCase):

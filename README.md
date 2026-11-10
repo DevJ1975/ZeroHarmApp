@@ -23,7 +23,7 @@ Run it:
 4. Before the store build, change `onesignal-expo-plugin` mode in `app.json` to `production`.
 
 ## The backend (Django 5.2 LTS, Postgres, Docker, Railway)
-- `GET /api/talks/` talks the app shows, newest first. Any reviewed talk with its text opens right away, with crew sign-in, before its Sunday 11:59 AM Pacific newsletter (`early: true`). A talk without text waits for its send time. Set `TALKS_UNLOCK_EARLY=0` to hold every talk until Sunday. The Sunday push goes out on schedule either way.
+- `GET /api/talks/` talks the app shows, newest first: every talk past its Sunday 11:59 AM Pacific send time, plus the next two upcoming talks that have their text (`early: true`), so supervisors can run them ahead with crew sign-in. An early talk leaves out "Last week's answer" until its own send time, so it can't give away the previous crew question. `TALKS_EARLY_COUNT` changes how many open early; `TALKS_UNLOCK_EARLY=0` holds every talk until Sunday. The Sunday push goes out on schedule either way.
 - `GET /api/talks/<issue>/` one talk. `POST /api/signups/` optional email sign-up (rate limited), synced to GoHighLevel with tags `zero-harm-app`, `zero-harm-weekly`, and `zero-harm-offers-optin` when they opt in.
 - `/admin/` edit talk text, PDF and image links, see sign-ups, send a push or retry a GHL sync by hand.
 - All 52 issues of 2027 load automatically on the first migrate.
@@ -42,6 +42,12 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
   highly confident. If nothing passes, that week
   doesn't publish. Talks publish Monday at 5:00 AM Pacific with a push to devices with *Monday Minute* turned on.
   *Write next week's Monday Minute now* in the admin runs it on demand.
+- **Safety gate:** a talk that passes its checks publishes on its own only if the current AI setup (reviewer model, RAG
+  on or off, strict review on or off) has passed the safety test in the last 90 days: at least 90% of planted mistakes
+  caught, no more than about a third of good talks wrongly blocked, at least 20 planted mistakes tested. Otherwise the
+  talk is saved as *Waiting for approval* and a person publishes it with *Approve and publish* in the admin. Changing
+  the model or turning RAG off means passing the test again. The bar is set with `MONDAY_GATE_MIN_CATCH`,
+  `MONDAY_GATE_MAX_FALSE_BLOCK`, `MONDAY_GATE_MIN_CASES` and `MONDAY_GATE_MAX_AGE_DAYS`; `MONDAY_GATE=0` turns it off.
 - **Crews:** read it, print it with a paper sign-in sheet, or sign on the phone (finger signatures and/or a group
   photo). Then print, email or save the signed sheet. Every sheet is kept on the phone (*My sign-in sheets*).
 - **Thumbs up/down** (one per phone per talk), with reasons on a thumbs down. Three "isn't safe or isn't right"

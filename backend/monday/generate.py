@@ -9,6 +9,8 @@ Safety design, because no person approves each talk:
    brief line. Any MUST FIX finding or ungrounded point fails the draft. In strict mode (the default with the local
    model), a second independent review must also pass, and both must be highly confident. The writer gets the findings and tries again, up to 3 times per topic, 2 topics per week.
 4. If nothing passes, that week has no Monday Minute (the app keeps showing last week's). Nothing unchecked publishes.
+   A talk that passes publishes on its own only if this AI setup has passed the safety test (gate.py); otherwise it
+   waits in the admin for a person to approve it.
 5. After publishing, crews' "isn't safe or isn't right" reports pull the talk and pause its topic (see api.py).
 """
 import datetime as dt
@@ -23,6 +25,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 
 from .ai import AIUnavailable, GenerationError, ai_json, is_local
+from .gate import status as gate_status
 from .models import MondayFeedback, MondayMinute, MondayTopic
 
 log = logging.getLogger(__name__)
@@ -348,8 +351,10 @@ def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None):
                 continue
             if not must:
                 lines.append(f"Attempt {attempt}: passed {'both independent CSP reviews' if strict else 'the CSP review'}." + (" Should fix (logged only): " + "; ".join(should) if should else ""))
+                qualified = gate_status()
+                lines.append(("Safety gate: publishes on its own, " if qualified.ok else "Safety gate: HELD for approval, ") + qualified.reason + ".")
                 return MondayMinute.objects.create(
-                    week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.READY, attempts=attempt,
+                    week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.READY if qualified.ok else MondayMinute.HELD, attempts=attempt,
                     model=model, check_log="\n".join(lines), title=talk["title"][:120], intro=talk["intro"],
                     points=talk["points"], story_title=talk["story_title"][:120], story=talk["story"],
                     crew_question=talk["crew_question"], takeaway=talk["takeaway"],

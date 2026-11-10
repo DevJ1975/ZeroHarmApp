@@ -57,8 +57,9 @@ class MondayMinuteQuerySet(models.QuerySet):
 
 
 class MondayMinute(models.Model):
-    READY, BLOCKED, PULLED = "ready", "blocked", "pulled"
-    STATUSES = [(READY, "Ready / published"), (BLOCKED, "Blocked by the safety checks"), (PULLED, "Pulled after crew reports")]
+    READY, BLOCKED, PULLED, HELD = "ready", "blocked", "pulled", "held"
+    STATUSES = [(READY, "Ready / published"), (BLOCKED, "Blocked by the safety checks"), (PULLED, "Pulled after crew reports"),
+                (HELD, "Waiting for approval (AI not qualified yet)")]
 
     week = models.DateField(help_text="The Monday this talk is for")
     publish_at = models.DateTimeField(help_text="Monday 5:00 AM Pacific")
@@ -197,6 +198,13 @@ class MondayEvalRun(models.Model):
     progress = models.CharField(max_length=40, blank=True)
     summary = models.TextField(blank=True)
     results = models.JSONField(default=dict, blank=True)
+    # The setup this run qualifies (see gate.py) and how it did against the bar.
+    rag = models.BooleanField(default=True)
+    strict = models.BooleanField(default=False)
+    passed = models.BooleanField(default=False)
+    catch_rate = models.FloatField(null=True, blank=True)
+    false_block_rate = models.FloatField(null=True, blank=True)
+    verdict = models.CharField(max_length=300, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

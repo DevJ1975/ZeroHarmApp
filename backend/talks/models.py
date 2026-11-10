@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.utils import timezone
 
@@ -8,14 +10,33 @@ class ToolboxTalkQuerySet(models.QuerySet):
         return self.filter(published=True, needs_review=False, send_at__lte=timezone.now())
 
     def available(self):
-        """Talks the app shows. With TALKS_UNLOCK_EARLY on (the default), any reviewed talk that has its text is ready to
-        run with crew sign-in before its Sunday newsletter; talks without text still wait for their send time."""
+        """Talks the app shows: every talk past its Sunday send time, plus (with TALKS_UNLOCK_EARLY) the next
+        TALKS_EARLY_COUNT upcoming talks that have their text, so supervisors can prepare and run them early.
+        Only the next few: opening the whole year early removes the weekly reason to come back."""
         from django.conf import settings
 
-        ready = models.Q(send_at__lte=timezone.now())
-        if settings.TALKS_UNLOCK_EARLY:
-            ready |= ~models.Q(body_md="")
-        return self.filter(ready, published=True, needs_review=False)
+        now = timezone.now()
+        base = self.filter(published=True, needs_review=False)
+        ready = models.Q(send_at__lte=now)
+        if settings.TALKS_UNLOCK_EARLY and settings.TALKS_EARLY_COUNT > 0:
+            upcoming = list(base.filter(send_at__gt=now).order_by("send_at").values_list("pk", flat=True)[: settings.TALKS_EARLY_COUNT])
+            ready |= models.Q(pk__in=upcoming) & ~models.Q(body_md="")
+        return base.filter(ready)
+
+
+def _is_answer_heading(heading: str) -> bool:
+    h = heading.lower().replace("’", "'")
+    return ("last week" in h and "answer" in h) or ("respuesta" in h and ("semana pasada" in h or "semana anterior" in h))
+
+
+def without_last_weeks_answer(body: str) -> str:
+    """Drops the "Last week's answer" section (English or Spanish). It answers the previous issue's crew question, so a
+    talk opened early must not show it before that answer goes out with the Sunday newsletter."""
+    if not body:
+        return body
+    kept = [part for part in re.split(r"\n\s*\n(?=##\s)", body.strip())
+            if not (part.startswith("#") and _is_answer_heading(part.split("\n", 1)[0]))]
+    return "\n\n".join(kept)
 
 
 class ToolboxTalk(models.Model):
@@ -57,6 +78,16 @@ class ToolboxTalk(models.Model):
     def __str__(self):
         return f"#{self.issue:02d} {self.title}"
 
+    @property
+    def early(self) -> bool:
+        """Open in the app before its Sunday newsletter."""
+        return self.send_at > timezone.now()
+
+    def public_body(self, lang="en") -> str:
+        """The talk text crews may see right now: without last week's answer until the talk's own send time."""
+        body = (self.body_md_es if lang == "es" else self.body_md) or ""
+        return without_last_weeks_answer(body) if self.early else body
+
     def as_api(self):
         return {
             "issue": self.issue,
@@ -66,16 +97,16 @@ class ToolboxTalk(models.Model):
             "title": self.title,
             "story_title": self.story_title,
             "crew_question": self.crew_question,
-            "body_md": self.body_md or None,
+            "body_md": self.public_body() or None,
             "hero_url": self.hero_url or None,
             "pdf_url": self.pdf_url or None,
             "send_at": self.send_at.isoformat(),
-            "early": self.send_at > timezone.now(),
+            "early": self.early,
             "es": {
                 "title": self.title_es,
                 "story_title": self.story_title_es,
                 "crew_question": self.crew_question_es,
-                "body_md": self.body_md_es,
+                "body_md": self.public_body("es"),
             } if self.spanish_status == self.ES_APPROVED else None,
         }
 

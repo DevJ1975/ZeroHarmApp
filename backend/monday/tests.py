@@ -78,6 +78,7 @@ class HardCheckTests(TestCase):
         self.assertEqual(g.hard_checks(self.t, ok), [])
 
 
+@override_settings(MONDAY_GATE=False)  # these test the review pipeline; GateTests covers the gate
 class PipelineTests(TestCase):
     def setUp(self):
         MondayTopic.objects.all().delete()  # these tests use their own small bank
@@ -336,6 +337,7 @@ class TopicBankTests(TestCase):
         self.assertEqual(g.hard_checks(t, talk), [])
 
 
+@override_settings(MONDAY_GATE=False)  # these test the review pipeline; GateTests covers the gate
 class StrictLocalTests(TestCase):
     """With the local model: two independent reviews, both highly confident, and every point traced to the brief."""
 
@@ -557,3 +559,98 @@ class SafetyEvalTests(TestCase):
         self.assertIn("RAG on", run.summary)
         self.assertEqual(run.progress, f"{2 * (1 + len(ev.PLANTS))} of {2 * (1 + len(ev.PLANTS))} talks")
         self.assertEqual(MondayEvalRun.objects.count(), 1)
+
+
+
+class GateTests(TestCase):
+    """Talks publish on their own only after this AI setup passes the safety test; otherwise they wait for approval."""
+
+    def setUp(self):
+        from . import gate
+        self.gate = gate
+        MondayTopic.objects.all().delete()
+        self.t = topic()
+        self.week = dt.date(2026, 11, 16)
+
+    def result(self, caught=40, planted=42, good=6, blocked=0, errors=0):
+        return {"plants": {"x": {"n": planted, "caught": caught, "missed": []}}, "good": {"n": good, "blocked": blocked, "examples": []},
+                "errors": errors, "seconds": []}
+
+    def run_record(self, passed=True, **kw):
+        from .models import MondayEvalRun
+        want = self.gate.setup()
+        defaults = dict(model=want["model"], rag=want["rag"], strict=want["strict"], status="done", passed=passed,
+                        verdict="caught 95%", finished_at=timezone.now())
+        defaults.update(kw)
+        return MondayEvalRun.objects.create(**defaults)
+
+    def write(self):
+        return g.generate_week(self.week, write_fn=lambda t, f: (talk(), "m"), review_fn=lambda t, d, **kw: (PASS, "x"), strict=False)
+
+    def test_judge_applies_the_bar(self):
+        self.assertTrue(self.gate.judge(self.result())[0])
+        self.assertIn("caught 76%", self.gate.judge(self.result(caught=32))[1])
+        self.assertIn("wrongly blocked 50%", self.gate.judge(self.result(blocked=3))[1])
+        self.assertIn("only 10 planted", self.gate.judge(self.result(caught=10, planted=10))[1])
+        self.assertIn("calls failed", self.gate.judge(self.result(errors=10))[1])
+        self.assertFalse(self.gate.judge(self.result(good=0))[0])
+
+    def test_no_test_on_record_holds_the_talk(self):
+        m = self.write()
+        self.assertEqual(m.status, MondayMinute.HELD)
+        self.assertIn("HELD for approval", m.check_log)
+        self.assertFalse(MondayMinute.objects.released().exists())
+        self.assertIsNone(g.due_week(dt.datetime(2026, 11, 12, tzinfo=UTC)))  # held counts as written: no second talk
+
+    def test_a_pass_for_this_setup_publishes(self):
+        self.run_record()
+        self.assertEqual(self.write().status, MondayMinute.READY)
+
+    def test_the_latest_matching_run_decides(self):
+        self.run_record(passed=True, finished_at=timezone.now() - dt.timedelta(days=2))
+        self.run_record(passed=False, verdict="caught 60%")
+        st = self.gate.status()
+        self.assertFalse(st.ok)
+        self.assertIn("caught 60%", st.reason)
+
+    def test_a_pass_for_another_setup_or_too_old_does_not_count(self):
+        self.run_record(model="local:some-other-model")
+        self.run_record(rag=not self.gate.setup()["rag"])
+        self.run_record(finished_at=timezone.now() - dt.timedelta(days=120))
+        self.assertFalse(self.gate.status().ok)
+
+    @override_settings(MONDAY_GATE=False)
+    def test_gate_can_be_switched_off(self):
+        self.assertEqual(self.write().status, MondayMinute.READY)
+
+    def test_approve_publishes_now_and_only_touches_held_talks(self):
+        from django.contrib.admin.sites import site
+        from django.test import RequestFactory
+        from .admin import MondayMinuteAdmin
+        held = MondayMinute.objects.create(week=dt.date(2026, 11, 2), publish_at=timezone.now() - dt.timedelta(days=3), topic=self.t, status=MondayMinute.HELD)
+        blocked = MondayMinute.objects.create(week=dt.date(2026, 11, 9), publish_at=timezone.now(), topic=self.t, status=MondayMinute.BLOCKED)
+        admin = MondayMinuteAdmin(MondayMinute, site)
+        request = RequestFactory().post("/")
+        with patch.object(admin, "message_user"):
+            admin.approve(request, MondayMinute.objects.all())
+        held.refresh_from_db()
+        blocked.refresh_from_db()
+        self.assertEqual(held.status, MondayMinute.READY)
+        self.assertGreater(held.publish_at, timezone.now() - dt.timedelta(minutes=1))  # so the Monday push still goes out
+        self.assertEqual(blocked.status, MondayMinute.BLOCKED)
+        self.assertTrue(MondayMinute.objects.released().filter(pk=held.pk).exists())
+
+    @override_settings(AI_PROVIDER="anthropic")
+    def test_runner_records_the_verdict_for_the_configured_setup(self):
+        from . import safety_eval as ev
+        from .eval_runner import run_eval
+        topics = list(MondayTopic.objects.all())
+        passing = {"verdict": "pass", "findings": [], "confidence": "high", "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
+        with patch.object(ev, "review", lambda *a, **k: (passing, "m")):
+            run = run_eval(topics, compare=False)
+        self.assertEqual((run.status, run.passed), ("done", False))  # one topic is too few planted mistakes
+        self.assertIn("only 7 planted mistakes", run.verdict)
+        self.assertEqual((run.model, run.rag, run.strict), (self.gate.reviewer_model(), True, False))
+        self.assertEqual(run.false_block_rate, 0.0)
+        self.assertEqual(run.catch_rate, 0.0)
+        self.assertTrue(run.summary.startswith("NOT PASSED"))

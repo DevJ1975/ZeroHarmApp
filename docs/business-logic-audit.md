@@ -29,6 +29,8 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | OTIS | Long regulation passages could overflow the phone model's context | Sources are trimmed to the part that matches the question |
 | Weak signal | Screens waited up to 10 seconds on the network before showing saved data | Saved copy first, refresh in the background |
 | Weak signal | A vote made with no signal was lost | Votes queue and send later |
+| Monday Minute (B1) | The AI published without having passed the safety test | Safety gate: talks wait for approval until the current AI setup passes the test |
+| Zero Harm Weekly (C1) | Early unlock opened the whole year and leaked "Last week's answer" | Only the next two talks open early, without last week's answer |
 
 ## Findings
 

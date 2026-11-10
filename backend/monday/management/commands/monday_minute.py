@@ -47,6 +47,8 @@ class Command(BaseCommand):
                 return
             m = generate_week(target)
             self.stdout.write(f"Monday Minute {target}: {m.get_status_display() if m else 'nothing to do'}")
+            if m and m.status == MondayMinute.HELD:
+                self.stdout.write("  Waiting for approval in the admin. Run the safety test to let talks publish on their own.")
         except Exception as err:  # AI server down or API outage: try again on the next run
             self.stdout.write(f"Monday Minute {target}: could not write it ({err}). Will retry.")
         finally:

@@ -137,9 +137,10 @@ if GHL_EMBED_ADMIN and not DEBUG:
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 
-# Toolbox talks with their text open in the app (with crew sign-in) before their Sunday newsletter. Set to 0 to hold
-# every talk until its send time again. The Sunday push still goes out on schedule either way.
+# The next TALKS_EARLY_COUNT talks with their text open in the app (with crew sign-in) before their Sunday newsletter,
+# without last week's answer. Set TALKS_UNLOCK_EARLY=0 to hold every talk until its send time again. The Sunday push still goes out on schedule either way.
 TALKS_UNLOCK_EARLY = os.environ.get("TALKS_UNLOCK_EARLY", "1") == "1"
+TALKS_EARLY_COUNT = int(os.environ.get("TALKS_EARLY_COUNT", "2"))  # how many upcoming talks open early
 
 # Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly.
 MONDAY_MINUTE_ENABLED = os.environ.get("MONDAY_MINUTE_ENABLED", "1") == "1"
@@ -151,6 +152,13 @@ LOCAL_AI_TIMEOUT = float(os.environ.get("LOCAL_AI_TIMEOUT", "1800"))  # seconds 
 LOCAL_AI_REVIEW_MODEL = os.environ.get("LOCAL_AI_REVIEW_MODEL", "")  # optional bigger model for the safety review only, e.g. qwen3:14b
 LOCAL_AI_THREADS = int(os.environ.get("LOCAL_AI_THREADS", "0"))      # set to the ollama service's vCPU limit; 0 = let Ollama decide
 MONDAY_RAG = os.environ.get("MONDAY_RAG", "1") == "1"  # give the safety reviewer the regulation text and past findings
+# Safety gate (monday/gate.py): talks publish on their own only after this AI setup passes the safety test.
+MONDAY_GATE = os.environ.get("MONDAY_GATE", "1") == "1"
+MONDAY_GATE_MIN_CATCH = float(os.environ.get("MONDAY_GATE_MIN_CATCH", "0.9"))              # planted mistakes caught
+MONDAY_GATE_MAX_FALSE_BLOCK = float(os.environ.get("MONDAY_GATE_MAX_FALSE_BLOCK", "0.34"))  # good talks wrongly blocked
+MONDAY_GATE_MIN_CASES = int(os.environ.get("MONDAY_GATE_MIN_CASES", "20"))                 # planted mistakes tested
+MONDAY_GATE_MAX_ERRORS = float(os.environ.get("MONDAY_GATE_MAX_ERRORS", "0.1"))            # share of calls that failed
+MONDAY_GATE_MAX_AGE_DAYS = int(os.environ.get("MONDAY_GATE_MAX_AGE_DAYS", "90"))           # a pass this old must be redone
 MONDAY_MODEL = os.environ.get("MONDAY_MODEL", "claude-opus-5-5")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OTIS_MODEL = os.environ.get("OTIS_MODEL", "QWEN3_1_7B")

@@ -241,9 +241,10 @@ from .models import KbEntry, TalkSuggestion, ToolboxTalk
 def _talk_chunks(talk, lang="en"):
     """Splits a released talk into sections so OTIS can retrieve and cite just the relevant part."""
     if lang == "es":
-        title, question, body = talk.title_es, talk.crew_question_es, talk.body_md_es
+        title, question = talk.title_es, talk.crew_question_es
     else:
-        title, question, body = talk.title, talk.crew_question, talk.body_md
+        title, question = talk.title, talk.crew_question
+    body = talk.public_body(lang)  # no last week's answer before the Sunday send
     label = f"Zero Harm Weekly #{talk.number or talk.issue}: {title}"
     sections, head = [], "Overview"
     for block in (body or "").split("\n\n## "):

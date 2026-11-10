@@ -117,4 +117,6 @@ def default_topics():
 
 
 def model_name() -> str:
-    return f"local:{settings.LOCAL_AI_REVIEW_MODEL or settings.LOCAL_AI_MODEL}" if is_local() else settings.MONDAY_MODEL
+    from .gate import reviewer_model
+
+    return reviewer_model()

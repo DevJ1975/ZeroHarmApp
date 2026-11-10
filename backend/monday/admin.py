@@ -64,7 +64,7 @@ class MondayMinuteAdmin(admin.ModelAdmin):
     list_filter = ("status", "topic__category")
     readonly_fields = ("check_log", "model", "attempts", "push_sent_at", "created_at")
     inlines = [FeedbackInline]
-    actions = ("pull", "restore", "write_next_week")
+    actions = ("approve", "pull", "restore", "write_next_week")
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("topic").annotate(
@@ -88,6 +88,18 @@ class MondayMinuteAdmin(admin.ModelAdmin):
     @admin.display(description="Comments", ordering="c")
     def comments_count(self, obj):
         return obj.c
+
+    @admin.action(description="Approve and publish the selected talks that are waiting for approval")
+    def approve(self, request, queryset):
+        now = timezone.now()
+        n = 0
+        for m in queryset.filter(status=MondayMinute.HELD):
+            m.status = MondayMinute.READY
+            if m.publish_at < now:
+                m.publish_at = now  # publish now, and the cron still sends the Monday push
+            m.save(update_fields=["status", "publish_at"])
+            n += 1
+        self.message_user(request, f"Approved {n} talk(s). Only talks waiting for approval are changed.")
 
     @admin.action(description="Pull the selected talks from the app")
     def pull(self, request, queryset):
@@ -153,8 +165,18 @@ class MondayCommentAdmin(admin.ModelAdmin):
 
 @admin.register(MondayEvalRun)
 class MondayEvalRunAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "model", "status", "progress", "finished_at")
-    readonly_fields = ("created_at", "finished_at", "model", "topics", "status", "progress", "summary", "results")
+    list_display = ("created_at", "model", "rag", "strict", "status", "passed", "caught", "wrongly_blocked", "progress")
+    list_filter = ("passed", "status", "model")
+    readonly_fields = ("created_at", "finished_at", "model", "rag", "strict", "topics", "status", "progress", "passed", "verdict",
+                       "catch_rate", "false_block_rate", "summary", "results")
+
+    @admin.display(description="Caught")
+    def caught(self, obj):
+        return f"{obj.catch_rate:.0%}" if obj.catch_rate is not None else "–"
+
+    @admin.display(description="Good talks blocked")
+    def wrongly_blocked(self, obj):
+        return f"{obj.false_block_rate:.0%}" if obj.false_block_rate is not None else "–"
 
     def has_add_permission(self, request):
         return False  # start one from the topics list: select topics, then "Run the safety test"

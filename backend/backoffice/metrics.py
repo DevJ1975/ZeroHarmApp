@@ -5,6 +5,7 @@ from collections import defaultdict
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
+from monday.gate import status as gate_status
 from monday.models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
 from regs.models import RegChange
 from talks.models import AppSignup, KbEntry, OtisFeedback, SigninSheet, TalkSuggestion, ToolboxTalk
@@ -73,6 +74,12 @@ def dashboard(days=30, today=None):
         if count:
             attention.append({"count": count, "text": one if count == 1 and one else text, "url": url})
 
+    flag(MondayMinute.objects.filter(status=MondayMinute.HELD).count(), "Monday Minute talks waiting for your approval",
+         "/admin/monday/mondayminute/?status__exact=held", one="Monday Minute talk waiting for your approval")
+    qualified = gate_status()
+    if not qualified.ok:
+        attention.append({"count": "", "text": f"Monday Minute can't publish on its own yet: {qualified.reason}. Run the safety test from Monday Minute topics.",
+                          "url": "/admin/monday/mondayevalrun/"})
     flag(MondayMinute.objects.filter(status=MondayMinute.PULLED).count(), "Monday Minute talks pulled after crew reports", "/admin/monday/mondayminute/?status__exact=pulled", one="Monday Minute talk pulled after crew reports")
     flag(MondayTopic.objects.filter(active=False).count(), "Monday Minute topics paused", "/admin/monday/mondaytopic/?active__exact=0", one="Monday Minute topic paused")
     flag(MondayMinute.objects.filter(status=MondayMinute.BLOCKED, week__gte=today - dt.timedelta(days=14)).count(),
@@ -99,7 +106,7 @@ def dashboard(days=30, today=None):
         "sheets_chart": bars(weekly(chart_rows, today=today)),
         "people_chart": bars(weekly(chart_rows, value=lambda n: n or 0, today=today)),
         "minutes": [{"week": m.week, "title": m.title or m.topic.title, "up": m._up, "down": m._down, "comments": m._comments,
-                     "status": {"ready": "Published", "pulled": "Pulled"}.get(m.status, m.get_status_display()), "pulled": m.status == MondayMinute.PULLED, "id": m.pk} for m in minutes],
+                     "status": {"ready": "Published", "pulled": "Pulled", "held": "Waiting for approval"}.get(m.status, m.get_status_display()), "pulled": m.status == MondayMinute.PULLED, "id": m.pk} for m in minutes],
         "top_talks": [{"title": t["talk_title"], "program": programs.get(t["program"], t["program"]), "sheets": t["n"], "people": t["people"] or 0} for t in top_talks],
         "attention": attention,
     }
