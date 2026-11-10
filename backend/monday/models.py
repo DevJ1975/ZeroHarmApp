@@ -140,3 +140,30 @@ class MondayCommentReport(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["comment", "install_hash"], name="one_report_per_phone")]
+
+
+class MondayLock(models.Model):
+    """Keeps two cron runs from writing the same week at once. On CPU a talk can take longer than the cron interval."""
+
+    name = models.CharField(max_length=40, primary_key=True)
+    locked_at = models.DateTimeField()
+
+    @classmethod
+    def acquire(cls, name: str, ttl=None) -> bool:
+        from datetime import timedelta
+
+        from django.db import transaction
+
+        ttl = ttl or timedelta(hours=4)  # a crashed run frees the lock after this
+        now = timezone.now()
+        with transaction.atomic():
+            lock, created = cls.objects.select_for_update().get_or_create(name=name, defaults={"locked_at": now})
+            if not created and lock.locked_at > now - ttl:
+                return False
+            lock.locked_at = now
+            lock.save()
+            return True
+
+    @classmethod
+    def release(cls, name: str):
+        cls.objects.filter(name=name).delete()

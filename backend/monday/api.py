@@ -11,7 +11,7 @@ from ninja import Router, Schema
 from ninja.throttling import AnonRateThrottle
 from pydantic import Field
 
-from . import moderation
+from . import ai, moderation
 from .models import (HIDE_AT_COMMENT_REPORTS, PULL_AT_UNSAFE_REPORTS, MondayComment, MondayCommentReport,
                      MondayFeedback, MondayMinute)
 
@@ -179,6 +179,12 @@ def post_comment(request: HttpRequest, minute_id: int, body: CommentIn):
     if reason:
         return 201, {"status": "rejected", "message": reason}
     comment = MondayComment(minute=minute, parent=parent, display_name=name, body=text, install_hash=_hash(body.install_id))
+    if ai.is_local():
+        # A CPU model can take a while: save it as waiting and screen it in the background, so posting never hangs.
+        comment.status = MondayComment.PENDING
+        comment.save()
+        _screen_soon(comment.pk)
+        return 201, {"status": "pending", "message": "Thanks! Checking your comment. It will show in a minute."}
     try:
         allow, why = moderation.ai_check(text, name, minute.topic.title)
     except Exception:  # review unavailable: hold it, the cron screens it later
@@ -208,16 +214,41 @@ def report_comment(request: HttpRequest, comment_id: int, body: ReportIn):
     return {"ok": True}
 
 
+def screen_one(comment_id: int) -> bool:
+    """Screens one waiting comment. True if it was decided; False if the AI couldn't run (it stays waiting)."""
+    c = MondayComment.objects.select_related("minute__topic").filter(pk=comment_id, status=MondayComment.PENDING).first()
+    if not c:
+        return True
+    try:
+        allow, why = moderation.ai_check(c.body, c.display_name, c.minute.topic.title)
+    except Exception:
+        return False
+    c.status = MondayComment.VISIBLE if allow else MondayComment.HIDDEN
+    c.moderation = "" if allow else why
+    c.save(update_fields=["status", "moderation"])
+    return True
+
+
+def _screen_soon(comment_id: int):
+    """Background screening for the local model. If it fails, the cron's screen_pending picks it up."""
+    import threading
+
+    from django.db import connection
+
+    def run():
+        try:
+            screen_one(comment_id)
+        finally:
+            connection.close()
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 def screen_pending(limit=20):
     """Cron: screens comments that were held because moderation was down. Returns how many were decided."""
     done = 0
-    for c in MondayComment.objects.filter(status=MondayComment.PENDING).select_related("minute__topic")[:limit]:
-        try:
-            allow, why = moderation.ai_check(c.body, c.display_name, c.minute.topic.title)
-        except Exception:
+    for pk in MondayComment.objects.filter(status=MondayComment.PENDING).values_list("pk", flat=True)[:limit]:
+        if not screen_one(pk):
             break
-        c.status = MondayComment.VISIBLE if allow else MondayComment.HIDDEN
-        c.moderation = "" if allow else why
-        c.save(update_fields=["status", "moderation"])
         done += 1
     return done

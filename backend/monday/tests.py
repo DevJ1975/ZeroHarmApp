@@ -6,8 +6,8 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from . import generate as g
-from .models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
+from . import ai, generate as g
+from .models import MondayComment, MondayFeedback, MondayLock, MondayMinute, MondayTopic
 
 UTC = dt.timezone.utc
 INSTALL = "test-install-0000000001"
@@ -36,8 +36,9 @@ def talk(**kw):
     return base
 
 
-PASS = {"verdict": "pass", "findings": []}
-FAIL = {"verdict": "fail", "findings": [{"severity": "must_fix", "where": "point 2", "issue": "Unsafe.", "fix": "Say X."}]}
+GROUNDED = [{"point": 0, "brief_key_point": 0}, {"point": 1, "brief_key_point": 1}, {"point": 2, "brief_key_point": 2}]
+PASS = {"verdict": "pass", "findings": [], "grounding": GROUNDED, "confidence": "high"}
+FAIL = {"verdict": "fail", "findings": [{"severity": "must_fix", "where": "point 2", "issue": "Unsafe.", "fix": "Say X."}], "grounding": GROUNDED, "confidence": "high"}
 
 
 class ScheduleTests(TestCase):
@@ -84,7 +85,7 @@ class PipelineTests(TestCase):
         self.week = dt.date(2026, 11, 16)
 
     def test_passes_first_try_and_publishes(self):
-        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "claude-opus-5-5"), review_fn=lambda t, d: (PASS, "x"))
+        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "claude-opus-5-5"), review_fn=lambda t, d, **kw: (PASS, "x"))
         self.assertEqual((m.status, m.attempts, m.topic, m.publish_at), (MondayMinute.READY, 1, self.t, g.publish_time(self.week)))
         self.assertIsNone(g.generate_week(self.week))  # already done for the week
 
@@ -96,14 +97,14 @@ class PipelineTests(TestCase):
             seen.append(list(findings))
             return talk(), "m"
 
-        m = g.generate_week(self.week, write_fn=write, review_fn=lambda t, d: next(reviews))
+        m = g.generate_week(self.week, write_fn=write, review_fn=lambda t, d, **kw: next(reviews), strict=False)
         self.assertEqual((m.status, m.attempts), (MondayMinute.READY, 2))
         self.assertEqual(seen[0], [])
         self.assertIn("point 2: Unsafe. Use: Say X.", seen[1][0])
 
     def test_blocks_when_nothing_passes_and_tries_second_topic(self):
         topic("ladders", title="Ladders")
-        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "m"), review_fn=lambda t, d: (FAIL, "x"))
+        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "m"), review_fn=lambda t, d, **kw: (FAIL, "x"))
         self.assertEqual(m.status, MondayMinute.BLOCKED)
         self.assertEqual(MondayMinute.objects.filter(week=self.week, status=MondayMinute.BLOCKED).count(), 2)
         self.assertFalse(MondayMinute.objects.released().exists())
@@ -112,14 +113,14 @@ class PipelineTests(TestCase):
     def test_hard_check_failure_never_reaches_review(self):
         reviewed = []
         m = g.generate_week(self.week, write_fn=lambda t, f: (talk(points=["Lock it."]), "m"),
-                            review_fn=lambda t, d: reviewed.append(1) or (PASS, "x"))
+                            review_fn=lambda t, d, **kw: reviewed.append(1) or (PASS, "x"))
         self.assertEqual(m.status, MondayMinute.BLOCKED)
         self.assertEqual(reviewed, [])
 
     def test_refusal_counts_as_failed_attempt(self):
         def write(t, f):
             raise g.GenerationError("The model declined this request.")
-        m = g.generate_week(self.week, write_fn=write, review_fn=lambda t, d: (PASS, "x"))
+        m = g.generate_week(self.week, write_fn=write, review_fn=lambda t, d, **kw: (PASS, "x"))
         self.assertEqual(m.status, MondayMinute.BLOCKED)
         self.assertIn("declined", m.check_log)
 
@@ -133,7 +134,7 @@ class PipelineTests(TestCase):
         self.assertEqual(g.candidates(self.week), [heat])  # bank used up: least recent comes back, paused never does
 
 
-@override_settings(SECRET_KEY="test")
+@override_settings(SECRET_KEY="test", AI_PROVIDER="anthropic")
 class ApiTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -245,8 +246,8 @@ class ClaudeCallTests(TestCase):
 
     def test_structured_call_with_fallback(self):
         client, calls = self.fake()
-        with patch.object(g, "_client", return_value=client):
-            data, model = g.claude_json("sys", "user", {"type": "object"}, "high")
+        with patch.object(ai, "_client", return_value=client):
+            data, model = ai.claude_json("sys", "user", {"type": "object"}, "high")
         self.assertEqual((data, model), ({"a": 1}, "claude-opus-5-5"))
         kind, kw = calls[0]
         self.assertEqual((kind, kw["fallbacks"], kw["model"]), ("beta", "default", "claude-opus-5-5"))
@@ -254,15 +255,15 @@ class ClaudeCallTests(TestCase):
 
     def test_plain_call_when_beta_rejected(self):
         client, calls = self.fake(beta_error=True)
-        with patch.object(g, "_client", return_value=client):
-            g.claude_json("s", "u", {}, "low")
+        with patch.object(ai, "_client", return_value=client):
+            ai.claude_json("s", "u", {}, "low")
         self.assertEqual([c[0] for c in calls], ["beta", "plain"])
         self.assertNotIn("fallbacks", calls[1][1])
 
     def test_refusal_raises(self):
         client, _ = self.fake(stop="refusal")
-        with patch.object(g, "_client", return_value=client), self.assertRaises(g.GenerationError):
-            g.claude_json("s", "u", {}, "low")
+        with patch.object(ai, "_client", return_value=client), self.assertRaises(ai.GenerationError):
+            ai.claude_json("s", "u", {}, "low")
 
 
 class TopicBankTests(TestCase):
@@ -302,3 +303,126 @@ class TopicBankTests(TestCase):
             "crew_question": t.crew_questions[0], "takeaway": t.must_say[0],
         }
         self.assertEqual(g.hard_checks(t, talk), [])
+
+
+class StrictLocalTests(TestCase):
+    """With the local model: two independent reviews, both highly confident, and every point traced to the brief."""
+
+    def setUp(self):
+        MondayTopic.objects.all().delete()
+        self.t = topic()
+        self.week = dt.date(2026, 11, 16)
+
+    def run_with(self, reviews, strict=True):
+        it = iter(reviews)
+        calls = []
+
+        def review(t, d, second=False):
+            calls.append(second)
+            return next(it), "local:qwen3:8b"
+
+        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "local:qwen3:8b"), review_fn=review, strict=strict)
+        return m, calls
+
+    def test_needs_two_passing_reviews(self):
+        m, calls = self.run_with([PASS, PASS])
+        self.assertEqual((m.status, calls), (MondayMinute.READY, [False, True]))
+        self.assertIn("both independent CSP reviews", m.check_log)
+
+    def test_second_review_can_fail_it(self):
+        m, calls = self.run_with([PASS, FAIL, PASS, PASS])
+        self.assertEqual((m.status, m.attempts), (MondayMinute.READY, 2))
+        self.assertIn("second review failed", m.check_log)
+
+    def test_medium_confidence_is_not_enough(self):
+        unsure = dict(PASS, confidence="medium")
+        m, _ = self.run_with([unsure] * 3 + [unsure] * 3, strict=True)
+        self.assertEqual(m.status, MondayMinute.BLOCKED)
+        self.assertIn("wasn't fully confident", m.check_log)
+        m2 = MondayMinute.objects.filter(week=self.week)
+        self.assertTrue(m2.exists())
+
+    def test_ungrounded_point_fails_even_when_not_strict(self):
+        made_up = dict(PASS, grounding=[{"point": 0, "brief_key_point": 0}, {"point": 1, "brief_key_point": -1}, {"point": 2, "brief_key_point": 2}])
+        must, _ = g.judge(self.t, talk(), made_up, strict=False)
+        self.assertTrue(any("Point 2 is not from the brief" in x for x in must))
+        one_based = dict(PASS, grounding=[{"point": 1, "brief_key_point": 0}, {"point": 2, "brief_key_point": 1}, {"point": 3, "brief_key_point": 2}])
+        self.assertEqual(g.judge(self.t, talk(), one_based, strict=False)[0], [])
+        missing_last = dict(PASS, grounding=[{"point": 1, "brief_key_point": 0}, {"point": 2, "brief_key_point": 1}])
+        self.assertTrue(g.judge(self.t, talk(), missing_last, strict=False)[0])
+
+
+@override_settings(AI_PROVIDER="local", LOCAL_AI_URL="http://ollama.test:11434", LOCAL_AI_MODEL="qwen3:8b")
+class OllamaTests(TestCase):
+    def reply(self, body):
+        from io import BytesIO
+        from unittest.mock import MagicMock
+
+        res = MagicMock()
+        res.__enter__.return_value = BytesIO(json.dumps(body).encode())
+        return res
+
+    def test_chat_sends_schema_and_parses_json(self):
+        sent = {}
+
+        def fake(req, timeout):
+            sent.update(json.loads(req.data), url=req.full_url, timeout=timeout)
+            return self.reply({"model": "qwen3:8b", "done_reason": "stop", "message": {"content": '{"allow": true}'}})
+
+        with patch("urllib.request.urlopen", fake):
+            data, model = ai.ai_json("sys", "user", {"type": "object"}, think=False)
+        self.assertEqual((data, model), ({"allow": True}, "local:qwen3:8b"))
+        self.assertEqual(sent["url"], "http://ollama.test:11434/api/chat")
+        self.assertEqual((sent["format"], sent["think"], sent["stream"]), ({"type": "object"}, False, False))
+        self.assertEqual(sent["messages"][0]["role"], "system")
+
+    def test_cut_off_and_down_raise(self):
+        with patch("urllib.request.urlopen", lambda req, timeout: self.reply({"done_reason": "length", "message": {"content": "{"}})):
+            with self.assertRaises(ai.GenerationError):
+                ai.ai_json("s", "u", {})
+        import urllib.error
+        def down(req, timeout):
+            raise urllib.error.URLError("refused")
+        with patch("urllib.request.urlopen", down), self.assertRaises(ai.GenerationError):
+            ai.ai_json("s", "u", {})
+
+    def test_ensure_model_pulls_when_missing(self):
+        paths = []
+
+        def fake(req, timeout):
+            paths.append(req.full_url.rsplit("/", 1)[-1])
+            if req.full_url.endswith("/api/tags"):
+                return self.reply({"models": [{"name": "llama3:8b"}]})
+            return self.reply({"status": "success"})
+
+        with patch("urllib.request.urlopen", fake):
+            self.assertTrue(ai.ensure_model())
+        self.assertEqual(paths, ["tags", "pull"])
+
+    @override_settings(SECRET_KEY="test")
+    def test_local_comments_wait_then_get_screened(self):
+        t = topic()
+        m = MondayMinute.objects.create(week=dt.date(2026, 11, 9), publish_at=timezone.now() - dt.timedelta(hours=1), topic=t,
+                                        status=MondayMinute.READY, **talk())
+        with patch("monday.api._screen_soon") as soon:
+            r = self.client.post(f"/api/v2/monday-minute/{m.pk}/comments", json.dumps(
+                {"install_id": INSTALL, "body": "We lock out at the panel.", "accepted_rules": True}), content_type="application/json").json()
+        self.assertEqual(r["status"], "pending")
+        cid = MondayComment.objects.get().pk
+        soon.assert_called_once_with(cid)
+        from .api import screen_one
+        with patch("monday.moderation.ai_check", side_effect=ai.GenerationError("down")):
+            self.assertFalse(screen_one(cid))
+        with patch("monday.moderation.ai_check", return_value=(True, "")):
+            self.assertTrue(screen_one(cid))
+        self.assertEqual(MondayComment.objects.get().status, MondayComment.VISIBLE)
+
+
+class LockTests(TestCase):
+    def test_one_writer_at_a_time_and_stale_locks_expire(self):
+        self.assertTrue(MondayLock.acquire("write"))
+        self.assertFalse(MondayLock.acquire("write"))
+        MondayLock.objects.filter(name="write").update(locked_at=timezone.now() - dt.timedelta(hours=5))
+        self.assertTrue(MondayLock.acquire("write"))
+        MondayLock.release("write")
+        self.assertTrue(MondayLock.acquire("write"))

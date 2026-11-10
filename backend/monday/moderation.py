@@ -2,11 +2,11 @@
 
 Order: quick local rules (links, emails, phone numbers) reject instantly with a reason the person can fix; then an AI
 review applies the community rules. If the AI review can't run, the comment waits as PENDING and the cron retries it,
-so nothing unscreened is ever shown.
+so nothing unscreened is ever shown. With the local model, every comment is screened in the background (see api.py).
 """
 import re
 
-from .generate import GenerationError, claude_json
+from .ai import GenerationError, ai_json
 
 COMMUNITY_RULES = [
     "Talk about the topic and your own site. Share what works and what you've seen.",
@@ -50,10 +50,10 @@ def quick_check(body: str, name: str) -> str:
     return ""
 
 
-def ai_check(body: str, name: str, topic_title: str, call=claude_json):
+def ai_check(body: str, name: str, topic_title: str, call=None):
     """(allow, reason). Raises GenerationError if the review can't run, so the caller can hold the comment."""
     user = f"TOPIC: {topic_title}\nDISPLAY NAME: {name}\nCOMMENT:\n{body}"
-    data, _ = call(MOD_SYSTEM, user, MOD_SCHEMA, "low")
+    data, _ = call(MOD_SYSTEM, user, MOD_SCHEMA, "low") if call else ai_json(MOD_SYSTEM, user, MOD_SCHEMA, "low", think=False)
     return bool(data["allow"]), (data.get("message") or data.get("rule") or "")[:300]
 
 

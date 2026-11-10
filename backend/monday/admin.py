@@ -2,8 +2,9 @@ from django.contrib import admin, messages
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from .ai import ensure_model, is_local
 from .generate import generate_week, next_week
-from .models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
+from .models import MondayComment, MondayFeedback, MondayLock, MondayMinute, MondayTopic
 
 
 @admin.register(MondayTopic)
@@ -79,6 +80,25 @@ class MondayMinuteAdmin(admin.ModelAdmin):
     @admin.action(description="Write next week's Monday Minute now")
     def write_next_week(self, request, queryset):
         week = next_week()
+        if is_local():
+            # On CPU this takes minutes to an hour, longer than a web request may run: do it in the background.
+            import threading
+
+            from django.db import connection
+
+            def run():
+                try:
+                    if MondayLock.acquire("write"):
+                        try:
+                            ensure_model() and generate_week(week)
+                        finally:
+                            MondayLock.release("write")
+                finally:
+                    connection.close()
+
+            threading.Thread(target=run, daemon=True).start()
+            self.message_user(request, f"Writing {week:%b %-d} on the local model in the background. Refresh this page in a few minutes.")
+            return
         try:
             m = generate_week(week)
         except Exception as err:

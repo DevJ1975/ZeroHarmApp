@@ -110,8 +110,13 @@ OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 # every talk until its send time again. The Sunday push still goes out on schedule either way.
 TALKS_UNLOCK_EARLY = os.environ.get("TALKS_UNLOCK_EARLY", "1") == "1"
 
-# Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly. The Anthropic SDK reads ANTHROPIC_API_KEY.
+# Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly.
 MONDAY_MINUTE_ENABLED = os.environ.get("MONDAY_MINUTE_ENABLED", "1") == "1"
+# Where its AI runs: "local" = your own Ollama server (private network, CPU), "anthropic" = Claude (needs ANTHROPIC_API_KEY).
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "local")
+LOCAL_AI_URL = os.environ.get("LOCAL_AI_URL", "")            # e.g. http://ollama.railway.internal:11434
+LOCAL_AI_MODEL = os.environ.get("LOCAL_AI_MODEL", "qwen3:8b")
+LOCAL_AI_TIMEOUT = float(os.environ.get("LOCAL_AI_TIMEOUT", "1800"))  # seconds per call; CPU is slow
 MONDAY_MODEL = os.environ.get("MONDAY_MODEL", "claude-opus-5-5")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OTIS_MODEL = os.environ.get("OTIS_MODEL", "QWEN3_1_7B")

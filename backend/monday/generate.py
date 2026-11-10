@@ -1,11 +1,13 @@
 """Writes, checks and schedules the weekly Monday Minute. Runs from `python manage.py monday_minute` (the cron service).
+The AI runs on your own server (AI_PROVIDER=local, Ollama) or on Claude (AI_PROVIDER=anthropic); see ai.py.
 
 Safety design, because no person approves each talk:
 1. The writer sees ONE topic brief from the CSP-reviewed topic bank and may use nothing else.
 2. Hard checks run on every draft: required lines present word for word, no number that isn't in the brief, no links,
    one crew question, sane length.
-3. A second Claude call reviews the draft as a Certified Safety Professional against the brief. Any MUST FIX finding
-   fails the draft. The writer gets the findings and tries again, up to 3 times per topic, 2 topics per week.
+3. A second AI call reviews the draft as a Certified Safety Professional against the brief and maps every point to a
+   brief line. Any MUST FIX finding or ungrounded point fails the draft. In strict mode (the default with the local
+   model), a second independent review must also pass, and both must be highly confident. The writer gets the findings and tries again, up to 3 times per topic, 2 topics per week.
 4. If nothing passes, that week has no Monday Minute (the app keeps showing last week's). Nothing unchecked publishes.
 5. After publishing, crews' "isn't safe or isn't right" reports pull the talk and pause its topic (see api.py).
 """
@@ -20,6 +22,7 @@ from django.conf import settings
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from .ai import GenerationError, ai_json, is_local
 from .models import MondayFeedback, MondayMinute, MondayTopic
 
 log = logging.getLogger(__name__)
@@ -29,10 +32,6 @@ WRITE_DAYS_AHEAD = 5          # start writing Wednesday for the next Monday
 ATTEMPTS_PER_TOPIC = 3
 TOPICS_PER_WEEK = 2
 NO_REPEAT_WEEKS = 104
-
-
-class GenerationError(Exception):
-    pass
 
 
 # ---- Schedule ---------------------------------------------------------------------------------------
@@ -139,8 +138,19 @@ REVIEW_SCHEMA = {
                 "additionalProperties": False,
             },
         },
+        "grounding": {
+            "type": "array",
+            "description": "One entry per talk point, in order. point is 0-based; brief_key_point is the 0-based index into the brief key_points it comes from, or -1 if none",
+            "items": {
+                "type": "object",
+                "properties": {"point": {"type": "integer"}, "brief_key_point": {"type": "integer"}},
+                "required": ["point", "brief_key_point"],
+                "additionalProperties": False,
+            },
+        },
+        "confidence": {"type": "string", "enum": ["high", "medium", "low"], "description": "How sure you are of the verdict"},
     },
-    "required": ["verdict", "findings"],
+    "required": ["verdict", "findings", "grounding", "confidence"],
     "additionalProperties": False,
 }
 
@@ -175,57 +185,54 @@ Review in this order:
 5. Behavior: an unstated action, abstract principle where a named action belongs, or a crew question that won't start
    a conversation is SHOULD FIX.
 
+Also map every numbered talk point to the brief key_point it comes from (0-based), or -1 if it isn't in the brief.
 Verdict "pass" only if there are zero MUST FIX findings. Give replacement wording for every finding. Be strict:
-when unsure whether something is safe, it is MUST FIX."""
+when unsure whether something is safe, it is MUST FIX, and your confidence is not high."""
+
+SECOND_REVIEW = """
+
+This is the second, independent review. Assume the draft contains at least one unsafe, wrong or unsupported statement
+and look for it line by line against the brief. Pass it only if, after checking every sentence, you find none."""
 
 
-def _client():
-    import anthropic
-
-    return anthropic.Anthropic(timeout=180.0, max_retries=3)
-
-
-def claude_json(system: str, user: str, schema: dict, effort: str = "high"):
-    """One structured-output call. Returns (data, model). Refusals and truncation raise GenerationError."""
-    import anthropic
-
-    client = _client()
-    kwargs = dict(
-        model=settings.MONDAY_MODEL,
-        max_tokens=16000,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-        output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
-    )
-    try:  # server-side fallback re-runs a declined request on another model inside the same call
-        res = client.beta.messages.create(betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
-    except anthropic.BadRequestError:
-        res = client.messages.create(**kwargs)
-    if res.stop_reason == "refusal":
-        raise GenerationError("The model declined this request.")
-    if res.stop_reason == "max_tokens":
-        raise GenerationError("The response was cut off.")
-    text = next((b.text for b in res.content if b.type == "text"), "")
-    try:
-        return json.loads(text), res.model
-    except json.JSONDecodeError as err:
-        raise GenerationError(f"Not valid JSON: {err}") from err
-
-
-def write(topic: MondayTopic, findings: list[str], call=claude_json):
+def write(topic: MondayTopic, findings: list[str], call=None):
     user = "TOPIC BRIEF (the only source you may use):\n" + json.dumps(topic.brief(), indent=2, ensure_ascii=False)
     notes = feedback_notes(topic)
     if notes:
         user += "\n\nCREW FEEDBACK NOTES (style only):\n- " + "\n- ".join(notes)
     if findings:
         user += "\n\nYOUR LAST DRAFT FAILED THESE CHECKS. Fix every one:\n- " + "\n- ".join(findings)
-    return call(WRITER_SYSTEM, user, TALK_SCHEMA, "high")
+    if call:
+        return call(WRITER_SYSTEM, user, TALK_SCHEMA, "high")
+    return ai_json(WRITER_SYSTEM, user, TALK_SCHEMA, "high", think=False)
 
 
-def review(topic: MondayTopic, talk: dict, call=claude_json):
+def review(topic: MondayTopic, talk: dict, call=None, second=False):
     user = ("TOPIC BRIEF (source of truth):\n" + json.dumps(topic.brief(), indent=2, ensure_ascii=False)
             + "\n\nTALK TO REVIEW:\n" + json.dumps(talk, indent=2, ensure_ascii=False))
-    return call(REVIEWER_SYSTEM, user, REVIEW_SCHEMA, "high")
+    system = REVIEWER_SYSTEM + (SECOND_REVIEW if second else "")
+    if call:
+        return call(system, user, REVIEW_SCHEMA, "high")
+    return ai_json(system, user, REVIEW_SCHEMA, "high", think=True)
+
+
+def judge(topic: MondayTopic, talk: dict, verdict: dict, strict: bool) -> tuple[list[str], list[str]]:
+    """(must_fix, should_fix) from one review, adding the grounding and confidence rules."""
+    must = [f"{f['where']}: {f['issue']} Use: {f['fix']}" for f in verdict["findings"] if f["severity"] == "must_fix"]
+    should = [f"{f['where']}: {f['issue']}" for f in verdict["findings"] if f["severity"] == "should_fix"]
+    pairs = [(g["point"], g["brief_key_point"]) for g in verdict.get("grounding", [])]
+    if pairs and min(p for p, _ in pairs) == 1:  # numbered from 1: shift to 0-based
+        pairs = [(p - 1, k) for p, k in pairs]
+    grounded = dict(pairs)
+    for i, _ in enumerate(talk["points"]):
+        src = grounded.get(i, -1)
+        if not 0 <= src < len(topic.key_points):
+            must.append(f"Point {i + 1} is not from the brief. Rewrite it from one of the brief's key points or remove it.")
+    if verdict["verdict"] != "pass" and not must:
+        must.append("The reviewer failed the draft without details. Stay closer to the brief.")
+    if strict and verdict.get("confidence") != "high" and not must:
+        must.append("The reviewer wasn't fully confident this is safe. Stay word for word closer to the brief.")
+    return must, should
 
 
 # ---- Hard checks ------------------------------------------------------------------------------------
@@ -266,8 +273,10 @@ def hard_checks(topic: MondayTopic, talk: dict) -> list[str]:
 
 # ---- Pipeline ---------------------------------------------------------------------------------------
 
-def generate_week(week: dt.date, write_fn=write, review_fn=review):
-    """Writes the Monday Minute for `week`. Returns the saved MondayMinute (READY or BLOCKED) or None if nothing to do."""
+def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None):
+    """Writes the Monday Minute for `week`. Returns the saved MondayMinute (READY or BLOCKED) or None if nothing to do.
+    Strict mode (on by default with the local model) needs two independent reviews to pass with high confidence."""
+    strict = is_local() if strict is None else strict
     if MondayMinute.objects.filter(week=week).exclude(status=MondayMinute.BLOCKED).exists():
         return None
     result = None
@@ -282,21 +291,26 @@ def generate_week(week: dt.date, write_fn=write, review_fn=review):
                     lines.append(f"Attempt {attempt}: hard checks failed:\n  " + "\n  ".join(problems))
                     continue
                 verdict, _ = review_fn(topic, talk)
+                must, should = judge(topic, talk, verdict, strict)
+                if strict and not must:
+                    second, _ = review_fn(topic, talk, second=True)
+                    must2, should2 = judge(topic, talk, second, strict)
+                    must, should = must2, should + should2
+                    if must:
+                        lines.append(f"Attempt {attempt}: first review passed, second review failed.")
             except GenerationError as err:
                 lines.append(f"Attempt {attempt}: {err}")
                 findings = []
                 continue
-            must = [f"{f['where']}: {f['issue']} Use: {f['fix']}" for f in verdict["findings"] if f["severity"] == "must_fix"]
-            should = [f"{f['where']}: {f['issue']}" for f in verdict["findings"] if f["severity"] == "should_fix"]
-            if verdict["verdict"] == "pass" and not must:
-                lines.append(f"Attempt {attempt}: passed the CSP review." + (" Should fix (logged only): " + "; ".join(should) if should else ""))
+            if not must:
+                lines.append(f"Attempt {attempt}: passed {'both independent CSP reviews' if strict else 'the CSP review'}." + (" Should fix (logged only): " + "; ".join(should) if should else ""))
                 return MondayMinute.objects.create(
                     week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.READY, attempts=attempt,
                     model=model, check_log="\n".join(lines), title=talk["title"][:120], intro=talk["intro"],
                     points=talk["points"], story_title=talk["story_title"][:120], story=talk["story"],
                     crew_question=talk["crew_question"], takeaway=talk["takeaway"],
                 )
-            findings = must or ["The reviewer failed the draft without details. Stay closer to the brief."]
+            findings = must
             lines.append(f"Attempt {attempt}: CSP review failed:\n  " + "\n  ".join(findings))
         result = MondayMinute.objects.create(
             week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.BLOCKED,
