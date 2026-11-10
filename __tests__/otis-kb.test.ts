@@ -143,19 +143,14 @@ describe('search', () => {
     expect(search(kb, 'safety', 'en')).toEqual([]);
   });
 
-  // BUG: lib/otis/kb.ts:41 splits on /[^a-z0-9.]+/, so the period is kept as part of a word.
-  // "...apply your lock." tokenizes to "lock." which never equals "lock", and "lock" is too short
-  // (<=4 chars) for the prefix rule at kb.ts:57 to rescue it. Any short word that ends a sentence
-  // in a passage (lock, tag, fall, oil, fire...) is invisible to search.
-  test.failing('BUG: sentence-final short word keeps its period and never matches', () => {
+  // Fixed: the tokenizer drops periods that are not inside a number, so "lock." matches "lock".
+  test('a sentence-final short word still matches without its period', () => {
     const kb = [...filler, doc({ id: 'loto', title: 'Energy isolation', text: 'Before you reach in, apply your lock.' })];
     expect(ids(search(kb, 'Where does my lock go?', 'en'))).toEqual(['loto']);
   });
 
-  // BUG: lib/otis/kb.ts:57 prefix rule matches any token starting with w.slice(0, -1). For the
-  // OSHA standard "1910.147" (lockout/tagout) the prefix is "1910.14", so 1910.146 (confined spaces)
-  // and 1910.141 (sanitation) match too. A worker asking about LOTO gets confined-space guidance.
-  test.failing('BUG: "1910.147" matches 1910.146 / 1910.141 passages', () => {
+  // Fixed: tokens with a digit skip the prefix rule, so "1910.147" matches only itself.
+  test('"1910.147" does not match 1910.146 / 1910.141 passages', () => {
     const kb = [
       ...filler,
       doc({ id: 'cs', title: 'Confined spaces', text: 'Permit spaces are covered by 1910.146 requirements' }),
@@ -167,6 +162,22 @@ describe('search', () => {
   test('exact standard number still finds its own passage', () => {
     const kb = [...filler, doc({ id: 'loto', title: 'Lockout standard', text: 'The rule is 1910.147 for energy control' })];
     expect(ids(search(kb, '1910.147', 'en'))).toEqual(['loto']);
+  });
+
+  test('a standard number at the end of a sentence still matches', () => {
+    const kb = [...filler, doc({ id: 'loto', title: 'Lockout standard', text: 'Energy control is covered by 1910.147.' })];
+    expect(ids(search(kb, 'What does 1910.147. say?', 'en'))).toEqual(['loto']);
+  });
+
+  // Fixed: a period is only kept between digits, so a missing space after "lock." no longer hides the word.
+  test('a period with no space after it does not glue two words together', () => {
+    const kb = [...filler, doc({ id: 'loto', title: 'Energy isolation', text: 'Apply your lock.Then test the machine' })];
+    expect(ids(search(kb, 'lock', 'en'))).toEqual(['loto']);
+  });
+
+  test('word queries still use the prefix rule after the digit check', () => {
+    const kb = [...filler, doc({ id: 'h', title: 'Fall gear', text: 'Inspect harnesses daily' })];
+    expect(ids(search(kb, 'harness', 'en'))).toEqual(['h']);
   });
 });
 
@@ -232,14 +243,20 @@ describe('loadKb', () => {
     expect(JSON.parse(mockStore.get('otis_kb')!)).toEqual(newer);
   });
 
-  // BUG: lib/otis/kb.ts:17 saves to the phone inside the same try as the fetch. If the kv-store
-  // write fails (disk full, storage error) the catch at kb.ts:20 throws the fresh items away and
-  // serves the old memory/saved copy - on a first launch that is [] even though the network worked.
-  // OTIS would then answer with no knowledge base at all.
-  test.failing('BUG: a failed save to the phone discards the items just fetched', async () => {
+  // Fixed: the save to the phone has its own try, so a failed write still returns the fetched items.
+  test('a failed save to the phone still returns the items just fetched', async () => {
     const Storage = require('expo-sqlite/kv-store').default;
     Storage.setItem.mockRejectedValueOnce(new Error('disk full'));
     mockConfig.api.mockResolvedValue({ items: remote });
+    await expect(loadKb()).resolves.toEqual(remote);
+  });
+
+  test('a failed save does not flag stale content and the fetched copy survives a later outage', async () => {
+    const Storage = require('expo-sqlite/kv-store').default;
+    Storage.setItem.mockRejectedValueOnce(new Error('disk full'));
+    mockConfig.api.mockResolvedValueOnce({ items: remote }).mockRejectedValueOnce(new Error('offline'));
+    await loadKb();
+    expect(mockNoteStale).not.toHaveBeenCalled();
     await expect(loadKb()).resolves.toEqual(remote);
   });
 });

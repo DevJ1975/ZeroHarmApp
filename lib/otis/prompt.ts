@@ -23,5 +23,24 @@ export function userTurn(question: string, sources: KbItem[]) {
 /** Removes any hidden reasoning block the model may still emit, and tidies whitespace. */
 export const clean = (text: string) => text.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace(/<\|im_end\|>/g, '').trim();
 
-export const looksSpanish = (s: string) =>
-  /[¿¡ñáéíóú]/i.test(s) || /\b(qué|como|cómo|puedo|debo|trabajo|seguridad|candado|equipo|tengo|hay)\b/i.test(s);
+/** Spanish words that are not also English words or names: one is enough ("tengo frio"). */
+const ES_STRONG = new Set(
+  ('qué cómo dónde está cayó cuál puede puedo debo tengo necesito ayuda trabajo seguridad candado equipo ' +
+    'respira respirar').split(' '),
+);
+
+/** Short Spanish words that also turn up in English ("hay bales", "El Paso", "LA"): it takes two,
+ *  or one plus an accent/ñ. "de" is here, not above, because "de-energize" splits into "de". */
+const ES_WEAK = new Set(
+  'que como donde esta cual hay una cayo de del por para con el la los las mi su es se'.split(' '),
+);
+
+/** True when the question reads as Spanish. ¿ or ¡ settle it; otherwise one strong word,
+ *  two weak ones, or one weak word plus an accent/ñ ("jalapeño" or "café" alone stays English). */
+export function looksSpanish(s: string) {
+  if (/[¿¡]/.test(s)) return true;
+  const words = [...new Set(s.toLowerCase().split(/[^a-záéíóúüñ]+/))];
+  if (words.some((w) => ES_STRONG.has(w))) return true;
+  const weak = words.filter((w) => ES_WEAK.has(w)).length;
+  return weak >= 2 || (weak === 1 && /[ñáéíóú]/i.test(s));
+}

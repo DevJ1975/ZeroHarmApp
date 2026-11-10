@@ -133,18 +133,38 @@ describe('IntroSplash: normal motion', () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 
-  // BUG: components/IntroSplash.tsx:55-62 + :72-81 — `finish` is a useCallback on [onDone, ...], and the start effect
-  // depends on `finish`, so a new onDone identity re-runs the whole start effect: it clears and restarts the 3.4 s timer
-  // (verified: finishes at rerender + 3.4 s) and replays play() and the fade-ins. app/_layout.tsx:71 passes `onDone={() => setIntroDone(true)}` inline, so any RootLayout
-  // re-render during the intro (e.g. the phone switching light/dark) extends the intro and replays the fade.
-  test.failing('BUG: a new onDone identity restarts the intro timer and animations', async () => {
-    // app/_layout.tsx passes onDone as an inline arrow, so any root re-render (e.g. a colour-scheme change) hands a new function.
+  // Fixed: onDone/onReady now live in refs, so a new callback identity no longer restarts the 3.4 s timer or the fades.
+  test('a new onDone identity does not restart the intro timer or animations', async () => {
+    // A parent re-render (e.g. a colour-scheme change) can hand a new function; the intro must keep its 3.4 s clock.
     const { onDone, onReady, rerender } = await startIntro(false);
     await advance(3000);
     const onDone2 = jest.fn();
     await rerender(<IntroSplash onReady={onReady} onDone={onDone2} />);
+    expect(mockPlayer.play).toHaveBeenCalledTimes(1); // the video is not restarted
     await advance(400 + FADE_OUT_MS + 50);
-    expect(onDone.mock.calls.length + onDone2.mock.calls.length).toBe(1);
+    expect(onDone2).toHaveBeenCalledTimes(1); // the latest callback is the one called
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  test('a new onReady identity after the cover is ready does not call onReady again', async () => {
+    const { onReady, onDone, rerender } = await startIntro(false);
+    expect(onReady).toHaveBeenCalledTimes(1);
+    const onReady2 = jest.fn();
+    await rerender(<IntroSplash onReady={onReady2} onDone={onDone} />);
+    await advance(100);
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(onReady2).not.toHaveBeenCalled();
+  });
+
+  test('a new onReady before the cover is ready: only the latest one is called', async () => {
+    const { onReady, onDone, rerender } = await renderIntro(false);
+    const onReady2 = jest.fn();
+    await rerender(<IntroSplash onReady={onReady2} onDone={onDone} />);
+    await act(async () => {
+      coverImage().props.onLoadEnd();
+    });
+    expect(onReady).not.toHaveBeenCalled();
+    expect(onReady2).toHaveBeenCalledTimes(1);
   });
 });
 

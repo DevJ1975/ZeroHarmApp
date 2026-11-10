@@ -14,8 +14,12 @@ export async function loadKb(): Promise<KbItem[]> {
   if (isConfigured()) {
     try {
       const { items } = await api<{ items: KbItem[] }>('/otis/kb/');
-      await Storage.setItem(KEY, JSON.stringify(items));
       memo = items;
+      try {
+        await Storage.setItem(KEY, JSON.stringify(items));
+      } catch {
+        // couldn't save to the phone (disk full?): still use what we just fetched
+      }
       return items;
     } catch {
       noteStaleContent(); // a content change seen now is retried on the next check
@@ -38,6 +42,7 @@ const words = (s: string) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/(^|\D)\.|\.(?!\d)/g, '$1 ') // a period only counts inside a number like 1910.147
     .split(/[^a-z0-9.]+/)
     .filter((w) => w.length > 1 && !STOP.has(w));
 
@@ -54,7 +59,8 @@ export function search(kb: KbItem[], query: string, lang: 'en' | 'es', k = 4): K
     const t = toks[i];
     let score = 0;
     for (const w of q) {
-      const tf = t.filter((x) => x === w || (w.length > 4 && x.startsWith(w.slice(0, -1)))).length;
+      const prefix = w.length > 4 && !/\d/.test(w); // numbers and standards (1910.147) must match exactly
+      const tf = t.filter((x) => x === w || (prefix && x.startsWith(w.slice(0, -1)))).length;
       if (!tf) continue;
       const idf = Math.log(1 + (docs.length - (df.get(w) ?? 0) + 0.5) / ((df.get(w) ?? 0) + 0.5));
       score += (idf * tf * 2.2) / (tf + 1.2 * (0.25 + 0.75 * (t.length / avg)));

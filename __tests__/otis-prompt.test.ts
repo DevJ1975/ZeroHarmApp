@@ -105,32 +105,50 @@ describe('looksSpanish()', () => {
   // knowledge-base search (lib/otis/kb.ts:48 drops every Spanish passage when lang is 'en').
   // So a wrong answer here changes what the worker sees, not just a hint.
 
-  // BUG: lib/otis/prompt.ts:27 — the keyword list contains "hay", which is also an
-  // everyday English word. An English question about hay bales (farms, feed mills,
-  // ag workers) is classified as Spanish, so a no-match reply comes back in Spanish.
-  test.failing('BUG: English question with the word "hay" is treated as Spanish', () => {
+  // Fixed: a single Spanish-looking word like "hay" no longer makes a question Spanish.
+  test('English question with the word "hay" stays English', () => {
     expect(looksSpanish('Can hay bales be stacked near the exit?')).toBe(false);
   });
 
-  // BUG: lib/otis/prompt.ts:27 — the unaccented check knows only a handful of words, so
-  // Spanish typed on a phone without accents is treated as English. lang becomes 'en',
-  // search() then skips every Spanish passage (lib/otis/kb.ts:48), and if no English
-  // passage matches the Spanish words the worker gets the English "not covered" line.
-  // "No puede respirar" (someone cannot breathe) is one of the misses.
-  test.failing.each([
+  // Fixed: a wider word list (two hits needed) catches Spanish typed without accents.
+  test.each([
     'donde esta el extintor',
     'No puede respirar',
     'necesito ayuda',
     'se cayo mi companero',
-  ])('BUG: unaccented Spanish without a listed keyword is missed: %s', (q) => {
+  ])('unaccented Spanish without accents is detected: %s', (q) => {
     expect(looksSpanish(q)).toBe(true);
   });
 
-  // BUG: lib/otis/prompt.ts:27 — "ñ" and the accented vowels also appear in English
-  // loanwords/names, so an English question mentioning a jalapeño or café is Spanish
-  // and a no-match reply comes back in Spanish.
-  test.failing('BUG: English with an accented loanword is treated as Spanish', () => {
+  // Fixed: an accent or ñ counts only alongside a Spanish word, so loanwords stay English.
+  test('English with an accented loanword stays English', () => {
     expect(looksSpanish('Can I take my jalapeño lunch into the café area?')).toBe(false);
+    expect(looksSpanish('Is the Mesa, Arizona plant on the new schedule?')).toBe(false);
+  });
+
+  // Fixed (review): the two-word rule had made short Spanish with one clear Spanish word
+  // English again ("tengo frio" was Spanish before). A word that is never English counts alone.
+  test.each([
+    'tengo frio',
+    'trabajo seguro',
+    'candado roto',
+    'puedo entrar',
+    'debo usar casco',
+    'necesito guantes',
+    'ayuda',
+  ])('short Spanish with one clear Spanish word: %s', (q) => {
+    expect(looksSpanish(q)).toBe(true);
+  });
+
+  // Fixed (review): accented Spanish with no listed verb was English after the first fix.
+  test.each(['Cuál extintor uso', 'Señal de salida bloqueada'])('accented Spanish without a listed verb: %s', (q) => {
+    expect(looksSpanish(q)).toBe(true);
+  });
+
+  test('short words shared with English need a second Spanish word', () => {
+    expect(looksSpanish('How do I de-energize the panel?')).toBe(false);
+    expect(looksSpanish('There is no hay in the barn by the exit')).toBe(false);
+    expect(looksSpanish('Our crew is going to Lake Como next week')).toBe(false);
   });
 });
 

@@ -51,6 +51,9 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
+  // Stable, so a re-render during the intro (e.g. a dark-mode switch) hands IntroSplash the same function.
+  const endIntro = useCallback(() => setIntroDone(true), []);
+
   if (!loaded) return null;
 
   return (
@@ -68,7 +71,7 @@ export default function RootLayout() {
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
-      {!introDone && <IntroSplash onReady={hideSplash} onDone={() => setIntroDone(true)} />}
+      {!introDone && <IntroSplash onReady={hideSplash} onDone={endIntro} />}
     </ThemeProvider>
   );
 }

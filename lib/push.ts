@@ -36,11 +36,14 @@ export function startPush() {
     const data = readData(event.notification.additionalData);
     if (data?.refresh) refreshContent();
     const route = safeRoute(data?.route);
+    const episode = safeId(data?.episode);
+    const issue = safeId(data?.issue);
+    const feedId = safeId(data?.feed_id);
     if (route) router.push(route);
-    else if (data?.episode) router.push(`/zero-hour/${data.episode}`);
-    else if (data?.issue) router.push(`/talk/${data.issue}`);
-    else if (data?.feed_id && data.kind === 'alert') router.push(`/alert/${data.feed_id}`);
-    else if (data?.feed_id) router.push('/learn');
+    else if (episode) router.push(`/zero-hour/${episode}`);
+    else if (issue) router.push(`/talk/${issue}`);
+    else if (feedId && data?.kind === 'alert') router.push(`/alert/${feedId}`);
+    else if (feedId) router.push('/learn');
   });
 }
 
@@ -63,15 +66,35 @@ function readData(raw: object | undefined): (PushData & { refresh: boolean }) | 
 const FIXED_ROUTES = ['/learn', '/otis', '/archive'];
 const ID_ROUTE = /^\/(talk|alert|zero-hour)\/[A-Za-z0-9_-]{1,40}$/;
 
+// The backend sends issue, episode and feed_id as whole numbers, so anything else is ignored.
+function safeId(id: unknown): string | null {
+  if (typeof id !== 'number' && typeof id !== 'string') return null;
+  const text = String(id);
+  return /^\d{1,12}$/.test(text) ? text : null;
+}
+
 function safeRoute(route: unknown): Href | null {
   if (typeof route !== 'string') return null;
   if (FIXED_ROUTES.includes(route) || ID_ROUTE.test(route)) return route as Href;
   return null;
 }
 
+// Always hands back a fresh object, so a caller editing it can't change the defaults.
+// Only a saved `true` counts as on, so a garbled row (say offers: "false") can never opt someone in.
 export async function getPrefs(): Promise<PushPrefs> {
-  const raw = await Storage.getItem(PREFS_KEY);
-  return raw ? { ...OFF, ...(JSON.parse(raw) as Partial<PushPrefs>) } : OFF;
+  const saved = readSaved(await Storage.getItem(PREFS_KEY));
+  const on = (key: keyof PushPrefs) => saved?.[key] === true;
+  return { weeklyTalk: on('weeklyTalk'), alerts: on('alerts'), zeroHour: on('zeroHour'), offers: on('offers') };
+}
+
+// A missing or corrupted row reads as nothing saved, rather than breaking the settings screen.
+function readSaved(raw: string | null): Partial<Record<keyof PushPrefs, unknown>> | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 export async function hasBeenAsked() {
@@ -90,7 +113,7 @@ export async function setPrefs(next: PushPrefs): Promise<{ prefs: PushPrefs; per
     await markAsked();
     if (!granted) {
       permissionDenied = true;
-      next = OFF;
+      next = { ...OFF }; // a fresh copy, so editing the result can't change the defaults
     }
   }
   if (config.oneSignalAppId) {

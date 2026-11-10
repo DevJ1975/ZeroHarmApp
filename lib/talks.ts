@@ -22,11 +22,23 @@ export type Talk = {
 /** The number printed on the issue (#01), falling back to the app's id. */
 export const issueNumber = (t: Talk) => t.number ?? t.issue;
 
+/**
+ * Make the phone copy match the server list, so a pulled talk does not come back offline.
+ * No transaction: the app shares one connection, and the feed loader's transaction running
+ * at the same time would collide with ours and roll both back.
+ */
 async function cache(talks: Talk[]) {
+  // Check the whole reply before touching the copy, so a bad reply leaves it as it was.
+  if (!Array.isArray(talks) || !talks.every((t) => Number.isInteger(t?.issue))) {
+    throw new Error('talks reply is malformed');
+  }
   const db = await getDb();
   for (const t of talks) {
     await db.runAsync('INSERT OR REPLACE INTO talks_cache (issue, json) VALUES (?, ?)', t.issue, JSON.stringify(t));
   }
+  // Add first, then drop the rest: the copy is never empty in between. An empty list clears it.
+  const ids = JSON.stringify(talks.map((t) => t.issue));
+  await db.runAsync('DELETE FROM talks_cache WHERE issue NOT IN (SELECT value FROM json_each(?))', ids);
 }
 
 async function readCache(): Promise<Talk[]> {

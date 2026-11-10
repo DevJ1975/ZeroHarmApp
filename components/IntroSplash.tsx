@@ -31,6 +31,13 @@ export function IntroSplash({ onReady, onDone }: { onReady: () => void; onDone: 
   const dark = useColorScheme() === 'dark';
   const insets = useSafeAreaInsets();
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
+  // Keep the latest callbacks in refs, so a parent re-render (e.g. a dark-mode switch) never restarts the intro.
+  const onReadyRef = useRef(onReady);
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onDoneRef.current = onDone;
+  }, [onReady, onDone]);
   // The native launch screen stays up until frame 1 (its look-alike) has drawn, so there is never a blank beat.
   const [coverReady, setCoverReady] = useState(false);
   const ready = useCallback(() => setCoverReady(true), []);
@@ -39,8 +46,8 @@ export function IntroSplash({ onReady, onDone }: { onReady: () => void; onDone: 
     return () => clearTimeout(fallback);
   }, [ready]);
   useEffect(() => {
-    if (coverReady) onReady();
-  }, [coverReady, onReady]);
+    if (coverReady) onReadyRef.current();
+  }, [coverReady]);
   const [cover] = useState(() => new Animated.Value(1)); // the native-splash look-alike
   const [brand] = useState(() => new Animated.Value(0)); // lockup and tagline over the footage
   const [whole] = useState(() => new Animated.Value(1));
@@ -56,9 +63,9 @@ export function IntroSplash({ onReady, onDone }: { onReady: () => void; onDone: 
     finished.current = true;
     Animated.timing(whole, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
       player.pause();
-      onDone();
+      onDoneRef.current();
     });
-  }, [onDone, player, whole]);
+  }, [player, whole]);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled()

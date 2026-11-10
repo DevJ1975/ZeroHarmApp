@@ -175,15 +175,29 @@ describe('notification tap routing', () => {
     expect(mockPushed).toEqual([]);
   });
 
-  // BUG: lib/push.ts:40-42 interpolates data.episode / data.issue / data.feed_id into the path
-  // without any check, so the route allow-list (lib/push.ts:63-70) is bypassed by putting the
-  // bad path in one of those fields instead of `route`. The comment at :62 promises a bad payload
-  // can't send people somewhere odd. Correct behaviour: ids must look like ID_ROUTE ids.
-  test.failing('BUG: episode/issue/feed_id are not validated, bypassing the route allow-list', () => {
+  // Fixed: episode/issue/feed_id must be whole numbers (safeId) before they go into a path.
+  test('episode/issue/feed_id are validated, so they cannot bypass the route allow-list', () => {
     tap({ episode: '../admin' });
     tap({ issue: '1/../../admin' });
     tap({ feed_id: '../../settings', kind: 'alert' });
     expect(mockPushed).toEqual([]);
+  });
+
+  test.each([1.5, -3, 1e21, NaN, true, {}, [7], '12\n', ' 12', '12a', '１２', '', '0x1f'])(
+    'an id that is not a plain whole number (%p) opens nothing',
+    (id) => {
+      tap({ episode: id });
+      tap({ issue: id });
+      tap({ feed_id: id, kind: 'alert' });
+      tap({ feed_id: id });
+      expect(mockPushed).toEqual([]);
+    },
+  );
+
+  test('a bad episode is skipped and the valid issue it carries still opens', () => {
+    tap({ episode: '../admin', issue: 9 });
+    tap({ issue: '../admin', feed_id: 3, kind: 'alert' });
+    expect(mockPushed).toEqual(['/talk/9', '/alert/3']);
   });
 
   test('calling startPush again does not double-navigate on one tap', () => {
@@ -257,10 +271,8 @@ describe('getPrefs', () => {
     expect(await push.getPrefs()).toEqual({ weeklyTalk: true, alerts: false, zeroHour: false, offers: false });
   });
 
-  // BUG: lib/push.ts:74 calls JSON.parse on the stored value with no try/catch, so a corrupted
-  // or truncated 'push_prefs' row makes getPrefs reject and the settings screen fails to load.
-  // Correct behaviour: fall back to all-off.
-  test.failing('BUG: corrupted stored prefs make getPrefs throw instead of defaulting to off', async () => {
+  // Fixed: getPrefs catches a JSON.parse failure and falls back to all off.
+  test('corrupted stored prefs make getPrefs default to off instead of throwing', async () => {
     mockStore.set('push_prefs', '{not json');
     await expect(push.getPrefs()).resolves.toEqual({
       weeklyTalk: false,
@@ -270,11 +282,18 @@ describe('getPrefs', () => {
     });
   });
 
-  // BUG (latent, low): lib/push.ts:74 returns the shared module-level OFF object itself when
-  // nothing is saved, so a caller that edits the result in place changes the defaults for every
-  // later read. Today's callers (app/settings.tsx:29, app/talk/[issue].tsx:59) spread a copy, so
-  // nothing user-visible breaks yet. Correct behaviour: return a fresh object.
-  test.failing('BUG: getPrefs returns the shared OFF default, so in-place edits leak', async () => {
+  test.each(['null', '5', '"abc"', '[true]', 'true'])('a stored row that is not an object (%s) reads as all off', async (raw) => {
+    mockStore.set('push_prefs', raw);
+    expect(await push.getPrefs()).toEqual({ weeklyTalk: false, alerts: false, zeroHour: false, offers: false });
+  });
+
+  test('only a saved true counts as on, so a garbled value never opts someone in', async () => {
+    mockStore.set('push_prefs', JSON.stringify({ weeklyTalk: true, alerts: 1, zeroHour: 'yes', offers: 'false' }));
+    expect(await push.getPrefs()).toEqual({ weeklyTalk: true, alerts: false, zeroHour: false, offers: false });
+  });
+
+  // Fixed: getPrefs returns a fresh copy of the defaults, so in-place edits don't leak.
+  test('getPrefs returns a fresh default, so in-place edits do not leak', async () => {
     const a = await push.getPrefs();
     a.offers = true;
     expect((await push.getPrefs()).offers).toBe(false);
@@ -348,12 +367,8 @@ describe('setPrefs', () => {
     expect(await push.getPrefs()).toEqual(next);
   });
 
-  // BUG (latent, low; same root cause as the getPrefs one above): lib/push.ts:93 sets next = OFF, the
-  // shared module-level default, and returns it. A caller that edits that result in place changes OFF,
-  // so the next denied setPrefs saves and tags that switch ON even though permission was denied.
-  // (The previous version of this test re-read getPrefs, where the saved row hides the corruption,
-  // so it passed while the bug was present.) Correct behaviour: return a fresh all-off object.
-  test.failing('BUG: editing a denied result in place makes the next denial tag that switch on', async () => {
+  // Fixed: a denied setPrefs returns a fresh all-off copy, not the shared default.
+  test('editing a denied result in place does not make the next denial tag that switch on', async () => {
     mockOneSignal.Notifications.requestPermission.mockImplementation(async () => false);
     const first = await push.setPrefs({ ...ALL_OFF, alerts: true });
     first.prefs.alerts = true; // a screen keeping the returned object as local state and editing it

@@ -85,35 +85,46 @@ describe('injuryRate', () => {
     expect(injuryRate('', '410,000')).toBe('–');
   });
 
-  // BUG: lib/rates.ts:23 only checks `cases !== ''`, never that the parsed
-  // count is a finite number, so a non-numeric or overflowing case count
-  // reaches toFixed() and the TRIR/DART card shows the literal text "NaN" or
-  // "Infinity". A safety manager reading that off the phone (or copying it
-  // into a report) gets garbage instead of the '–' placeholder. The fields
-  // use keyboardType="number-pad", but pasting, hardware keyboards and many
-  // Android keyboards still let these characters in.
-  test.failing.each([
+  // Fixed: cases must parse to a finite number, so junk or overflow shows '–'
+  // instead of "NaN"/"Infinity".
+  test.each([
     ['abc', 'abc'],
     ['stray "."', '.'],
     ['lone "-"', '-'],
     ['trailing letter', '3a'],
     ['overflow', '1e400'],
-  ])('BUG: cases %s shows "NaN"/"Infinity" instead of the placeholder', (_label, cases) => {
+  ])('cases %s -> placeholder', (_label, cases) => {
     expect(injuryRate(cases, '410,000')).toBe('–');
   });
 
-  // BUG: lib/rates.ts:22 accepts any h > 0, including Infinity, so hours that
-  // overflow (pasted "1e400" or "Infinity") silently show a perfect 0.00 rate
-  // for real recordables instead of the placeholder.
-  test.failing('BUG: overflowing hours shows a 0.00 rate instead of the placeholder', () => {
+  // Fixed: hours must be finite, so overflowing hours no longer show a fake 0.00 rate.
+  test('overflowing hours -> placeholder', () => {
     expect(injuryRate('3', '1e400')).toBe('–');
   });
 
-  // BUG: lib/rates.ts:23 does not reject negative case counts, so a pasted
-  // "-3" yields a negative incident rate ("-1.46"), which is impossible and
-  // would understate the site's injury rate.
-  test.failing('BUG: negative cases yields a negative rate instead of the placeholder', () => {
+  // Fixed: negative case counts are rejected, so no negative rate is shown.
+  test('negative cases -> placeholder', () => {
     expect(injuryRate('-3', '410,000')).toBe('–');
+  });
+
+  // Fixed: spaces-only cases count as blank instead of a fake 0.00 rate.
+  test.each([
+    ['space', ' '],
+    ['tab', '\t'],
+  ])('cases %s only -> placeholder', (_label, cases) => {
+    expect(injuryRate(cases, '410,000')).toBe('–');
+  });
+
+  // Fixed: finite inputs whose rate overflows show '–', not "Infinity".
+  test.each([
+    ['huge cases', '1e308', '1'],
+    ['tiny hours', '1', '1e-320'],
+  ])('rate overflow (%s) -> placeholder', (_label, cases, hours) => {
+    expect(injuryRate(cases, hours)).toBe('–');
+  });
+
+  test('surrounding spaces on a real count still compute', () => {
+    expect(injuryRate(' 3 ', '410,000')).toBe('1.46');
   });
 });
 

@@ -19,6 +19,9 @@ const mockDb = {
       mockTables.talks.set(args[0] as number, args[1] as string);
     } else if (sql.startsWith('INSERT OR REPLACE INTO feed_cache')) {
       mockTables.feed.set(args[0] as number, { kind: args[1] as string, json: args[2] as string });
+    } else if (sql === 'DELETE FROM talks_cache WHERE issue NOT IN (SELECT value FROM json_each(?))') {
+      const keep = JSON.parse(args[0] as string) as number[];
+      for (const issue of mockTables.talks.keys()) if (!keep.includes(issue)) mockTables.talks.delete(issue);
     } else if (sql.startsWith('DELETE FROM feed_cache WHERE kind IN')) {
       for (const [id, row] of mockTables.feed) if (args.includes(row.kind)) mockTables.feed.delete(id);
     } else {
@@ -38,16 +41,27 @@ const mockDb = {
     }
     throw new Error(`fake db: unexpected SQL ${sql}`);
   },
+  // Like expo-sqlite on its one shared connection: BEGIN while another transaction is open fails,
+  // and the ROLLBACK that follows undoes whichever transaction is open, even someone else's.
   async withTransactionAsync(fn: () => Promise<void>) {
-    const snapshot = new Map(mockTables.feed);
+    const rollback = (e: unknown) => {
+      if (mockTxn) Object.assign(mockTables, mockTxn);
+      mockTxn = null;
+      throw e;
+    };
+    if (mockTxn) rollback(new Error('cannot start a transaction within a transaction'));
+    const mine = { talks: new Map(mockTables.talks), feed: new Map(mockTables.feed) };
+    mockTxn = mine;
     try {
       await fn();
     } catch (e) {
-      mockTables.feed = snapshot;
-      throw e;
+      rollback(e);
     }
+    if (mockTxn !== mine) rollback(new Error('cannot commit - no transaction is active'));
+    mockTxn = null;
   },
 };
+let mockTxn: Tables | null = null;
 
 jest.mock('@/lib/db', () => ({ getDb: async () => mockDb }));
 
@@ -116,6 +130,7 @@ const item = (id: number, kind: FeedItem['kind'], published_at: string, featured
 });
 
 beforeEach(() => {
+  mockTxn = null;
   mockTables.talks = new Map();
   mockTables.feed = new Map();
   mockKv.clear();
@@ -185,12 +200,8 @@ describe('listTalks', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // BUG: lib/talks.ts:25-30 cache() only INSERT OR REPLACEs, it never removes talks the server no longer
-  // returns. The console can unpublish a talk or move its send_at later (TalkPatch.published / send_at in
-  // console/src/api.ts) and lib/live.ts says content changes when something is "pulled", but a pulled talk
-  // stays in talks_cache forever and reappears whenever the crew is offline. listFeed deletes pulled items;
-  // listTalks should do the same.
-  test.failing('BUG: a talk the server pulled still shows from the phone copy offline', async () => {
+  // Fixed: lib/talks.ts cache() now drops talks the server no longer returns, so pulled talks leave the phone copy.
+  test('a talk the server pulled no longer shows from the phone copy offline', async () => {
     const { talks } = load();
     fetchMock.mockReturnValueOnce(ok({ talks: [talk(2), talk(1)] }));
     await talks.listTalks();
@@ -200,6 +211,40 @@ describe('listTalks', () => {
 
     fetchMock.mockReturnValueOnce(noSignal());
     expect((await talks.listTalks()).talks.map((t) => t.issue)).toEqual([1]);
+  });
+
+  test('an empty server list clears the phone copy (no talks released yet)', async () => {
+    const { talks } = load();
+    mockTables.talks.set(3, JSON.stringify(talk(3)));
+    fetchMock.mockReturnValueOnce(ok({ talks: [] }));
+    expect(await talks.listTalks()).toEqual({ talks: [], offline: false });
+
+    fetchMock.mockReturnValueOnce(noSignal());
+    expect((await talks.listTalks()).talks).toEqual([]);
+  });
+
+  test('home screen: talks and alerts loading together both come back online', async () => {
+    const { talks, feed } = load();
+    mockTables.talks.set(9, JSON.stringify(talk(9))); // pulled on the server
+    fetchMock.mockImplementation((url: string) =>
+      url.includes('/talks/') ? ok({ talks: [talk(2), talk(1)] }) : ok({ items: [item(5, 'alert', '2026-11-01T00:00:00Z')] }),
+    );
+
+    const [t, alerts] = await Promise.all([talks.listTalks(), feed.listFeed(['alert'])]);
+
+    expect(t).toEqual({ talks: [talk(2), talk(1)], offline: false });
+    expect(alerts.map((i) => i.id)).toEqual([5]);
+    expect([...mockTables.talks.keys()].sort()).toEqual([1, 2]);
+    expect([...mockTables.feed.keys()]).toEqual([5]);
+  });
+
+  test('a reply with a talk missing its issue id falls back instead of caching it', async () => {
+    const { talks } = load();
+    mockTables.talks.set(5, JSON.stringify(talk(5)));
+    const { issue: _drop, ...noId } = talk(6);
+    fetchMock.mockReturnValueOnce(ok({ talks: [talk(7), noId] }));
+    expect(await talks.listTalks()).toEqual({ talks: [talk(5)], offline: true });
+    expect([...mockTables.talks.keys()]).toEqual([5]);
   });
 
   test('a malformed 200 reply falls back to the phone copy instead of throwing', async () => {
