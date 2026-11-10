@@ -29,6 +29,26 @@ Run it:
 - All 52 issues of 2027 load automatically on the first migrate.
 - `python manage.py cron` sends any due Sunday push (once only) and retries pending GHL syncs.
 
+### Monday Minute (the app's first screen)
+A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code in `backend/monday/`, screens in `app/monday/`).
+- **Topic bank:** 104 topic briefs (two years with no repeats), each checked against the eCFR text and reviewed in the
+  CSP role before use (`backend/monday/topics.json`, review record in `docs/monday-minute-topic-review.md`). Edit them
+  in the admin under *Monday Minute topics*.
+- **Weekly run, no human approval:** from Wednesday, the cron picks a topic (in season, well rated, not used in two years),
+  and Claude writes the talk from that one brief. Hard checks run on every draft: required lines word for word, no number
+  that isn't in the brief, no links, one crew question. A second Claude call then reviews it as a Certified Safety
+  Professional. Any MUST FIX finding means a rewrite, up to 3 tries on each of 2 topics. If nothing passes, that week
+  doesn't publish. Talks publish Monday at 5:00 AM Pacific with a push to devices with *Monday Minute* turned on.
+  *Write next week's Monday Minute now* in the admin runs it on demand.
+- **Crews:** read it, print it with a paper sign-in sheet, or sign on the phone (finger signatures and/or a group
+  photo). Then print, email or save the signed sheet. Every sheet is kept on the phone (*My sign-in sheets*).
+- **Thumbs up/down** (one per phone per talk), with reasons on a thumbs down. Three "isn't safe or isn't right"
+  reports pull the talk and pause its topic until someone reviews it. Ratings also steer which topics come next.
+- **Comments and replies**, screened by AI moderation before they show. Held if moderation is down. Two reports hide a
+  comment. Anyone can block a commenter on their phone, and people agree to community rules before their first comment.
+  The admin can hide or restore any comment.
+- API: `/api/v2/monday-minute` (list, detail, `/feedback`, `/comments`, `/comments/{id}/report`).
+
 ### OTIS on-device AI (API v2, Django Ninja)
 OTIS's model runs on the phone with ExecuTorch: MLX or Core ML on iPhone, XNNPACK or Vulkan on Android. The server never runs it.
 API v2 (`/api/v2/`, docs at `/api/v2/docs`) tells each phone what to run:
@@ -60,11 +80,14 @@ Then open http://localhost:8000/admin/. Tests: `docker compose exec web python m
 ## Railway layout
 - **Postgres** database.
 - **web** service: this repo, root directory `/backend`, built from the Dockerfile, health check `/api/health/`.
-- **cron** service: same repo and root, start command `python manage.py cron`, schedule `59 18,19 * * 0`
-  (Sundays at 18:59 and 19:59 UTC, which covers 11:59 AM Pacific in both summer and winter time).
+- **cron** service: same repo and root, start command `python manage.py cron`, schedule `*/15 * * * *` (every 15 minutes).
+  Each run sends any due push (the Sunday talk, Monday Minute, Zero Hour, feed items) once only, runs queued GHL syncs,
+  writes next week's Monday Minute when it's due, screens held comments, and retries pending sign-in sheets.
 
 Variables (web and cron): `DJANGO_SECRET_KEY`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
 `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`.
+Monday Minute also needs `ANTHROPIC_API_KEY` (web and cron). Optional: `MONDAY_MINUTE_ENABLED=0` to stop writing new talks,
+`MONDAY_MODEL` (default `claude-opus-5-5`).
 Create the admin login once with `railway ssh` → `python manage.py createsuperuser`.
 
 ## Still to do before App Store submission

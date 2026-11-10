@@ -129,11 +129,12 @@ def sync_sheet_to_ghl(sheet):
         safe = "".join(c if c.isalnum() else "-" for c in sheet.talk_title)[:50].strip("-") or "talk"
         name = f"ZeroHarm-SignIn-{sheet.held_on:%Y-%m-%d}-{safe}-{sheet.pk}.pdf"
         url = ghl.upload_media(name, bytes(sheet.pdf))
-        contact = ghl.upsert_contact(sheet.supervisor_email, sheet.supervisor_name.split(" ")[0], sheet.company, ["zero-harm-app", "zero-harm-signin-sheet"])
+        contact = ghl.upsert_contact(sheet.supervisor_email, sheet.supervisor_name.split(" ")[0], sheet.company,
+                                     ["zero-harm-app", "zero-harm-signin-sheet"] + (["monday-minute"] if sheet.program == "monday-minute" else []))
         if contact:
             photo = " Group photo included." if sheet.has_group_photo else ""
             ghl.add_note(contact, (
-                f"Zero Harm crew sign-in sheet\nTalk: {sheet.talk_title}\nDate: {sheet.held_on:%B %-d, %Y}\n"
+                f"Zero Harm crew sign-in sheet\nProgram: {sheet.get_program_display()}\nTalk: {sheet.talk_title}\nDate: {sheet.held_on:%B %-d, %Y}\n"
                 f"Location: {sheet.location or 'not given'}\nAttendees: {sheet.attendee_count}.{photo}\nDownload: {url}"
             ))
         sheet.ghl_media_url, sheet.ghl_contact_id = url, contact

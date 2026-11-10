@@ -3,22 +3,23 @@ import { getDb } from './db';
 import { attendeeCount, buildSigninSheet, pdfBase64 } from './pdf';
 import { getProfile } from './profile';
 import { markSaved, type Signin, type SigninSession } from './signins';
-import type { Talk } from './talks';
+import type { SheetSubject } from './subject';
 
 /**
  * Saves a finished sign-in sheet to the supervisor's records in GoHighLevel.
  * The PDF goes into an outbox first, so a dead signal on the dock never loses it; flushSheets() sends it later.
  */
-export async function saveSheetToRecords(talk: Talk, session: SigninSession, signins: Signin[]) {
+export async function saveSheetToRecords(subject: SheetSubject, session: SigninSession, signins: Signin[]) {
   const profile = await getProfile();
-  const uri = await buildSigninSheet(talk, session, signins);
+  const uri = await buildSigninSheet(subject, session, signins);
   const payload = {
     pdf_base64: await pdfBase64(uri),
     supervisor_email: profile.email,
     supervisor_name: profile.name || session.supervisor || '',
     company: profile.company,
-    issue: talk.issue,
-    talk_title: talk.title,
+    program: subject.program === 'mm' ? 'monday-minute' : 'zero-harm-weekly',
+    issue: subject.issue,
+    talk_title: subject.title,
     location: session.location ?? '',
     held_on: session.created_at.slice(0, 10),
     attendee_count: attendeeCount(session, signins),

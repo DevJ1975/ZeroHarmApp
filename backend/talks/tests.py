@@ -172,11 +172,22 @@ class SigninSheetTests(TestCase):
     def setUp(self):
         cache.clear()
 
-    def send(self, pdf=b"%PDF-1.7 test"):
+    def send(self, pdf=b"%PDF-1.7 test", **extra):
         return self.client.post("/api/signin-sheets/", _json.dumps({
             "pdf_base64": base64.b64encode(pdf).decode(), "supervisor_email": "Lead@Plant.com", "supervisor_name": "Ana Ruiz",
-            "talk_title": "Heat Stroke Is a 911 Call", "held_on": "2027-06-07", "attendee_count": 9, "has_group_photo": True,
+            "talk_title": "Heat Stroke Is a 911 Call", "held_on": "2027-06-07", "attendee_count": 9, "has_group_photo": True, **extra,
         }), content_type="application/json")
+
+    def test_monday_minute_sheet_is_labeled_and_tagged(self):
+        with patch("talks.ghl.configured", return_value=True), patch("talks.ghl.upload_media", return_value="https://files.example/s.pdf"), \
+             patch("talks.ghl.upsert_contact", return_value="c1") as contact, patch("talks.ghl.add_note") as note:
+            self.send(program="monday-minute", issue=7)
+        sheet = SigninSheet.objects.get()
+        self.assertEqual((sheet.program, sheet.issue), ("monday-minute", 7))
+        self.assertIn("monday-minute", contact.call_args.args[3])
+        self.assertIn("Program: Monday Minute", note.call_args.args[1])
+        self.send(program="something-else")
+        self.assertEqual(SigninSheet.objects.latest("pk").program, "zero-harm-weekly")
 
     def test_sheet_goes_to_ghl_and_local_copy_is_cleared(self):
         with patch("talks.ghl.configured", return_value=True), patch("talks.ghl.upload_media", return_value="https://files.example/sheet.pdf"), \

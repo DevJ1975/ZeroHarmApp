@@ -6,11 +6,11 @@ import SignatureScreen, { SignatureViewRef } from 'react-native-signature-canvas
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { attendeeCount, buildSigninSheet, sharePdf } from '@/lib/pdf';
+import { attendeeCount, buildSigninSheet, keepOnPhone, printPdf, sharePdf } from '@/lib/pdf';
 import { getProfile, Profile, saveProfile, validEmail } from '@/lib/profile';
 import { saveSheetToRecords } from '@/lib/sheets';
-import { addSignin, getSession, listSignins, setGroupPhoto, Signin, SigninSession } from '@/lib/signins';
-import { getTalk } from '@/lib/talks';
+import { addSignin, getSession, listSignins, setGroupPhoto, setKeptPdf, Signin, SigninSession } from '@/lib/signins';
+import { getSubject, SheetSubject } from '@/lib/subject';
 
 /**
  * Crew sign-in two ways, use either or both:
@@ -28,7 +28,7 @@ export default function SigninScreen() {
   const [name, setName] = useState('');
   const [count, setCount] = useState('');
   const [profile, setProfile] = useState<Profile>({ name: '', email: '', company: '' });
-  const [busy, setBusy] = useState<'save' | 'share' | 'photo' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'share' | 'print' | 'photo' | null>(null);
   const [result, setResult] = useState('');
   const [drawing, setDrawing] = useState(false); // stop the page scrolling while someone signs
 
@@ -99,14 +99,15 @@ export default function SigninScreen() {
       Alert.alert('Add your name and email', 'They tell us whose records this sheet belongs to.');
       return;
     }
-    const talk = await getTalk(session.issue);
-    if (!talk) return;
+    const subject = await getSubject(session);
+    if (!subject) return;
     setBusy('save');
     setResult('');
     try {
       await saveProfile(profile);
       const fresh = (await getSession(sessionId)) ?? session;
-      const { sent } = await saveSheetToRecords(talk, fresh, signins);
+      const { sent, uri } = await saveSheetToRecords(subject, fresh, signins);
+      await keep(subject, fresh, uri);
       setResult(
         sent
           ? `Saved to your Zero Harm records for ${profile.email}.`
@@ -120,13 +121,27 @@ export default function SigninScreen() {
     }
   }
 
-  async function share() {
+  /** Keeps the finished sheet in the app's Documents folder, so it's on the phone with or without signal. */
+  async function keep(subject: SheetSubject, s: SigninSession, uri: string) {
+    const kept = await keepOnPhone(uri, `${s.created_at.slice(0, 10)}-${subject.title}-${s.id}`);
+    await setKeptPdf(s.id, kept, subject.title);
+    return kept;
+  }
+
+  /** Builds the signed sheet (signatures and group photo), keeps it on the phone, then prints or shares it. */
+  async function output(kind: 'share' | 'print') {
     if (!session) return;
-    const talk = await getTalk(session.issue);
-    if (!talk) return;
-    setBusy('share');
+    const subject = await getSubject(session);
+    if (!subject) return;
+    setBusy(kind);
     try {
-      await sharePdf(await buildSigninSheet(talk, (await getSession(sessionId)) ?? session, signins));
+      const fresh = (await getSession(sessionId)) ?? session;
+      const kept = await keep(subject, fresh, await buildSigninSheet(subject, fresh, signins));
+      if (kind === 'print') await printPdf(kept);
+      else await sharePdf(kept, 'Email or share the sign-in sheet');
+      setResult('Kept on this phone under My sign-in sheets.');
+    } catch {
+      setResult('Could not build the sheet. Try again.');
     } finally {
       setBusy(null);
     }
@@ -203,11 +218,13 @@ export default function SigninScreen() {
       />
       <Field label="Company" value={profile.company} onChangeText={(v) => setProfile({ ...profile, company: v })} />
       <Button label="Save sheet to my records" onPress={save} busy={busy === 'save'} disabled={!hasSomething} />
-      <Button kind="secondary" label="Share the PDF" onPress={share} busy={busy === 'share'} disabled={!hasSomething} />
+      <Button kind="secondary" label="Print the sheet" onPress={() => output('print')} busy={busy === 'print'} disabled={!hasSomething} />
+      <Button kind="secondary" label="Email or share the PDF" onPress={() => output('share')} busy={busy === 'share'} disabled={!hasSomething} />
       {result !== '' && <Body>{result}</Body>}
       {session?.saved_at && result === '' && <Body muted>This sheet was saved to your records.</Body>}
       <Body muted>
-        Saving sends the sheet, with its signatures and photo, to Trainovate Technologies so you can download it later.
+        Every sheet you print, share or save is also kept on this phone (Settings → My sign-in sheets). Saving to your records also sends it,
+        with its signatures and photo, to Trainovate Technologies so you can download it later.
       </Body>
     </Screen>
   );

@@ -48,3 +48,4 @@ class Command(BaseCommand):
             sync_sheet_to_ghl(sheet)
 
         call_command("sync_signups")
+        call_command("monday_minute")

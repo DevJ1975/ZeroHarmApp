@@ -13,7 +13,7 @@ function icon(name: IconName) {
   return TabIcon;
 }
 
-/** Five tabs, ordered by a supervisor's shift: talk, inspect, report, calculate, learn. */
+/** Tabs, ordered by a supervisor's shift: Monday Minute first (the app opens here), then today's talk, inspect, report, calculate, learn. */
 export default function TabLayout() {
   const t = useTheme();
   return (
@@ -25,7 +25,8 @@ export default function TabLayout() {
         tabBarStyle: { backgroundColor: t.surface, borderTopColor: t.rule },
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: 12 },
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon({ ios: 'sun.max', android: 'today', web: 'today' }) }} />
+      <Tabs.Screen name="index" options={{ title: 'Monday', tabBarIcon: icon({ ios: 'stopwatch', android: 'timer', web: 'timer' }) }} />
+      <Tabs.Screen name="today" options={{ title: 'Today', tabBarIcon: icon({ ios: 'sun.max', android: 'today', web: 'today' }) }} />
       <Tabs.Screen name="inspect" options={{ title: 'Inspect', tabBarIcon: icon({ ios: 'checklist', android: 'checklist', web: 'checklist' }) }} />
       <Tabs.Screen name="report" options={{ title: 'Report', tabBarIcon: icon({ ios: 'exclamationmark.triangle', android: 'report', web: 'report' }) }} />
       <Tabs.Screen name="tools" options={{ title: 'Tools', tabBarIcon: icon({ ios: 'wrench.and.screwdriver', android: 'build', web: 'build' }) }} />

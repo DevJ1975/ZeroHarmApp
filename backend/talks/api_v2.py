@@ -20,6 +20,12 @@ from .models import OtisFeedback, OtisModelRelease, OtisRollout
 
 api = NinjaAPI(title="Zero Harm API", version="2.0.0", urls_namespace="api-v2", docs_url="/docs")
 
+
+def _mount_routers():
+    from monday.api import router as monday_router
+
+    api.add_router("/monday-minute", monday_router)
+
 BUILTIN_SIZE_MB = {"QWEN3_1_7B": 1300, "QWEN3_0_6B": 510}
 MIN_MEMORY_GB_FOR_BIG_MODEL = 6
 KB_CACHE_KEY = "otis-kb-v2"
@@ -191,3 +197,5 @@ def feedback(request: HttpRequest, body: FeedbackIn):
     )
     return 201, {"ok": True}
 
+
+_mount_routers()

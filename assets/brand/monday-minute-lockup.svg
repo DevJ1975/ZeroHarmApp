@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200">
+  
+    <rect x="84" y="6" width="32" height="14" rx="4" fill="#FF6A13"/>
+    <rect x="94" y="16" width="12" height="16" fill="#FF6A13"/>
+    <g transform="rotate(45 100 114)"><rect x="93" y="22" width="14" height="14" rx="3" fill="#FF6A13"/></g>
+    <circle cx="100" cy="114" r="82" fill="#FF6A13"/>
+    <circle cx="100" cy="114" r="69" fill="#17212B"/>
+    <line x1="100.0" y1="62.0" x2="100.0" y2="51.0" stroke="#FFFFFF" stroke-opacity="0" stroke-width="5" stroke-linecap="round"/><line x1="128.5" y1="64.6" x2="131.5" y2="59.4" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="149.4" y1="85.5" x2="154.6" y2="82.5" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="152.0" y1="114.0" x2="163.0" y2="114.0" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/><line x1="149.4" y1="142.5" x2="154.6" y2="145.5" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="128.5" y1="163.4" x2="131.5" y2="168.6" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="100.0" y1="166.0" x2="100.0" y2="177.0" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/><line x1="71.5" y1="163.4" x2="68.5" y2="168.6" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="50.6" y1="142.5" x2="45.4" y2="145.5" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="48.0" y1="114.0" x2="37.0" y2="114.0" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/><line x1="50.6" y1="85.5" x2="45.4" y2="82.5" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/><line x1="71.5" y1="64.6" x2="68.5" y2="59.4" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="100" cy="51" r="6" fill="#FF6A13"/>
+    <text x="100" y="140" text-anchor="middle" font-family="BC" font-size="82" fill="#FFFFFF">M</text>
+  <text x="205" y="104" font-family="BC" font-size="92" letter-spacing="2" fill="#17212B">MONDAY</text>
+  <text x="205" y="184" font-family="BC" font-size="92" letter-spacing="2" fill="#FF6A13">MINUTE</text>
+</svg>

@@ -47,6 +47,9 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerTitleStyle: { fontFamily: fonts.displayMedium }, headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="talk/[issue]" options={{ title: 'Toolbox talk' }} />
+        <Stack.Screen name="monday/index" options={{ title: 'Monday Minute' }} />
+        <Stack.Screen name="monday/[id]" options={{ title: 'Monday Minute' }} />
+        <Stack.Screen name="sheets" options={{ title: 'My sign-in sheets' }} />
         <Stack.Screen name="signin/[session]" options={{ title: 'Crew sign-in' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
         <Stack.Screen name="suggest" options={{ title: 'Suggest a talk' }} />

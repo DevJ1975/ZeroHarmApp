@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -10,7 +11,7 @@ import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
 
 export default function SettingsScreen() {
   const t = useTheme();
-  const [prefs, setLocal] = useState<PushPrefs>({ weeklyTalk: false, alerts: false, zeroHour: false, offers: false });
+  const [prefs, setLocal] = useState<PushPrefs>({ mondayMinute: false, weeklyTalk: false, alerts: false, zeroHour: false, offers: false });
   const [denied, setDenied] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -92,6 +93,7 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <Text style={[styles.section, { color: t.text }]}>Notifications</Text>
+      {row('Monday Minute', 'Monday at 5 AM Pacific: a new 5-minute crew talk with sign-in.', 'mondayMinute')}
       {row('Weekly toolbox talk', 'Sunday around noon Pacific, ready for Monday.', 'weeklyTalk')}
       {row('Regulatory alerts', 'New federal, Nevada and Las Vegas rules that could affect your site.', 'alerts')}
       {row('Zero Hour episodes', 'A new 5-minute episode and huddle card, Thursdays.', 'zeroHour')}
@@ -102,6 +104,9 @@ export default function SettingsScreen() {
           <Button kind="secondary" label="Open phone settings" onPress={() => Linking.openSettings()} />
         </View>
       )}
+
+      <Text style={[styles.section, { color: t.text }]}>Sign-in sheets</Text>
+      <Button kind="secondary" label="My sign-in sheets" onPress={() => router.push('/sheets')} />
 
       <Text style={[styles.section, { color: t.text }]}>OTIS</Text>
       <Body muted>OTIS runs on this phone. Nothing you ask leaves it unless you turn this on.</Body>

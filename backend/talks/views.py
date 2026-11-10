@@ -215,7 +215,9 @@ def signin_sheet(request):
         return JsonResponse({"error": "Send the PDF, a valid supervisor email and the date."}, status=400)
     if not pdf.startswith(b"%PDF"):
         return JsonResponse({"error": "That file is not a PDF."}, status=400)
+    program = data.get("program") if data.get("program") in dict(SigninSheet.PROGRAMS) else "zero-harm-weekly"
     sheet = SigninSheet.objects.create(
+        program=program,
         issue=data.get("issue") if isinstance(data.get("issue"), int) else None,
         talk_title=str(data.get("talk_title", ""))[:200], supervisor_name=str(data.get("supervisor_name", ""))[:120] or "Supervisor",
         supervisor_email=email, company=str(data.get("company", ""))[:120], location=str(data.get("location", ""))[:120],

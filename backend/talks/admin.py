@@ -115,8 +115,8 @@ class GhlSyncAdmin(admin.ModelAdmin):
 
 @admin.register(SigninSheet)
 class SigninSheetAdmin(admin.ModelAdmin):
-    list_display = ("held_on", "talk_title", "supervisor_email", "attendee_count", "has_group_photo", "status")
-    list_filter = ("status", "has_group_photo")
+    list_display = ("held_on", "program", "talk_title", "supervisor_email", "attendee_count", "has_group_photo", "status")
+    list_filter = ("program", "status", "has_group_photo")
     search_fields = ("supervisor_email", "talk_title", "company")
     readonly_fields = [f.name for f in SigninSheet._meta.fields if f.name != "pdf"]
     actions = ("retry",)

@@ -181,7 +181,9 @@ class SigninSheet(models.Model):
     """A completed crew sign-in sheet sent from the app. The PDF is forwarded to GoHighLevel Media Storage,
     then the copy kept here is cleared, so signatures and photos are not stored twice."""
 
-    issue = models.PositiveIntegerField(null=True, blank=True)
+    PROGRAMS = [("zero-harm-weekly", "Zero Harm Weekly"), ("monday-minute", "Monday Minute")]
+    program = models.CharField(max_length=20, choices=PROGRAMS, default="zero-harm-weekly")
+    issue = models.PositiveIntegerField(null=True, blank=True, help_text="Zero Harm Weekly issue, or the Monday Minute id")
     talk_title = models.CharField(max_length=200, blank=True)
     supervisor_name = models.CharField(max_length=120)
     supervisor_email = models.EmailField()
