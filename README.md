@@ -94,9 +94,10 @@ and `LOCAL_AI_TIMEOUT` (seconds per call, default 1800). To use Claude instead: 
 `ANTHROPIC_API_KEY` (optional `MONDAY_MODEL`, default `claude-opus-5-5`). `MONDAY_MINUTE_ENABLED=0` stops writing new talks.
 
 - **ollama** service (local AI, CPU only, since Railway has no GPUs): deploy the Docker image `ollama/ollama`.
-  Add a volume mounted at `/root/.ollama` so the model downloads once, and set the variables `OLLAMA_HOST=[::]:11434`
-  (listen on Railway's private network) and `OLLAMA_KEEP_ALIVE=10m` (unload when idle, so memory and cost drop between
-  runs). Don't give it a public domain: only web and cron talk to it, over the private network. The first cron run pulls
+  Run it in the same region as Postgres (us-west2). Add a volume mounted at `/root/.ollama` so the model downloads once,
+  and set the variables `OLLAMA_HOST=[::]:11434` (listen on Railway's private network), `OLLAMA_KEEP_ALIVE=10m` (unload
+  when idle, so memory and cost drop between runs) and `OLLAMA_NO_CLOUD=true` (no Ollama cloud models, so nothing leaves
+  your servers). On web and cron, `LOCAL_AI_URL=http://${{ollama.RAILWAY_PRIVATE_DOMAIN}}:11434`. Don't give it a public domain: only web and cron talk to it, over the private network. The first cron run pulls
   the model (about 5 GB for `qwen3:8b`). While loaded it uses about 6 GB of memory; a talk takes several minutes on CPU.
 Create the admin login once with `railway ssh` → `python manage.py createsuperuser`.
 
