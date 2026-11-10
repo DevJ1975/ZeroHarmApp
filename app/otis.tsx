@@ -6,6 +6,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, 
 import { models, setTelemetryEnabled, useLLMChatSession } from 'react-native-executorch';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { OtisAvatar } from '@/components/OtisAvatar';
 import { Body, Button } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { api, isConfigured } from '@/lib/config';
@@ -70,6 +71,7 @@ export default function OtisScreen() {
     return (
       <SafeAreaView edges={['bottom']} style={[styles.fill, { backgroundColor: t.background }]}>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.md, gap: space.md }}>
+          <OtisAvatar size={112} />
           <Text style={[styles.h1, { color: t.text }]}>Meet OTIS</Text>
           <Body>
             OTIS answers safety questions from Zero Harm Weekly talks and the Zero Harm knowledge base, and tells you where each answer comes from.
@@ -107,6 +109,7 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  const viewHeight = useRef(0);
   const nextId = useRef(1);
   const turns = msgs.filter((m) => m.role === 'user').length;
 
@@ -166,7 +169,9 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
         <ScrollView
           ref={scroller}
           contentInsetAdjustmentBehavior="automatic"
-          onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
+          onLayout={(e) => (viewHeight.current = e.nativeEvent.layout.height)}
+          // Only follow new messages once they overflow; scrollToEnd on short content would park it under the header.
+          onContentSizeChange={(_, h) => h > viewHeight.current && scroller.current?.scrollToEnd({ animated: true })}
           contentContainerStyle={{ padding: space.md, gap: space.md }}>
           {loading && (
             <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.rule }]}>
@@ -184,7 +189,10 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
             </View>
           )}
           {msgs.length === 0 && !loading && (
-            <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
+            <View style={styles.empty}>
+              <OtisAvatar size={88} />
+              <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
+            </View>
           )}
           {msgs.map((m) =>
             m.role === 'urgent' ? (
@@ -198,7 +206,10 @@ function OtisChat({ model, onNewChat }: { model: ModelName; onNewChat: () => voi
               </View>
             ) : (
               <View key={m.id} style={[styles.bubble, styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
-                <Text style={[styles.who, { color: t.muted }]}>OTIS</Text>
+                <View style={styles.whoRow}>
+                  <OtisAvatar size={28} />
+                  <Text style={[styles.who, { color: t.muted }]}>OTIS</Text>
+                </View>
                 {m.pending && !m.text ? <ActivityIndicator /> : <Text style={[styles.msg, { color: t.text }]}>{m.text}</Text>}
                 {!m.pending && m.sources?.map((s, i) => (
                   <Pressable
@@ -254,6 +265,8 @@ const styles = StyleSheet.create({
   me: { alignSelf: 'flex-end' },
   otis: { alignSelf: 'flex-start', borderWidth: 1 },
   who: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1 },
+  empty: { alignItems: 'center', gap: space.md, paddingTop: space.lg },
+  whoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   msg: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   source: { borderTopWidth: 1, paddingTop: 6 },
   sourceText: { fontFamily: fonts.bodyMedium, fontSize: 14 },
