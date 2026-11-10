@@ -79,6 +79,7 @@ class HardCheckTests(TestCase):
 
 class PipelineTests(TestCase):
     def setUp(self):
+        MondayTopic.objects.all().delete()  # these tests use their own small bank
         self.t = topic()
         self.week = dt.date(2026, 11, 16)
 
@@ -262,3 +263,42 @@ class ClaudeCallTests(TestCase):
         client, _ = self.fake(stop="refusal")
         with patch.object(g, "_client", return_value=client), self.assertRaises(g.GenerationError):
             g.claude_json("s", "u", {}, "low")
+
+
+class TopicBankTests(TestCase):
+    """The CSP-reviewed bank loaded by migration 0002."""
+
+    def test_all_104_topics_loaded_and_complete(self):
+        bank = MondayTopic.objects.all()
+        self.assertEqual(bank.count(), 104)
+        for t in bank:
+            self.assertTrue(t.hazard and t.story_seed, t.slug)
+            self.assertTrue(4 <= len(t.key_points) <= 6, t.slug)
+            self.assertTrue(1 <= len(t.must_say) <= 2, t.slug)
+            self.assertEqual(len(t.crew_questions), 2, t.slug)
+            for f in t.facts:
+                self.assertRegex(f["cite"], r"^(29 CFR )?19(10|04)\.\d+", t.slug)
+            for r in t.references:
+                self.assertRegex(r, r"^19(10|04)\.\d+", t.slug)
+
+    def test_reviewed_wording(self):
+        get = lambda s: MondayTopic.objects.get(slug=s)
+        self.assertIn("Stay out of the path. Things that move, fall, or snap do not go where you expect.", get("line-of-fire").must_say)
+        self.assertTrue(any("lock it out" in m for m in get("jam-clearing").must_say))
+        self.assertTrue(any("do not go in" in m.lower() for m in get("permit-spaces").must_say))
+        self.assertFalse(any("minor servicing" in f["text"].lower() for f in get("jam-clearing").facts))
+
+    def test_seasonal_choice_on_the_real_bank(self):
+        summer = g.candidates(dt.date(2027, 7, 5))[0]
+        winter = g.candidates(dt.date(2027, 1, 4))[0]
+        self.assertIn(7, summer.months)
+        self.assertIn(1, winter.months)
+
+    def test_a_talk_built_from_a_real_brief_passes_hard_checks(self):
+        t = MondayTopic.objects.get(slug="loto-six-steps")
+        talk = {
+            "title": "Lock it, then prove it", "intro": t.hazard + " " + " ".join(t.must_say),
+            "points": t.key_points[:4], "story_title": "A close call", "story": t.story_seed + " " + t.hazard,
+            "crew_question": t.crew_questions[0], "takeaway": t.must_say[0],
+        }
+        self.assertEqual(g.hard_checks(t, talk), [])
