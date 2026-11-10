@@ -20,6 +20,10 @@ class GenerationError(Exception):
     pass
 
 
+class AIUnavailable(GenerationError):
+    """The AI server or API can't be reached right now. Not the draft's fault: try again later, don't count it as a failed attempt."""
+
+
 def provider() -> str:
     return settings.AI_PROVIDER
 
@@ -33,11 +37,12 @@ def available() -> bool:
     return bool(settings.LOCAL_AI_URL) if is_local() else bool(settings.ANTHROPIC_API_KEY)
 
 
-def ai_json(system: str, user: str, schema: dict, effort: str = "high", think: bool = True):
-    """One structured call on the configured provider. `think` lets the local model reason first (slower, better)."""
+def ai_json(system: str, user: str, schema: dict, effort: str = "high", think: bool = True, fast: bool = False):
+    """One structured call on the configured provider. `think` lets the local model reason first (slower, better).
+    `fast` is for calls made while a person waits (comment checks on Claude): short timeout, one retry."""
     if is_local():
         return ollama_json(system, user, schema, think=think)
-    return claude_json(system, user, schema, effort)
+    return claude_json(system, user, schema, effort, fast=fast)
 
 
 # ---- Local: Ollama ----------------------------------------------------------------------------------
@@ -50,7 +55,7 @@ def _ollama(path: str, payload: dict | None, timeout: float):
         with urllib.request.urlopen(req, timeout=timeout) as res:
             return json.loads(res.read().decode() or "{}")
     except (urllib.error.URLError, TimeoutError, OSError) as err:
-        raise GenerationError(f"Local AI server unavailable: {err}") from err
+        raise AIUnavailable(f"Local AI server unavailable: {err}") from err
 
 
 def ensure_model() -> bool:
@@ -91,10 +96,12 @@ def _client():
     return anthropic.Anthropic(timeout=180.0, max_retries=3)
 
 
-def claude_json(system: str, user: str, schema: dict, effort: str = "high"):
+def claude_json(system: str, user: str, schema: dict, effort: str = "high", fast: bool = False):
     import anthropic
 
     client = _client()
+    if fast:
+        client = client.with_options(timeout=20.0, max_retries=1)
     kwargs = dict(
         model=settings.MONDAY_MODEL,
         max_tokens=16000,
@@ -102,10 +109,13 @@ def claude_json(system: str, user: str, schema: dict, effort: str = "high"):
         messages=[{"role": "user", "content": user}],
         output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
     )
-    try:  # server-side fallback re-runs a declined request on another model inside the same call
-        res = client.beta.messages.create(betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
-    except anthropic.BadRequestError:
-        res = client.messages.create(**kwargs)
+    try:
+        try:  # server-side fallback re-runs a declined request on another model inside the same call
+            res = client.beta.messages.create(betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
+        except anthropic.BadRequestError:
+            res = client.messages.create(**kwargs)
+    except (anthropic.APIConnectionError, anthropic.RateLimitError, anthropic.InternalServerError, anthropic.AuthenticationError) as err:
+        raise AIUnavailable(f"Claude API unavailable: {err}") from err
     if res.stop_reason == "refusal":
         raise GenerationError("The model declined this request.")
     if res.stop_reason == "max_tokens":

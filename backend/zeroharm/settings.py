@@ -15,8 +15,9 @@ if not SECRET_KEY:
 _hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
     _hosts.append(os.environ["RAILWAY_PUBLIC_DOMAIN"])
+_hosts.append("healthcheck.railway.app")  # Railway's health check calls with this hostname; without it deploys fail
 ALLOWED_HOSTS = [h.strip() for h in _hosts if h.strip()]
-CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")]
+CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1", "healthcheck.railway.app")]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -32,8 +33,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",  # the OTIS knowledge base is ~320 KB of JSON; gzip cuts it about 4x
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.http.ConditionalGetMiddleware",  # ETags on GETs: unchanged talks and feeds answer 304
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -87,6 +90,20 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Railway's edge appends the real client address to X-Forwarded-For. Trust only that last hop for rate limits, so a
+# client can't dodge them by sending its own header.
+NUM_PROXIES = int(os.environ.get("NUM_PROXIES", "1"))
+NINJA_NUM_PROXIES = NUM_PROXIES
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"line": {"format": "{levelname} {name}: {message}", "style": "{"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "line"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {name: {"handlers": ["console"], "level": "INFO", "propagate": False} for name in ("talks", "monday", "regs")},
+}
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

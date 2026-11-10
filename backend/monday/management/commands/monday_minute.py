@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         if not settings.MONDAY_MINUTE_ENABLED:
             self.stdout.write("Monday Minute is off (MONDAY_MINUTE_ENABLED=0).")
             return
-        target = timezone.datetime.fromisoformat(week).date() if week else due_week()
+        target = date.fromisoformat(week) if week else due_week()
         if target:
             self.write(target)
         now = timezone.now()

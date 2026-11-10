@@ -22,7 +22,7 @@ from django.conf import settings
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from .ai import GenerationError, ai_json, is_local
+from .ai import AIUnavailable, GenerationError, ai_json, is_local
 from .models import MondayFeedback, MondayMinute, MondayTopic
 
 log = logging.getLogger(__name__)
@@ -340,6 +340,8 @@ def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None):
                     must, should = must2, should + should2
                     if must:
                         lines.append(f"Attempt {attempt}: first review passed, second review failed.")
+            except AIUnavailable:
+                raise  # an outage isn't a failed draft: record nothing, the next cron run tries again
             except GenerationError as err:
                 lines.append(f"Attempt {attempt}: {err}")
                 findings = []

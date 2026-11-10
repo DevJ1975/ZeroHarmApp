@@ -22,4 +22,7 @@ USER appuser
 EXPOSE 8000
 
 # Migrations run on every start (they are a no-op when nothing changed), then gunicorn serves on $PORT.
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --access-logfile -"]
+# One process with 8 threads: the work is waiting on the database and other services, so threads handle it, memory
+# stays low, and rate limits and caches (kept in process memory) are the same for every request. 120 s covers a slow
+# sign-in sheet upload to GoHighLevel.
+CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --worker-class gthread --workers 1 --threads 8 --timeout 120 --graceful-timeout 30 --access-logfile -"]

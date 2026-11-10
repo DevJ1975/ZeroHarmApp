@@ -465,3 +465,24 @@ class OtisRegulationTests(TestCase):
         entry.save()
         titles = {i["title"] for i in self.client.get("/api/otis/kb/").json()["items"]}
         self.assertNotIn(entry.title, titles)
+
+
+class ConfigTests(TestCase):
+    def test_railway_healthcheck_host_is_allowed(self):
+        from django.conf import settings
+        self.assertIn("healthcheck.railway.app", settings.ALLOWED_HOSTS)
+        self.assertEqual(self.client.get("/api/health/", HTTP_HOST="healthcheck.railway.app").status_code, 200)
+
+    def test_client_ip_trusts_only_the_proxy_hop(self):
+        from django.test import RequestFactory
+        from .views import _client_ip
+        rf = RequestFactory()
+        self.assertEqual(_client_ip(rf.get("/", HTTP_X_FORWARDED_FOR="1.1.1.1, 203.0.113.7")), "203.0.113.7")
+        self.assertEqual(_client_ip(rf.get("/", REMOTE_ADDR="10.0.0.5")), "10.0.0.5")
+
+    def test_big_responses_are_gzipped_and_revalidate(self):
+        res = self.client.get("/api/otis/kb/", HTTP_ACCEPT_ENCODING="gzip")
+        self.assertEqual(res["Content-Encoding"], "gzip")
+        self.assertLess(len(res.content), 120_000)
+        plain = self.client.get("/api/talks/")
+        self.assertEqual(self.client.get("/api/talks/", HTTP_IF_NONE_MATCH=plain["ETag"]).status_code, 304)

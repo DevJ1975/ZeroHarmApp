@@ -7,7 +7,7 @@ each talk and discuss it in comments; reports from crews can pull a talk and pau
 from django.db import models
 from django.utils import timezone
 
-PULL_AT_UNSAFE_REPORTS = 3     # "isn't safe or isn't right" reports that pull a talk and pause its topic
+PULL_AT_UNSAFE_REPORTS = 3     # "isn't safe or isn't right" reports, from different networks, that pull a talk and pause its topic
 HIDE_AT_COMMENT_REPORTS = 2    # reports that hide a comment until someone looks
 
 
@@ -45,6 +45,16 @@ class MondayMinuteQuerySet(models.QuerySet):
     def released(self):
         return self.filter(status=MondayMinute.READY, publish_at__lte=timezone.now())
 
+    def with_counts(self):
+        """Thumbs and comment counts in the same query, so a list of talks doesn't run three more queries per talk."""
+        from django.db.models import Count, Q
+
+        return self.annotate(
+            _up=Count("feedback", filter=Q(feedback__helpful=True), distinct=True),
+            _down=Count("feedback", filter=Q(feedback__helpful=False), distinct=True),
+            _comments=Count("comments", filter=Q(comments__status="visible"), distinct=True),
+        )
+
 
 class MondayMinute(models.Model):
     READY, BLOCKED, PULLED = "ready", "blocked", "pulled"
@@ -72,19 +82,24 @@ class MondayMinute(models.Model):
     class Meta:
         ordering = ["-week"]
         verbose_name = "Monday Minute"
+        indexes = [models.Index(fields=["status", "publish_at"], name="mm_released")]
 
     def __str__(self):
         return f"{self.week:%Y-%m-%d} · {self.title or self.topic.title} ({self.status})"
 
     def as_api(self):
-        up = self.feedback.filter(helpful=True).count()
-        down = self.feedback.filter(helpful=False).count()
+        if hasattr(self, "_up"):
+            up, down, comments = self._up, self._down, self._comments
+        else:
+            up = self.feedback.filter(helpful=True).count()
+            down = self.feedback.filter(helpful=False).count()
+            comments = self.comments.filter(status=MondayComment.VISIBLE).count()
         return {
             "id": self.pk, "week": self.week.isoformat(), "published_at": self.publish_at.isoformat(),
             "topic": self.topic.title, "category": self.topic.category, "title": self.title, "intro": self.intro,
             "points": self.points, "story_title": self.story_title, "story": self.story, "crew_question": self.crew_question,
             "takeaway": self.takeaway, "references": self.topic.references, "thumbs_up": up, "thumbs_down": down,
-            "comment_count": self.comments.filter(status=MondayComment.VISIBLE).count(),
+            "comment_count": comments,
         }
 
 
@@ -99,6 +114,7 @@ class MondayFeedback(models.Model):
     reasons = models.JSONField(default=list, blank=True)
     note = models.CharField(max_length=300, blank=True, help_text="Optional detail sent with a thumbs down")
     platform = models.CharField(max_length=10, blank=True)
+    network_hash = models.CharField(max_length=64, blank=True, help_text="Hashed network address, so one connection can't pull a talk alone")
     created_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -127,6 +143,7 @@ class MondayComment(models.Model):
     class Meta:
         ordering = ["created_at"]
         verbose_name = "Monday Minute comment"
+        indexes = [models.Index(fields=["minute", "status", "created_at"], name="mm_comments")]
 
     def __str__(self):
         return f"{self.display_name}: {self.body[:60]}"

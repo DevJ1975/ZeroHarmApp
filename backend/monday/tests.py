@@ -124,6 +124,15 @@ class PipelineTests(TestCase):
         self.assertEqual(m.status, MondayMinute.BLOCKED)
         self.assertIn("declined", m.check_log)
 
+    def test_outage_does_not_use_up_the_week(self):
+        def down(t, f):
+            raise ai.AIUnavailable("Local AI server unavailable")
+        with self.assertRaises(ai.AIUnavailable):
+            g.generate_week(self.week, write_fn=down, review_fn=lambda t, d, **kw: (PASS, "x"))
+        self.assertFalse(MondayMinute.objects.filter(week=self.week).exists())  # nothing recorded, so the next run retries
+        m = g.generate_week(self.week, write_fn=lambda t, f: (talk(), "m"), review_fn=lambda t, d, **kw: (PASS, "x"), strict=False)
+        self.assertEqual(m.status, MondayMinute.READY)
+
     def test_no_repeat_and_season(self):
         heat = topic("heat", title="Heat", months=[11])
         self.assertEqual(g.candidates(self.week)[0], heat)  # in season first
@@ -153,6 +162,17 @@ class ApiTests(TestCase):
         self.assertEqual(res[0]["references"], ["1910.147"])
         self.assertEqual(self.client.get(f"/api/v2/monday-minute/{self.m.pk}").status_code, 200)
 
+    def test_list_uses_a_fixed_number_of_queries(self):
+        for i in range(5):
+            m = MondayMinute.objects.create(week=dt.date(2026, 10, 5) - dt.timedelta(weeks=i), publish_at=timezone.now() - dt.timedelta(days=30 + i),
+                                            topic=self.t, status=MondayMinute.READY, **talk())
+            MondayFeedback.objects.create(minute=m, install_hash=f"a{i}", helpful=True)
+            MondayComment.objects.create(minute=m, body="hi", install_hash="x", status=MondayComment.VISIBLE)
+        with self.assertNumQueries(1):
+            data = self.client.get("/api/v2/monday-minute").json()["minutes"]
+        self.assertEqual(len(data), 6)
+        self.assertEqual((data[1]["thumbs_up"], data[1]["comment_count"]), (1, 1))
+
     def test_thumbs_one_vote_per_phone(self):
         r = self.post(f"/{self.m.pk}/feedback", {"install_id": INSTALL, "helpful": True}).json()
         self.assertEqual(r, {"thumbs_up": 1, "thumbs_down": 0})
@@ -161,13 +181,22 @@ class ApiTests(TestCase):
         self.assertEqual(self.post(f"/{self.m.pk}/feedback", {"install_id": "bad id!", "helpful": True}).status_code, 422)
 
     def test_unsafe_reports_pull_talk_and_pause_topic(self):
-        for i in range(3):
-            self.post(f"/{self.m.pk}/feedback", {"install_id": f"{INSTALL}{i}", "helpful": False, "reasons": ["unsafe"]})
+        def report(i, ip):
+            return self.client.post(f"/api/v2/monday-minute/{self.m.pk}/feedback", json.dumps(
+                {"install_id": f"{INSTALL}{i}", "helpful": False, "reasons": ["unsafe"]}),
+                content_type="application/json", HTTP_X_FORWARDED_FOR=ip)
+
+        for i in range(5):  # five made-up phones on one connection can't pull a talk
+            report(i, "203.0.113.9")
+        self.m.refresh_from_db()
+        self.assertEqual(self.m.status, MondayMinute.READY)
+        report(10, "198.51.100.1")
+        report(11, "6.6.6.6, 198.51.100.2")  # a forged first hop is ignored; the proxy's hop counts
         self.m.refresh_from_db()
         self.t.refresh_from_db()
         self.assertEqual(self.m.status, MondayMinute.PULLED)
         self.assertFalse(self.t.active)
-        self.assertIn("3 crew reports", self.t.paused_reason)
+        self.assertIn("reports from 3 sites", self.t.paused_reason)
         self.assertEqual(self.client.get(f"/api/v2/monday-minute/{self.m.pk}").status_code, 404)
 
     def comment(self, body="We keep locks by the panel.", **kw):
@@ -383,7 +412,7 @@ class OllamaTests(TestCase):
         import urllib.error
         def down(req, timeout):
             raise urllib.error.URLError("refused")
-        with patch("urllib.request.urlopen", down), self.assertRaises(ai.GenerationError):
+        with patch("urllib.request.urlopen", down), self.assertRaises(ai.AIUnavailable):
             ai.ai_json("s", "u", {})
 
     def test_ensure_model_pulls_when_missing(self):

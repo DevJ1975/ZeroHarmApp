@@ -11,6 +11,8 @@ from ninja import Router, Schema
 from ninja.throttling import AnonRateThrottle
 from pydantic import Field
 
+from talks.views import _client_ip
+
 from . import ai, moderation
 from .models import (HIDE_AT_COMMENT_REPORTS, PULL_AT_UNSAFE_REPORTS, MondayComment, MondayCommentReport,
                      MondayFeedback, MondayMinute)
@@ -30,7 +32,7 @@ def _author_key(install_hash: str) -> str:
 
 
 def _released(pk: int) -> MondayMinute:
-    return get_object_or_404(MondayMinute.objects.released(), pk=pk)
+    return get_object_or_404(MondayMinute.objects.released().select_related("topic"), pk=pk)
 
 
 # ---- Schemas ----------------------------------------------------------------------------------------
@@ -121,7 +123,7 @@ def _comment_out(c: MondayComment, replies=None) -> dict:
 
 @router.get("", response=MinuteList, summary="Published Monday Minutes, newest first")
 def list_minutes(request: HttpRequest):
-    return {"minutes": [m.as_api() for m in MondayMinute.objects.released().select_related("topic")[:30]]}
+    return {"minutes": [m.as_api() for m in MondayMinute.objects.released().select_related("topic").with_counts()[:30]]}
 
 
 @router.get("/{minute_id}", response=MinuteOut)
@@ -136,15 +138,18 @@ def rate(request: HttpRequest, minute_id: int, body: FeedbackIn):
     MondayFeedback.objects.update_or_create(
         minute=minute, install_hash=_hash(body.install_id),
         defaults={"helpful": body.helpful, "reasons": [] if body.helpful else sorted(set(body.reasons)),
-                  "note": "" if body.helpful else body.note.strip(), "platform": body.platform},
+                  "note": "" if body.helpful else body.note.strip(), "platform": body.platform,
+                  "network_hash": _hash(f"net:{_client_ip(request)}")},
     )
-    unsafe = sum(1 for r in minute.feedback.filter(helpful=False).values_list("reasons", flat=True) if "unsafe" in (r or []))
+    # Count networks, not phones: three made-up phone ids from one connection must not be able to pull a talk.
+    unsafe = len({net for reasons, net in minute.feedback.filter(helpful=False).values_list("reasons", "network_hash")
+                  if "unsafe" in (reasons or [])})
     if unsafe >= PULL_AT_UNSAFE_REPORTS:
         # Fully automatic means crews are the after-the-fact check: pull the talk and stop using its topic.
         MondayMinute.objects.filter(pk=minute.pk).update(status=MondayMinute.PULLED)
         topic = minute.topic
         topic.active = False
-        topic.paused_reason = f"Paused: {unsafe} crew reports that the {minute.week:%b %-d} talk isn't safe or isn't right."
+        topic.paused_reason = f"Paused: reports from {unsafe} sites that the {minute.week:%b %-d} talk isn't safe or isn't right."
         topic.save(update_fields=["active", "paused_reason", "updated_at"])
     return {"thumbs_up": minute.feedback.filter(helpful=True).count(), "thumbs_down": minute.feedback.filter(helpful=False).count()}
 

@@ -53,7 +53,7 @@ def quick_check(body: str, name: str) -> str:
 def ai_check(body: str, name: str, topic_title: str, call=None):
     """(allow, reason). Raises GenerationError if the review can't run, so the caller can hold the comment."""
     user = f"TOPIC: {topic_title}\nDISPLAY NAME: {name}\nCOMMENT:\n{body}"
-    data, _ = call(MOD_SYSTEM, user, MOD_SCHEMA, "low") if call else ai_json(MOD_SYSTEM, user, MOD_SCHEMA, "low", think=False)
+    data, _ = call(MOD_SYSTEM, user, MOD_SCHEMA, "low") if call else ai_json(MOD_SYSTEM, user, MOD_SCHEMA, "low", think=False, fast=True)
     return bool(data["allow"]), (data.get("message") or data.get("rule") or "")[:300]
 
 

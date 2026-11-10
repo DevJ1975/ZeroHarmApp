@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -32,8 +33,12 @@ def talk_detail(request, issue):
 
 
 def _client_ip(request):
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+    """The address the trusted proxy saw. Railway appends it to X-Forwarded-For, so anything a client puts first is ignored."""
+    hops = [h.strip() for h in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if h.strip()]
+    n = settings.NUM_PROXIES
+    if n and hops:
+        return hops[-min(n, len(hops))]
+    return request.META.get("REMOTE_ADDR", "")
 
 
 @csrf_exempt  # called by the mobile app, which has no browser session or CSRF cookie
