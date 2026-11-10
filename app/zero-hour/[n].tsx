@@ -14,7 +14,7 @@ import { regLinks } from '@/lib/regs';
 export default function EpisodeScreen() {
   const { n } = useLocalSearchParams<{ n: string }>();
   const [ep, setEp] = useState<Episode | null | undefined>(undefined);
-  useEffect(() => void getEpisode(Number(n)).then(setEp), [n]);
+  useEffect(() => void getEpisode(Number(n), setEp).then(setEp), [n]);
 
   if (ep === undefined) return <Screen><ActivityIndicator /></Screen>;
   if (ep === null) return <Screen><Body>This episode isn’t out yet. New episodes come out Thursdays.</Body></Screen>;

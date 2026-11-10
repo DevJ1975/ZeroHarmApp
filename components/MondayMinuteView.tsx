@@ -99,14 +99,14 @@ function Rating({ minute, onCounts }: { minute: Minute; onCounts: (up: number, d
   }, [minute.id]);
 
   async function send(helpful: boolean, why: Reason[] = []) {
-    try {
-      const counts = await rate(minute.id, helpful, why, note);
+    const counts = await rate(minute.id, helpful, why, note);
+    setVote(helpful);
+    setAsking(false);
+    if (counts) {
       onCounts(counts.thumbs_up, counts.thumbs_down);
-      setVote(helpful);
-      setAsking(false);
       setMsg(why.includes('unsafe') ? 'Thanks. Reports like this pull a talk for review.' : 'Thanks for the feedback.');
-    } catch {
-      setMsg('No signal. Try again in a moment.');
+    } else {
+      setMsg('Saved on this phone. It will send when you have signal.');
     }
   }
 

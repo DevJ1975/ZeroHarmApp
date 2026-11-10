@@ -1,5 +1,6 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
+import { savedFirst } from './saved-first';
 
 export type TalkText = { title: string; story_title: string; crew_question: string; body_md: string };
 
@@ -58,27 +59,41 @@ async function readCache(): Promise<Talk[]> {
   return rows.map((r) => JSON.parse(r.json) as Talk);
 }
 
-/**
- * Released talks, newest first. The Django API only returns talks whose Sunday send time
- * has passed, so the app never shows next week's talk early.
- * Falls back to the on-device copy when there is no signal.
- */
-export async function listTalks(): Promise<{ talks: Talk[]; offline: boolean }> {
-  if (isConfigured()) {
-    try {
-      const { talks } = await api<{ talks: Talk[] }>('/talks/');
-      const db = await getDb();
-      await db.runAsync('DELETE FROM talks_cache'); // a talk held back for review must not stay in the offline copy
-      await cache(talks);
-      return { talks, offline: false };
-    } catch {
-      // no signal or server unreachable: fall through to the copy on this phone
-    }
-  }
-  return { talks: await readCache(), offline: true };
+const notConfigured = () => Promise.reject(new Error('API not configured'));
+
+async function fetchTalks(): Promise<Talk[]> {
+  if (!isConfigured()) return notConfigured();
+  const { talks } = await api<{ talks: Talk[] }>('/talks/');
+  const db = await getDb();
+  await db.runAsync('DELETE FROM talks_cache'); // a talk held back for review must not stay in the offline copy
+  await cache(talks);
+  return talks;
 }
 
-export async function getTalk(issue: number): Promise<Talk | null> {
-  const { talks } = await listTalks();
-  return talks.find((t) => t.issue === issue) ?? null;
+export type TalkList = { talks: Talk[]; offline: boolean };
+
+/**
+ * Talks the app shows, newest first. The saved copy comes back right away; a background refresh calls `onFresh` with
+ * the server's list, or `onFresh` with `offline: true` when there's no signal.
+ */
+export async function listTalks(onFresh?: (list: TalkList) => void): Promise<TalkList> {
+  const { value, fromSaved } = await savedFirst<Talk[]>(
+    'talks',
+    async () => {
+      const saved = await readCache();
+      return saved.length ? saved : null;
+    },
+    fetchTalks,
+    {
+      onFresh: (talks) => onFresh?.({ talks, offline: false }),
+      onOffline: () => readCache().then((talks) => onFresh?.({ talks, offline: true })),
+    },
+  );
+  return { talks: value ?? [], offline: value === null && !fromSaved && isConfigured() };
+}
+
+export async function getTalk(issue: number, onFresh?: (talk: Talk | null) => void): Promise<Talk | null> {
+  const find = (list: Talk[]) => list.find((t) => t.issue === issue) ?? null;
+  const { talks } = await listTalks(onFresh && ((r) => !r.offline && onFresh(find(r.talks))));
+  return find(talks);
 }

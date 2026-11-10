@@ -11,7 +11,7 @@ export default function MondayMinuteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [m, setM] = useState<Minute | null | undefined>(undefined);
   useEffect(() => {
-    getMinute(Number(id)).then(setM);
+    getMinute(Number(id), setM).then(setM);
   }, [id]);
   if (m === undefined) return <Screen><ActivityIndicator /></Screen>;
   if (m === null) return <Screen><Body>This Monday Minute isn’t available.</Body></Screen>;

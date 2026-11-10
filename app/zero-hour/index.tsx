@@ -9,7 +9,7 @@ import { Episode, listEpisodes } from '@/lib/episodes';
 /** Every released Zero Hour episode, newest first. */
 export default function ZeroHourList() {
   const [eps, setEps] = useState<Episode[] | null>(null);
-  useFocusEffect(useCallback(() => void listEpisodes().then(setEps), []));
+  useFocusEffect(useCallback(() => void listEpisodes(setEps).then(setEps), []));
   return (
     <Screen>
       <Body>Five-minute audio dramas about how ordinary shifts turn into incidents. Watch with the sound on, then run the 10-minute huddle.</Body>

@@ -4,10 +4,11 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { AppState, useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { fonts } from '@/constants/theme';
+import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
 import { flushSheets } from '@/lib/sheets';
 
@@ -33,7 +34,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     startPush();
-    flushSheets(); // sheets saved with no signal go out now
+    // Sheets and votes saved with no signal go out now, and again each time the app comes back to the front:
+    // people walk from a dead spot on the floor to the break room with the phone in their pocket.
+    const flush = () => {
+      flushSheets();
+      flushVotes();
+    };
+    flush();
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && flush());
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {

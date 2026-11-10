@@ -28,7 +28,7 @@ export default function TalkScreen() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
 
   useEffect(() => {
-    getTalk(Number(issue)).then(setTalk);
+    getTalk(Number(issue), setTalk).then(setTalk);
     // Ask for push at a good moment: right after someone opens their first talk.
     hasBeenAsked().then((asked) => setShowReminder(!asked));
   }, [issue]);

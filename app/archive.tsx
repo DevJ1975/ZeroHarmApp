@@ -16,7 +16,7 @@ export default function ArchiveScreen() {
   const [q, setQ] = useState('');
   const [theme, setTheme] = useState<string | null>(params.theme ?? null);
 
-  useFocusEffect(useCallback(() => void listTalks().then((r) => setTalks(r.talks)), []));
+  useFocusEffect(useCallback(() => void listTalks((r) => setTalks(r.talks)).then((r) => setTalks(r.talks)), []));
 
   const themes = useMemo(() => [...new Set((talks ?? []).map((x) => x.month_theme).filter(Boolean))], [talks]);
   const shown = useMemo(() => {

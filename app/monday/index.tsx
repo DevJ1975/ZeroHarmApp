@@ -11,7 +11,7 @@ import { listMinutes, Minute, weekLabel } from '@/lib/monday';
 export default function MondayList() {
   const t = useTheme();
   const [list, setList] = useState<Minute[] | null>(null);
-  useFocusEffect(useCallback(() => void listMinutes().then(setList), []));
+  useFocusEffect(useCallback(() => void listMinutes(setList).then(setList), []));
   return (
     <Screen>
       <MondayMinuteLogo />

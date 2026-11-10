@@ -16,8 +16,8 @@ export default function LearnScreen() {
   const [eps, setEps] = useState<Episode[]>([]);
   useFocusEffect(
     useCallback(() => {
-      listFeed(RESOURCE_KINDS).then(setItems);
-      listEpisodes().then(setEps);
+      listFeed(RESOURCE_KINDS, setItems).then(setItems);
+      listEpisodes(setEps).then(setEps);
     }, []),
   );
   return (

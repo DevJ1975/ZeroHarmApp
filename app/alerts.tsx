@@ -9,7 +9,7 @@ import { FeedItem, listFeed } from '@/lib/feed';
 /** Every regulatory alert, newest first. */
 export default function AlertsScreen() {
   const [items, setItems] = useState<FeedItem[] | null>(null);
-  useFocusEffect(useCallback(() => void listFeed(['alert']).then(setItems), []));
+  useFocusEffect(useCallback(() => void listFeed(['alert'], setItems).then(setItems), []));
   return (
     <Screen>
       {items === null && <ActivityIndicator />}

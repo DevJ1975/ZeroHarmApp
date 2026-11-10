@@ -21,12 +21,13 @@ export default function TodayScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      listTalks().then((r) => {
+      const show = (r: { talks: Talk[]; offline: boolean }) => {
         setTalks(r.talks);
         setOffline(r.offline);
-      });
-      listFeed(['alert']).then(setAlerts);
-      listEpisodes().then(setEpisodes);
+      };
+      listTalks(show).then(show);
+      listFeed(['alert'], setAlerts).then(setAlerts);
+      listEpisodes(setEpisodes).then(setEpisodes);
     }, []),
   );
 

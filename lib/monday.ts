@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { api, ApiError, isConfigured } from './config';
 import { getDb } from './db';
 import { installId } from './install';
+import { savedFirst } from './saved-first';
 
 /** Monday Minute: the weekly AI-written toolbox talk, separate from Zero Harm Weekly. */
 export type Minute = {
@@ -61,35 +62,54 @@ async function readCache(): Promise<Minute[]> {
   return rows.map((r) => JSON.parse(r.json) as Minute);
 }
 
-/** Published Monday Minutes, newest first; the copy on the phone when there's no signal. */
-export async function listMinutes(): Promise<Minute[]> {
-  if (isConfigured()) {
-    try {
-      const { minutes } = await api<{ minutes: Minute[] }>('/v2/monday-minute');
-      await replaceCache(minutes);
-      return minutes;
-    } catch {
-      // no signal: saved copy
-    }
-  }
-  return (await readCache()).sort((a, b) => b.week.localeCompare(a.week));
+const byWeek = (list: Minute[]) => [...list].sort((a, b) => b.week.localeCompare(a.week));
+
+async function fetchMinutes(): Promise<Minute[]> {
+  if (!isConfigured()) throw new Error('API not configured');
+  const { minutes } = await api<{ minutes: Minute[] }>('/v2/monday-minute');
+  await replaceCache(minutes);
+  return minutes;
 }
 
-export async function getMinute(id: number): Promise<Minute | null> {
-  if (isConfigured()) {
-    try {
-      const m = await api<Minute>(`/v2/monday-minute/${id}`);
-      await cache([m]);
-      return m;
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        await forget(id); // pulled or unpublished: don't show the saved copy
-        return null;
+/**
+ * Published Monday Minutes, newest first. The saved copy comes back right away, so the first screen opens instantly on
+ * a weak signal; `onFresh` gets the server's list when the background refresh lands.
+ */
+export async function listMinutes(onFresh?: (list: Minute[]) => void): Promise<Minute[]> {
+  const { value } = await savedFirst<Minute[]>(
+    'monday',
+    async () => {
+      const saved = await readCache();
+      return saved.length ? byWeek(saved) : null;
+    },
+    fetchMinutes,
+    { onFresh },
+  );
+  return value ?? [];
+}
+
+/** One Monday Minute: the saved copy first, then `onFresh` with the latest (or null if it was pulled). */
+export async function getMinute(id: number, onFresh?: (m: Minute | null) => void): Promise<Minute | null> {
+  const { value } = await savedFirst<Minute | null>(
+    `monday-${id}`,
+    async () => (await readCache()).find((m) => m.id === id) ?? null,
+    async () => {
+      if (!isConfigured()) throw new Error('API not configured');
+      try {
+        const m = await api<Minute>(`/v2/monday-minute/${id}`);
+        await cache([m]);
+        return m;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          await forget(id); // pulled or unpublished: don't keep showing the saved copy
+          return null;
+        }
+        throw err;
       }
-      // no signal: fall through to the saved copy
-    }
-  }
-  return (await readCache()).find((m) => m.id === id) ?? null;
+    },
+    { onFresh },
+  );
+  return value;
 }
 
 // ---- Thumbs up / down ------------------------------------------------------------------------------
@@ -102,15 +122,49 @@ export async function myVote(id: number): Promise<Vote | null> {
   return raw ? ((JSON.parse(raw) as Record<string, Vote>)[id] ?? null) : null;
 }
 
+const OUTBOX = 'monday_vote_outbox';
+type QueuedVote = { id: number; helpful: boolean; reasons: Reason[]; note: string };
+
+async function sendVote(v: QueuedVote) {
+  return api<{ thumbs_up: number; thumbs_down: number }>(`/v2/monday-minute/${v.id}/feedback`, {
+    method: 'POST',
+    body: JSON.stringify({ install_id: await installId(), helpful: v.helpful, reasons: v.reasons, note: v.note.slice(0, 300), platform: Platform.OS === 'ios' ? 'ios' : 'android' }),
+  });
+}
+
+/**
+ * Saves the vote on the phone and sends it. With no signal it waits in an outbox and goes out later (flushVotes), so a
+ * thumbs down in a dead spot on the floor is never lost. Returns the new counts, or null when it's waiting to send.
+ */
 export async function rate(id: number, helpful: boolean, reasons: Reason[] = [], note = '') {
   const raw = await Storage.getItem(VOTES);
   const all = raw ? (JSON.parse(raw) as Record<string, Vote>) : {};
   all[id] = { helpful, reasons };
   await Storage.setItem(VOTES, JSON.stringify(all));
-  return api<{ thumbs_up: number; thumbs_down: number }>(`/v2/monday-minute/${id}/feedback`, {
-    method: 'POST',
-    body: JSON.stringify({ install_id: await installId(), helpful, reasons, note: note.slice(0, 300), platform: Platform.OS === 'ios' ? 'ios' : 'android' }),
-  });
+  const vote: QueuedVote = { id, helpful, reasons, note };
+  try {
+    return await sendVote(vote);
+  } catch {
+    const queued = JSON.parse((await Storage.getItem(OUTBOX)) ?? '[]') as QueuedVote[];
+    await Storage.setItem(OUTBOX, JSON.stringify([...queued.filter((q) => q.id !== id), vote]));
+    return null;
+  }
+}
+
+/** Sends votes that were made with no signal. Safe to call often. */
+export async function flushVotes() {
+  if (!isConfigured()) return;
+  const queued = JSON.parse((await Storage.getItem(OUTBOX)) ?? '[]') as QueuedVote[];
+  if (!queued.length) return;
+  const left: QueuedVote[] = [];
+  for (const v of queued) {
+    try {
+      await sendVote(v);
+    } catch (err) {
+      if (!(err instanceof ApiError && err.status >= 400 && err.status < 500)) left.push(v); // keep unless the server refused it for good
+    }
+  }
+  await Storage.setItem(OUTBOX, JSON.stringify(left));
 }
 
 // ---- Comments ---------------------------------------------------------------------------------------
@@ -128,10 +182,14 @@ export async function listComments(id: number) {
 
 export async function postComment(id: number, body: string, displayName: string, parentId?: number) {
   await Storage.setItem(NAME, displayName);
-  return api<{ status: 'visible' | 'pending' | 'rejected'; message: string; comment: Comment | null }>(`/v2/monday-minute/${id}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ install_id: await installId(), body, display_name: displayName, parent_id: parentId ?? null, accepted_rules: true }),
-  });
+  return api<{ status: 'visible' | 'pending' | 'rejected'; message: string; comment: Comment | null }>(
+    `/v2/monday-minute/${id}/comments`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ install_id: await installId(), body, display_name: displayName, parent_id: parentId ?? null, accepted_rules: true }),
+    },
+    30000, // the comment is checked before it posts; give a weak signal time
+  );
 }
 
 export async function reportComment(commentId: number, reason = '') {

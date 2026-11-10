@@ -12,7 +12,7 @@ import { listMinutes, Minute } from '@/lib/monday';
 export default function MondayHome() {
   const t = useTheme();
   const [m, setM] = useState<Minute | null | undefined>(undefined);
-  useFocusEffect(useCallback(() => void listMinutes().then((list) => setM(list[0] ?? null)), []));
+  useFocusEffect(useCallback(() => void listMinutes((list) => setM(list[0] ?? null)).then((list) => setM(list[0] ?? null)), []));
 
   if (m === undefined)
     return (
