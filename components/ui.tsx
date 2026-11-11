@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ComponentRef, ReactNode, Ref, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -114,17 +114,26 @@ export function Button({
   );
 }
 
-export function Field(props: TextInputProps & { label: string }) {
+/** `error` shows a plain message under the box and reads it out. `inputRef` lets a form move focus to the next box. */
+export function Field(props: TextInputProps & { label: string; error?: string; inputRef?: Ref<ComponentRef<typeof TextInput>> }) {
   const t = useTheme();
-  const { label, style, ...rest } = props;
+  const { label, style, error, inputRef, ...rest } = props;
   return (
     <View style={{ gap: space.xs }}>
       <Text style={[styles.label, { color: t.muted }]}>{label}</Text>
       <TextInput
+        ref={inputRef}
+        accessibilityLabel={label}
+        accessibilityHint={error}
         placeholderTextColor={t.muted}
-        style={[styles.input, { color: t.text, borderColor: t.rule, backgroundColor: t.surface }, style]}
+        style={[styles.input, { color: t.text, borderColor: error ? t.danger : t.rule, backgroundColor: t.surface }, style]}
         {...rest}
       />
+      {!!error && (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.label, { color: t.danger }]}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

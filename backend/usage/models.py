@@ -20,8 +20,16 @@ class AppOpen(models.Model):
     class Meta:
         ordering = ["-day", "-id"]
         constraints = [models.UniqueConstraint(fields=["day", "install_hash"], name="one_open_per_phone_per_day")]
-        indexes = [models.Index(fields=["day"], name="usage_open_day")]
+        indexes = [models.Index(fields=["day"], name="usage_open_day"),
+                   models.Index(fields=["install_hash", "day"], name="usage_open_phone")]  # finds a phone's first-ever open
         verbose_name = "app open"
 
     def __str__(self):
         return f"{self.day} {self.platform} {self.city or self.region or self.country or 'unknown place'}"
+
+
+def first_opens(start, end):
+    """The rows where a phone opened the app for the first time ever, with that first day between `start` and `end`.
+    This is as close to "downloads" as the anonymous count gets. One row per new phone."""
+    earlier = AppOpen.objects.filter(install_hash=models.OuterRef("install_hash"), day__lt=models.OuterRef("day"))
+    return AppOpen.objects.filter(day__gte=start, day__lte=end).exclude(models.Exists(earlier))

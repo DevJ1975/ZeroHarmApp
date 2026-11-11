@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "regs",
     "usage",
     "backoffice",
+    "invite",
 ]
 
 MIDDLEWARE = [
@@ -122,6 +123,9 @@ ONESIGNAL_APP_ID = os.environ.get("ONESIGNAL_APP_ID", "")
 ONESIGNAL_REST_API_KEY = os.environ.get("ONESIGNAL_REST_API_KEY", "")
 GHL_PRIVATE_TOKEN = os.environ.get("GHL_PRIVATE_TOKEN", "")
 GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
+# Where the owner's alerts go: an email the minute someone signs up or removes their sign-up, and one summary a day
+# of new phones. Sent through GoHighLevel with the token above. Blank = no alerts.
+OWNER_ALERT_EMAIL = os.environ.get("OWNER_ALERT_EMAIL", "").strip()
 # Shared secret the GoHighLevel workflow sends in the X-ZeroHarm-Key header when publishing to the app
 INGEST_KEY = os.environ.get("INGEST_KEY", "")
 # Back office inside GoHighLevel: /backoffice/?key=<BACKOFFICE_KEY> as a GHL custom menu link (see README).
@@ -135,6 +139,10 @@ GHL_EMBED_ADMIN = os.environ.get("GHL_EMBED_ADMIN", "0") == "1"
 if GHL_EMBED_ADMIN and not DEBUG:
     SESSION_COOKIE_SAMESITE = "None"
     CSRF_COOKIE_SAMESITE = "None"
+# The invite link (/get/): where phones are sent once the app is in the stores. Blank = that store isn't live yet, and
+# the page says "coming soon". Set them on Railway once the app is approved; no app update needed.
+APP_STORE_URL = os.environ.get("APP_STORE_URL", "").strip()
+PLAY_STORE_URL = os.environ.get("PLAY_STORE_URL", "").strip()
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 

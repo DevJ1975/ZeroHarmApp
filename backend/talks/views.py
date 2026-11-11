@@ -1,15 +1,19 @@
 import json
+import time
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from . import owner_alerts
 from .integrations import sync_signup_to_ghl
-from .models import AppSignup, ToolboxTalk
+from .models import AppSignup, SignupPhone, SignupRemoval, ToolboxTalk, split_name
 
 
 @require_GET
@@ -41,18 +45,65 @@ def _client_ip(request):
     return request.META.get("REMOTE_ADDR", "")
 
 
+def _network(request):
+    """The network a request came from, as a salted hash. An IPv6 home or mobile connection owns a whole /64 and could
+    otherwise switch addresses to dodge a limit; hashing means no readable address sits in the cache."""
+    import hashlib
+    import ipaddress
+
+    ident = _client_ip(request)
+    try:
+        address = ipaddress.ip_address(ident)
+        if address.version == 6:
+            ident = str(ipaddress.ip_network(f"{address}/64", strict=False).network_address)
+    except ValueError:
+        pass
+    return hashlib.sha256(f"{settings.SECRET_KEY}:rate:{ident}".encode()).hexdigest()
+
+
+def _rate_limited(name, request, limit=5):
+    """At most `limit` tries an hour from one network."""
+    key = f"{name}-rate:{_network(request)}"
+    attempts = cache.get(key, 0)
+    if attempts >= limit:
+        return True
+    cache.set(key, attempts + 1, 3600)
+    return False
+
+
+def _install_hash(value):
+    """The salted hash of the phone's random install id, or "" when none (or a malformed one) was sent."""
+    from monday.api import _hash  # one salt for install ids across the whole backend
+
+    return _hash(value) if isinstance(value, str) and 8 <= len(value) <= 80 else ""
+
+
+# A whole crew often signs in together on one plant Wi-Fi, which is one network address, so new emails get a roomy
+# limit. Repeat sign-ups of an email already here don't count toward it; they only get the wider limit on all tries.
+NEW_SIGNUPS_PER_HOUR = 30
+SIGNUP_TRIES_PER_HOUR = 120
+REMOVALS_PER_HOUR = 5
+
+
 @csrf_exempt  # called by the mobile app, which has no browser session or CSRF cookie
 @require_POST
 def signup(request):
-    key = f"signup-rate:{_client_ip(request)}"
-    attempts = cache.get(key, 0)
-    if attempts >= 5:
+    """Name and email from the welcome screen or Settings. One row per email. The answer is 200 whether the email is
+    new or already here, so it can't be used to find out who has signed up. The lead goes to GoHighLevel and, for a new email, an alert to the owner.
+
+    Each phone that signs up with the email is linked to the row. A repeat from a linked phone updates the row. A repeat
+    from any other phone (or an old app version that sends no phone id) only links that phone and fills in what is
+    blank: it never changes the name, company, offers choice or consent someone else gave. A phone is only linked to a
+    row that already has a phone: a row with none (signed up before phones were recorded, or from an old app) could
+    otherwise be claimed by anyone who knows the email and then removed. Those people use "Delete my data"."""
+    if _rate_limited("signup", request, limit=SIGNUP_TRIES_PER_HOUR):
         return JsonResponse({"error": "Too many sign-ups from this network. Try again in an hour."}, status=429)
-    cache.set(key, attempts + 1, 3600)
 
     try:
         data = json.loads(request.body or b"{}")
     except json.JSONDecodeError:
+        data = None
+    if not isinstance(data, dict):
         return JsonResponse({"error": "Send JSON."}, status=400)
 
     email = str(data.get("email", "")).strip().lower()
@@ -61,14 +112,98 @@ def signup(request):
     except ValidationError:
         return JsonResponse({"error": "Enter a valid email address."}, status=400)
 
-    record = AppSignup.objects.create(
-        email=email,
-        first_name=str(data.get("first_name") or "")[:80],
-        company=str(data.get("company") or "")[:120],
-        wants_offers=bool(data.get("wants_offers")),
-    )
-    sync_signup_to_ghl(record)  # failures are retried by the sync_signups command
-    return JsonResponse({"ok": True}, status=201)
+    first, last = split_name(str(data.get("name") or "")[:120])
+    if not first:  # app versions before the welcome screen send only a first name
+        first = str(data.get("first_name") or "").strip()[:80]
+    fields = {"company": str(data.get("company") or "").strip()[:120]}
+    if first:
+        fields.update(first_name=first, last_name=last)
+    consent = str(data.get("consent") or "").strip()[:200]
+    if consent:
+        fields.update(consent_text=consent, consent_at=timezone.now())
+    install_hash = _install_hash(data.get("install_id"))
+
+    record = AppSignup.objects.filter(email__iexact=email).first()
+    created = False
+    if record is None:
+        if _rate_limited("signup-new", request, limit=NEW_SIGNUPS_PER_HOUR):
+            return JsonResponse({"error": "Too many sign-ups from this network. Try again in an hour."}, status=429)
+        source = AppSignup.WELCOME if data.get("source") == AppSignup.WELCOME else AppSignup.SETTINGS
+        try:
+            with transaction.atomic():
+                record = AppSignup.objects.create(email=email, source=source, wants_offers=bool(data.get("wants_offers")), **fields)
+                if install_hash:
+                    SignupPhone.objects.create(signup=record, install_hash=install_hash)
+                _cancel_pending_removal(record)
+            created = True
+        except IntegrityError:  # the same email arrived twice at the same moment
+            record = AppSignup.objects.get(email__iexact=email)
+    if not created:
+        linked = bool(install_hash) and record.phones.filter(install_hash=install_hash).exists()
+        if install_hash and not linked and record.phones.exists():
+            SignupPhone.objects.get_or_create(signup=record, install_hash=install_hash)
+        if linked:
+            # Their own phone: bring the row up to date. Blanks never wipe what is there; where and when they first signed up stay.
+            for name, value in fields.items():
+                if value:
+                    setattr(record, name, value)
+            if "wants_offers" in data:
+                record.wants_offers = bool(data["wants_offers"])
+        else:
+            if not record.first_name and first:
+                record.first_name, record.last_name = first, last
+            if not record.company and fields["company"]:
+                record.company = fields["company"]
+            if not record.consent_text and consent:
+                record.consent_text, record.consent_at = consent, fields["consent_at"]
+        record.ghl_synced_at = None  # so the sync_signups command retries if GoHighLevel is down right now
+        record.save()
+
+    # The phone is waiting, so GoHighLevel gets a few seconds and no more. Whatever fails here is retried by the cron.
+    started = time.monotonic()
+    synced = sync_signup_to_ghl(record, timeout=owner_alerts.QUICK)
+    if created and synced and time.monotonic() - started < owner_alerts.QUICK:
+        owner_alerts.alert_signup(record, timeout=owner_alerts.QUICK)  # GoHighLevel is slow today: the cron sends it
+    return JsonResponse({"ok": True})
+
+
+def _cancel_pending_removal(record):
+    """They signed up again before an earlier removal of this email reached GoHighLevel: that removal is called off,
+    so it can't take the tags off the new sign-up. What it knew about the contact's own tags carries over."""
+    for removal in SignupRemoval.objects.filter(email__iexact=record.email, ghl_done_at__isnull=True):
+        if record.ghl_had_tags is None and removal.ghl_had_tags is not None:
+            record.ghl_had_tags = removal.ghl_had_tags
+            record.save(update_fields=["ghl_had_tags"])
+        removal.delete()
+
+
+@csrf_exempt  # called by the mobile app, like signup
+@require_POST
+def signup_remove(request):
+    """"Remove my info" in the app. Unlinks this phone from its sign-up. When no other phone is linked, the sign-up is
+    deleted and its newsletter tags come off in GoHighLevel (only the ones the app added). The answer is the same
+    whether or not anything matched, so it can't be used to find out who signed up."""
+    if _rate_limited("signup-remove", request, limit=REMOVALS_PER_HOUR):
+        return JsonResponse({"error": "Too many requests from this network. Try again in an hour."}, status=429)
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        data = None
+    install_hash = _install_hash(data.get("install_id")) if isinstance(data, dict) else ""
+    removals = []
+    if install_hash:
+        with transaction.atomic():
+            ids = list(SignupPhone.objects.filter(install_hash=install_hash).values_list("signup_id", flat=True))
+            for record in AppSignup.objects.select_for_update().filter(pk__in=ids):
+                record.phones.filter(install_hash=install_hash).delete()
+                if record.phones.exists():
+                    continue  # another phone still has this sign-up
+                removals.append(SignupRemoval.objects.create(email=record.email, name=record.full_name, ghl_contact_id=record.ghl_contact_id,
+                                                             ghl_had_tags=record.ghl_had_tags))
+                record.delete()
+    for removal in removals:  # if GoHighLevel is down, the row stays and the cron finishes it
+        owner_alerts.finish_removal(removal, timeout=owner_alerts.QUICK)
+    return JsonResponse({"ok": True})
 
 
 # ---- Feed: regulatory alerts and free resources -------------------------------------------------

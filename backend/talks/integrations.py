@@ -57,34 +57,84 @@ def send_talk_push(talk, dry_run=False):
     return False, body
 
 
-def sync_signup_to_ghl(signup):
-    """Upserts the contact into GoHighLevel with app-specific tags. Returns True when synced."""
+SIGNUP_TAGS = ["zero-harm-app", "zero-harm-weekly", "zero-harm-app-signup"]
+OFFERS_TAG = "zero-harm-offers-optin"
+NEWSLETTER_TAGS = ["zero-harm-weekly", OFFERS_TAG, "zero-harm-app-signup"]  # taken off when someone removes their sign-up
+REMOVED_TAG = "zero-harm-removed"
+GHL_API = "https://services.leadconnectorhq.com"
+
+
+def sync_signup_to_ghl(signup, timeout=10):
+    """Puts the sign-up into GoHighLevel as a lead. Returns True when synced.
+
+    First the contact is created or updated (name, company). Then the tags are added: zero-harm-weekly is the list the
+    weekly newsletter goes to, and zero-harm-app-signup is the one a GHL workflow listens for to notify the owner. The
+    tags are not sent with the first call because there they would replace every tag the contact already has (a
+    customer's tags, or the sign-in sheet tag).
+
+    The first time, it also notes which newsletter tags the contact already had, so a removal later leaves those on,
+    and takes zero-harm-removed off if they had removed an earlier sign-up. The sign-up can be removed while this runs,
+    so it checks the row is still there before tagging, and takes its own tags back off if the row went meanwhile."""
+    from . import ghl
+    from .models import AppSignup
+
     if not (settings.GHL_PRIVATE_TOKEN and settings.GHL_LOCATION_ID):
         return False
-    tags = ["zero-harm-app", "zero-harm-weekly"]
-    if signup.wants_offers:
-        tags.append("zero-harm-offers-optin")
-    payload = {
-        "locationId": settings.GHL_LOCATION_ID,
-        "email": signup.email,
-        "tags": tags,
-        "source": "Zero Harm app",
-    }
+    headers = {"Authorization": f"Bearer {settings.GHL_PRIVATE_TOKEN}", "Version": "2021-07-28"}
+    payload = {"locationId": settings.GHL_LOCATION_ID, "email": signup.email, "source": "Zero Harm app"}
     if signup.first_name:
         payload["firstName"] = signup.first_name
+    if signup.last_name:
+        payload["lastName"] = signup.last_name
     if signup.company:
         payload["companyName"] = signup.company
-    status, body = _post(
-        "https://services.leadconnectorhq.com/contacts/upsert",
-        {"Authorization": f"Bearer {settings.GHL_PRIVATE_TOKEN}", "Version": "2021-07-28"},
-        payload,
-    )
+    status, body = _post(f"{GHL_API}/contacts/upsert", headers, payload, timeout=timeout)
+    contact = (body.get("contact") or {}) if 200 <= status < 300 else {}
+    contact_id = str(contact.get("id") or "")[:40]
+    if not contact_id:
+        log.error("GHL sync for %s failed: %s %s", signup.email, status, body)
+        return False
+
+    first = not signup.ghl_contact_id
+    had, was_removed = signup.ghl_had_tags, False
+    if first:
+        try:
+            tags_now = contact["tags"] if isinstance(contact.get("tags"), list) else ghl.contact_tags(contact_id, timeout=timeout)
+        except ghl.GhlError as err:
+            log.error("GHL sync for %s could not read the contact's tags: %s", signup.email, err)
+            return False
+        if had is None:
+            had = [t for t in NEWSLETTER_TAGS if t in tags_now]
+        was_removed = REMOVED_TAG in tags_now
+    if not AppSignup.objects.filter(pk=signup.pk).update(ghl_contact_id=contact_id, ghl_had_tags=had):
+        return False  # removed while GoHighLevel was answering: tag nothing
+    signup.ghl_contact_id, signup.ghl_had_tags = contact_id, had
+
+    tags = SIGNUP_TAGS + ([OFFERS_TAG] if signup.wants_offers else [])
+    status, body = _post(f"{GHL_API}/contacts/{contact_id}/tags", headers, {"tags": tags}, timeout=timeout)
     if 200 <= status < 300:
-        signup.ghl_contact_id = (body.get("contact") or {}).get("id", "")[:40]
-        signup.ghl_synced_at = timezone.now()
-        signup.save(update_fields=["ghl_contact_id", "ghl_synced_at"])
+        try:
+            if not first and not signup.wants_offers and OFFERS_TAG not in (had or []):
+                # A repeat sign-up without the offers box ticked: take the offers tag off again, unless it was theirs before.
+                ghl.remove_tags(contact_id, [OFFERS_TAG], timeout=timeout)
+            if was_removed:  # signing up again after a removal
+                ghl.remove_tags(contact_id, [REMOVED_TAG], timeout=timeout)
+        except ghl.GhlError as err:
+            status, body = 0, {"error": str(err)}
+    if not 200 <= status < 300:
+        log.error("GHL sync for %s failed: %s %s", signup.email, status, body)
+        return False
+    now = timezone.now()
+    if AppSignup.objects.filter(pk=signup.pk).update(ghl_synced_at=now):
+        signup.ghl_synced_at = now
         return True
-    log.error("GHL sync for %s failed: %s %s", signup.email, status, body)
+    # Removed while the tags were going on. The removal could not see them yet, so take ours back off here.
+    ours = [t for t in NEWSLETTER_TAGS if t in tags and t not in (had or [])]
+    try:
+        if ours:
+            ghl.remove_tags(contact_id, ours, timeout=timeout)
+    except ghl.GhlError as err:
+        log.error("GHL sync for a removed sign-up could not take its tags back off contact %s: %s", contact_id, err)
     return False
 
 

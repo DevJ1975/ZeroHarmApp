@@ -8,12 +8,13 @@ from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
+from invite.models import InviteClick
 from monday.gate import status as gate_status
 from monday.models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
 from regs.models import RegChange
-from talks.models import AppSignup, KbEntry, OtisFeedback, SigninSheet, TalkSuggestion, ToolboxTalk
+from talks.models import AppSignup, KbEntry, OtisFeedback, SigninSheet, SignupRemoval, TalkSuggestion, ToolboxTalk
 from usage import geo
-from usage.models import AppOpen
+from usage.models import AppOpen, first_opens
 
 WEEKS = 12
 TOP_PLACES = 10
@@ -102,6 +103,7 @@ def usage(days=30, today=None):
         "enabled": settings.USAGE_ENABLED,
         "days": days,
         "phones": len(phones),
+        "new_phones": first_opens(since, today).count(),  # phones whose first-ever counted open was in the period
         "phones_week": sum(1 for p in phones.values() if p[1] >= week) if days >= 7 else len(phones),
         "ios": platforms["ios"], "android": platforms["android"],
         "from_phone": sources[AppOpen.PHONE], "from_network": sources[AppOpen.NETWORK], "unknown": sources[""],
@@ -133,6 +135,9 @@ def dashboard(days=30, today=None):
                  .annotate(n=Count("id"), people=Sum("attendee_count")).order_by("-people", "-n")[:8])
     programs = dict(SigninSheet.PROGRAMS)
 
+    invites = {r["platform"]: r["n"] for r in InviteClick.objects.filter(created_at__gte=since_dt).values("platform").annotate(n=Count("id"))}
+    signups = {r["source"]: r["n"] for r in AppSignup.objects.filter(created_at__gte=since_dt).values("source").annotate(n=Count("id"))}
+
     attention = []
 
     def flag(count, text, url, one=None):
@@ -155,6 +160,8 @@ def dashboard(days=30, today=None):
     flag(MondayComment.objects.filter(status=MondayComment.HIDDEN, report_count__gt=0).count(), "reported comments hidden", "/admin/monday/mondaycomment/?status__exact=hidden", one="reported comment hidden")
     flag(SigninSheet.objects.filter(status="failed").count(), "sign-in sheets that didn't reach GoHighLevel", "/admin/talks/signinsheet/?status__exact=failed", one="sign-in sheet that didn't reach GoHighLevel")
     flag(ToolboxTalk.objects.filter(needs_review=True).count(), "Zero Harm Weekly talks held for bracketed notes", "/admin/talks/toolboxtalk/?needs_review__exact=1", one="Zero Harm Weekly talk held for bracketed notes")
+    flag(SignupRemoval.objects.filter(created_at__lt=timezone.now() - dt.timedelta(hours=1)).count(), "sign-up removals that haven't reached GoHighLevel",
+         "/admin/talks/signupremoval/", one="sign-up removal that hasn't reached GoHighLevel")
     flag(TalkSuggestion.objects.filter(status="new").count(), "new talk suggestions", "/admin/talks/talksuggestion/?status__exact=new", one="new talk suggestion")
 
     return {
@@ -163,7 +170,10 @@ def dashboard(days=30, today=None):
             {"label": "Sign-in sheets", "value": sheet_totals["n"] or 0,
              "note": f"{by_program.get('monday-minute', 0)} Monday Minute · {by_program.get('zero-harm-weekly', 0)} Zero Harm Weekly"},
             {"label": "Crew members signed in", "value": sheet_totals["people"] or 0, "note": f"{sheet_totals['supervisors'] or 0} supervisors ran a talk"},
-            {"label": "Email sign-ups", "value": AppSignup.objects.filter(created_at__gte=since_dt).count(), "note": f"{AppSignup.objects.count()} in total"},
+            {"label": "Email sign-ups", "value": sum(signups.values()),
+             "note": f"{signups.get(AppSignup.WELCOME, 0)} welcome screen · {signups.get(AppSignup.SETTINGS, 0)} Settings · {AppSignup.objects.count()} in total"},
+            {"label": "Invite link taps", "value": sum(invites.values()),
+             "note": f"{invites.get(InviteClick.IOS, 0)} iPhone · {invites.get(InviteClick.ANDROID, 0)} Android · {invites.get(InviteClick.OTHER, 0)} other"},
             {"label": "Monday Minute thumbs up", "value": f"{_pct(up, up + down)}%" if up + down else "–", "note": f"{up} up · {down} down"},
             {"label": "Comments posted", "value": MondayComment.objects.filter(created_at__gte=since_dt, status=MondayComment.VISIBLE).count(), "note": "shown to crews"},
             {"label": "OTIS answers rated helpful", "value": f"{_pct(otis_up, otis_all)}%" if otis_all else "–", "note": f"{otis_all} ratings (opt-in)"},

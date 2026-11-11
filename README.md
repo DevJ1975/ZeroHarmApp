@@ -24,10 +24,65 @@ Run it:
 
 ## The backend (Django 5.2 LTS, Postgres, Docker, Railway)
 - `GET /api/talks/` talks the app shows, newest first: every talk past its Sunday 11:59 AM Pacific send time, plus the next two upcoming talks that have their text (`early: true`), so supervisors can run them ahead with crew sign-in. An early talk leaves out "Last week's answer" until its own send time, so it can't give away the previous crew question. `TALKS_EARLY_COUNT` changes how many open early; `TALKS_UNLOCK_EARLY=0` holds every talk until Sunday. The Sunday push goes out on schedule either way.
-- `GET /api/talks/<issue>/` one talk. `POST /api/signups/` optional email sign-up (rate limited), synced to GoHighLevel with tags `zero-harm-app`, `zero-harm-weekly`, and `zero-harm-offers-optin` when they opt in.
+- `GET /api/talks/<issue>/` one talk.
+- `POST /api/signups/` name and email from the welcome screen or Settings (optional, rate limited). Body: `{"email"}` plus
+  optional `name`, `company`, `wants_offers`, `install_id`, `source` (`"welcome"` or `"settings"`) and `consent` (the
+  consent line the app showed). One row per email. The answer is `200 {"ok": true}` for a new email and for
+  one already there, so it can't be used to check who signed up. Each phone that signs up is linked to the email. A repeat
+  from a linked phone updates the row; one from any other phone only fills in blanks and is linked only when the row already
+  has a phone (rows from before phones were recorded can't be claimed). At most 30 new emails an hour from one network (a
+  crew on one plant Wi-Fi; IPv6 counted per /64), repeats not counted. Instant owner emails stop at 20 an hour; the rest
+  are in the daily summary. See *Leads and alerts* below.
+- `POST /api/signups/remove/` with `{"install_id"}` unlinks that phone; the sign-up itself goes when its last phone is
+  removed. At most 5 an hour from one network. It always answers `200 {"ok": true}`, also when nothing matched.
 - `/admin/` edit talk text, PDF and image links, see sign-ups, send a push or retry a GHL sync by hand.
 - All 52 issues of 2027 load automatically on the first migrate.
 - `python manage.py cron` sends any due Sunday push (once only) and retries pending GHL syncs.
+
+### Leads and alerts
+Everyone who signs in on the welcome screen (or in Settings) becomes a lead in GoHighLevel and gets the weekly newsletter.
+- **The lead in GHL:** the contact is created or updated with first name, last name, company and source "Zero Harm app",
+  then tagged `zero-harm-app`, `zero-harm-weekly`, `zero-harm-app-signup`, and `zero-harm-offers-optin` when they said
+  yes to offers. Tags are added, never replaced, so a contact keeps the tags it already had.
+- **The newsletter (set up in GHL):** send Zero Harm Weekly to the tag `zero-harm-weekly`, for example a workflow or a
+  scheduled campaign whose audience is that tag. The app only adds the tag. GHL sends the email and handles unsubscribes.
+- **A notification in the GHL app (set up in GHL):** make a workflow with the trigger *Contact tag added:
+  `zero-harm-app-signup`* and the action *Internal notification* to yourself.
+- **Email to you on every new sign-up:** set `OWNER_ALERT_EMAIL` on web and cron. The moment a new email signs up you get
+  "New Zero Harm sign-up: Jane Doe" with the name, email, company, where they signed up, the Pacific time and the total so
+  far. A repeat sign-up with the same email does not send another. The email goes out through GoHighLevel (your address
+  becomes a contact tagged `zero-harm-owner`), so the location needs a working email sender and the private token needs
+  the scopes `contacts.write` and `conversations/message.write`. Blank `OWNER_ALERT_EMAIL` means no alerts.
+- **One email a day for downloads:** the first cron run after 7:00 AM Pacific sends "Zero Harm yesterday: 12 new phones,
+  3 sign-ups": new phones with the iPhone and Android split and the top places, new sign-ups, phones active and totals.
+  A "new phone" is a phone's first-ever anonymous open, the closest thing to a download the server can see (the app
+  stores don't tell the server about downloads). People who switched off the anonymous usage count are not included.
+  Nothing is sent on a day with no new phones and no sign-ups, and after an outage at most 3 missed days are sent.
+- **Removal:** "Remove my info" in the app removes that phone only. When it was the last phone linked to the email, the
+  name and email are deleted from this server at once. In GHL the tags `zero-harm-weekly`, `zero-harm-offers-optin` and
+  `zero-harm-app-signup` come off, but only the ones the app added: a tag the contact already had before signing up in
+  the app stays on. `zero-harm-removed` and a dated note go on, and you get a "removal request" email. The GHL contact
+  itself is kept; delete it in GHL if they ask for that. Signing up again later takes `zero-harm-removed` back off, and
+  a removal still waiting for GHL is called off.
+- **If GoHighLevel is down:** the sign-up or removal still succeeds on the phone. The cron (every 15 minutes) sends the
+  lead, the alert and the tag changes later. A removal GHL still won't take after 7 days is dropped from the server and
+  you get an email listing the tags to take off by hand. If GHL says the contact no longer exists, the removal is done.
+
+### Invite link
+Send people a link that opens the right app store on their phone.
+- **The link:** `https://YOUR-SERVER/get/?c={{contact.id}}` (YOUR-SERVER is the web service's domain). `{{contact.id}}`
+  is GoHighLevel's merge field, so each person gets their own link.
+- **In GHL:** put it in an email or SMS template, or a workflow *Send email* action, as a button or a link.
+- **What happens on a tap:** an iPhone or iPad goes straight to the App Store and an Android phone to Google Play, once
+  that store's address is set. A computer, or a phone whose store isn't live yet, gets a small Zero Harm page with the
+  store buttons that exist, or "Coming soon to the App Store and Google Play" while neither is set.
+- **Follow-up:** the contact who tapped gets the tag `zero-harm-invite-clicked`. Use it as a workflow trigger (*Contact tag
+  added*) for a follow-up. If GHL is down, the cron adds the tag later (it keeps trying for 2 days).
+- **Store addresses:** set `APP_STORE_URL` and `PLAY_STORE_URL` on Railway (web service) once the app is approved. No app
+  update needed, and links already sent start working at once. Only `https://` addresses are used.
+- **What is counted:** one tap per contact per day, with iPhone, Android or other, shown as *Invite link taps* in the back
+  office. No network address or browser details are kept. A link without a valid contact id still works but isn't
+  counted, and one network can add at most 30 new taps an hour, so a script can't fill the table.
 
 ### Monday Minute (the app's first screen)
 A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code in `backend/monday/`, screens in `app/monday/`).
@@ -60,10 +115,11 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
 ### Back office inside GoHighLevel
 `/backoffice/` is an analytics page built to sit inside GoHighLevel:
 - **What it shows:** sign-in sheets and crew members signed in (with 12-week charts), supervisors running talks, email
-  sign-ups, Monday Minute thumbs and comments, OTIS ratings, the most-used talks, and a *Needs your attention* list
+  sign-ups (welcome screen and Settings), invite link taps (iPhone, Android, other), Monday Minute thumbs and comments, OTIS ratings, the most-used talks, and a *Needs your attention* list
   (pulled talks, paused topics, OSHA rule changes, comments waiting, sheets that didn't reach GHL, talks held for
   bracketed notes, new suggestions). Every item links to the right admin page.
-- **Where the app is used:** phones active in the last 7 days and in the chosen period, iPhone and Android, and the top
+- **Where the app is used:** phones active in the last 7 days and in the chosen period, new phones (first-ever opens)
+  in the period, iPhone and Android, and the top
   countries, states and cities (see *Where the app is used* below).
 - **What it can't show:** screen views. The app doesn't track them.
 - **Access:** set `BACKOFFICE_KEY` on the web service to a long random value. The page opens with
@@ -152,11 +208,14 @@ Then open http://localhost:8000/admin/. Tests: `docker compose exec web python m
 - **web** service: this repo, root directory `/backend`, built from the Dockerfile, health check `/api/health/`.
 - **cron** service: same repo and root, start command `python manage.py cron`, schedule `*/15 * * * *` (every 15 minutes).
   Each run sends any due push (the Sunday talk, Monday Minute, Zero Hour, feed items) once only, runs queued GHL syncs,
-  writes next week's Monday Minute when it's due, screens held comments, retries pending sign-in sheets, and once an
+  writes next week's Monday Minute when it's due, screens held comments, retries pending sign-in sheets, sign-ups,
+  owner alerts, sign-up removals and invite-link tags, sends the owner's daily summary after 7:00 AM Pacific, and once an
   hour deletes anonymous app-open rows older than `USAGE_KEEP_DAYS`.
 
 Variables (web and cron): `DJANGO_SECRET_KEY`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
-`ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`.
+`ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `GHL_LOCATION_ID`,
+`OWNER_ALERT_EMAIL` (where sign-up alerts and the daily summary go; blank turns them off, see *Leads and alerts*).
+Invite link (web, see *Invite link*): `APP_STORE_URL` and `PLAY_STORE_URL` (blank until the app is approved; the page says "coming soon").
 Monday Minute's AI runs on your own **ollama** service by default (see below). Set on web and cron:
 `AI_PROVIDER=local`, `LOCAL_AI_URL=http://ollama.railway.internal:11434`, optionally `LOCAL_AI_MODEL` (default `qwen3:8b`),
 `LOCAL_AI_REVIEW_MODEL` (a bigger model for the safety review only, e.g. `qwen3:14b`), `LOCAL_AI_THREADS` (set it to the

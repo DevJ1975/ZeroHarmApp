@@ -11,4 +11,5 @@ urlpatterns = [
     path("backoffice/", include("backoffice.urls")),
     path("api/v2/", api_v2.urls),
     path("api/", include("talks.urls")),
+    path("", include("invite.urls")),  # /get/: the invite link sent from GoHighLevel
 ]

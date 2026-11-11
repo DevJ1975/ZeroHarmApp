@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { api, config, isConfigured } from '@/lib/config';
+import { checkSignIn, CONSENT_LINE, getAccount, removeMyInfo, signIn, SignInErrors } from '@/lib/account';
+import { config } from '@/lib/config';
 import { FeedbackPrefs, getFeedbackPrefs, saveFeedbackPrefs } from '@/lib/otis/feedback';
-import { getProfile, saveProfile } from '@/lib/profile';
+import { getProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
 import { getUsageOn, setUsageOn } from '@/lib/usage';
 
@@ -16,9 +17,12 @@ export default function SettingsScreen() {
   const [prefs, setLocal] = useState<PushPrefs>({ mondayMinute: false, weeklyTalk: false, alerts: false, zeroHour: false, offers: false });
   const [denied, setDenied] = useState(false);
   const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
+  const [name, setName] = useState('');
   const [company, setCompany] = useState('');
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [account, setAccount] = useState<'loading' | 'in' | 'out' | 'fix'>('loading');
+  const [errors, setErrors] = useState<SignInErrors>({});
+  const [busy, setBusy] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const [otis, setOtis] = useState<FeedbackPrefs>({ helpImprove: false, shareQuestion: false });
   const [usage, setUsage] = useState(true);
 
@@ -26,10 +30,12 @@ export default function SettingsScreen() {
     getPrefs().then(setLocal);
     getFeedbackPrefs().then(setOtis);
     getUsageOn().then(setUsage);
-    getProfile().then((p) => {
-      setEmail(p.email);
-      setFirstName(p.name.split(' ')[0] ?? '');
+    // The sign-in sheet profile only fills in the form. "Signed in as" shows what this phone signed up with.
+    Promise.all([getProfile(), getAccount()]).then(([p, a]) => {
+      setName(a.state === 'out' ? p.name : a.name);
+      setEmail(a.state === 'out' ? p.email : a.email);
       setCompany(p.company);
+      setAccount(a.state);
     });
   }, []);
 
@@ -55,28 +61,42 @@ export default function SettingsScreen() {
     </View>
   );
 
-  async function signUp() {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim()) || !isConfigured()) {
-      setStatus('error');
-      return;
-    }
-    setStatus('saving');
+  // Signing in never waits on the network: it is saved on the phone and sent when there is a signal.
+  async function signInHere() {
+    const checked = checkSignIn({ name, email });
+    setErrors(checked.errors);
+    if (!checked.ok) return;
+    setBusy(true);
     try {
-      await api('/signups/', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          first_name: firstName.trim(),
-          company: company.trim(),
-          wants_offers: prefs.offers,
-        }),
-      });
-      const prev = await getProfile();
-      await saveProfile({ name: prev.name || firstName, email, company });
-      setStatus('saved');
+      await signIn({ name: checked.name, email: checked.email, company, source: 'settings', wantsOffers: prefs.offers });
+      setName(checked.name);
+      setEmail(checked.email);
+      setRemoved(false);
+      setAccount('in');
     } catch {
-      setStatus('error');
+      setErrors({ email: 'That could not be saved on this phone. Tap Sign in again.' });
+    } finally {
+      setBusy(false);
     }
+  }
+
+  function confirmRemove() {
+    Alert.alert('Remove my info?', 'This unlinks this phone from your sign-up and clears your name and email here. If no other phone of yours is signed in, your sign-up ends and the app stops adding you to Zero Harm Weekly. If you joined Zero Harm Weekly another way, use Unsubscribe in any of its emails.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          await removeMyInfo();
+          setName('');
+          setEmail('');
+          setCompany('');
+          setErrors({});
+          setRemoved(true);
+          setAccount('out');
+        },
+      },
+    ]);
   }
 
   const row = (label: string, detail: string, key: keyof PushPrefs) => (
@@ -96,6 +116,46 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
+      <Text style={[styles.section, { color: t.text, marginTop: 0 }]}>Your account</Text>
+      {account === 'in' && (
+        <>
+          <Body>
+            Signed in as {name}, {email}
+          </Body>
+          <Body muted>Zero Harm is free. You get Zero Harm Weekly by email each week.</Body>
+          <Button kind="secondary" label="Remove my info" onPress={confirmRemove} />
+        </>
+      )}
+      {(account === 'out' || account === 'fix') && (
+        <>
+          {account === 'fix' && (
+            <View accessibilityRole="alert">
+              <Body>Check the email address and sign in again.</Body>
+            </View>
+          )}
+          {removed && (
+            <View accessibilityRole="alert">
+              <Body>Removed from this phone. If you also signed in on another phone, remove it there too, or use Delete my data.</Body>
+            </View>
+          )}
+          <Body muted>Zero Harm is free. Signing in is optional, and everything in the app works without it.</Body>
+          <Field label="Your name" value={name} onChangeText={setName} error={errors.name} autoComplete="name" autoCapitalize="words" maxLength={120} />
+          <Field
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            error={errors.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+          />
+          <Field label="Company (optional)" value={company} onChangeText={setCompany} maxLength={120} />
+          <Button label="Sign in" onPress={signInHere} busy={busy} />
+          <Body muted>{CONSENT_LINE}</Body>
+        </>
+      )}
+
       <Text style={[styles.section, { color: t.text }]}>Notifications</Text>
       {row('Monday Minute', 'Monday at 5 AM Pacific: a new 5-minute crew talk with sign-in.', 'mondayMinute')}
       {row('Weekly toolbox talk', 'Sunday around noon Pacific, ready for Monday.', 'weeklyTalk')}
@@ -128,16 +188,9 @@ export default function SettingsScreen() {
         !otis.helpImprove,
       )}
 
-      <Text style={[styles.section, { color: t.text }]}>Get the talk by email too</Text>
-      <Body muted>Optional. Everything in the app works without signing up.</Body>
-      <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
-      <Field label="First name" value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-      <Field label="Company" value={company} onChangeText={setCompany} />
-      <Button label="Sign up" onPress={signUp} busy={status === 'saving'} />
-      {status === 'saved' && <Body>Signed up. Zero Harm Weekly comes by email on Sundays.</Body>}
-      {status === 'error' && <Body>Check the email address and your connection, then tap Sign up again.</Body>}
-
       <Text style={[styles.section, { color: t.text }]}>About and privacy</Text>
+      <Body>Zero Harm is free.</Body>
+      <Button kind="secondary" label="How to use Zero Harm" onPress={() => router.push('/how-to')} />
       <Body muted>
         Zero Harm gives general safety awareness. It adds to your site training and doesn’t replace it, and it isn’t legal or medical advice.
         Monday Minute talks are written by AI and checked before they publish. OTIS is an AI assistant that runs on this phone. Trainovate
@@ -162,7 +215,7 @@ export default function SettingsScreen() {
             label="Delete my data"
             onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%20and%20comments.`)}
           />
-          <Body muted>Delete my data opens an email to us. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions and comments.</Body>
+          <Body muted>Remove my info, at the top, unlinks this phone from your sign-up. Delete my data opens an email to us, for anything not tied to this phone. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions and comments.</Body>
         </>
       )}
     </Screen>

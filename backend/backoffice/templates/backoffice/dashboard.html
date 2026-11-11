@@ -91,6 +91,7 @@
       <div class="tiles" style="margin-bottom:0">
         <div class="tile"><div class="label">Phones active, last 7 days</div><div class="value">{{ usage.phones_week }}</div></div>
         <div class="tile"><div class="label">Phones active, last {{ usage.days }} days</div><div class="value">{{ usage.phones }}</div><div class="note">{{ usage.ios }} iPhone · {{ usage.android }} Android</div></div>
+        <div class="tile"><div class="label">New phones, last {{ usage.days }} days</div><div class="value">{{ usage.new_phones }}</div><div class="note">opened the app for the first time</div></div>
         <div class="tile"><div class="label">How the place is known</div><div class="note">{{ usage.from_phone }} from the phone's location · {{ usage.from_network }} from the network · {{ usage.unknown }} unknown</div></div>
       </div>
       {% elif usage.enabled %}
@@ -125,7 +126,7 @@
     </div>
     {% endif %}
   </section>
-  <footer>Counts come from sign-in sheets saved to records, sign-ups, ratings and comments. Phones active is an anonymous once-a-day count that people can switch off in the app's settings. A phone that moved between places is counted in the latest place known. The app doesn't track screen views, so those aren't shown.{% if usage.credit %} <a href="https://db-ip.com" target="_blank" rel="noopener">IP geolocation by DB-IP</a>.{% endif %}</footer>
+  <footer>Counts come from sign-in sheets saved to records, sign-ups, ratings and comments. Phones active is an anonymous once-a-day count that people can switch off in the app's settings. New phones are phones counted for the first time, the closest thing to downloads the app can see. A phone that moved between places is counted in the latest place known. The app doesn't track screen views, so those aren't shown.{% if usage.credit %} <a href="https://db-ip.com" target="_blank" rel="noopener">IP geolocation by DB-IP</a>.{% endif %}</footer>
 </main>
 <div id="tip" role="status"></div>
 <script>

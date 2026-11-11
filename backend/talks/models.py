@@ -1,6 +1,7 @@
 import re
 
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 
@@ -122,20 +123,96 @@ class ToolboxTalk(models.Model):
 
 
 class AppSignup(models.Model):
+    """One row per email. A repeat sign-up updates the row; it never adds a second one."""
+    WELCOME, SETTINGS = "welcome", "settings"
+    SOURCES = [(WELCOME, "Welcome screen"), (SETTINGS, "Settings")]
+
     email = models.EmailField()
     first_name = models.CharField(max_length=80, blank=True)
+    last_name = models.CharField(max_length=120, blank=True)
     company = models.CharField(max_length=120, blank=True)
     wants_offers = models.BooleanField(default=False, help_text="Separate consent for promotional messages")
-    source = models.CharField(max_length=40, default="zero-harm-app")
+    source = models.CharField(max_length=40, default=SETTINGS, choices=SOURCES, help_text="Where in the app they signed up")
+    consent_text = models.CharField(max_length=200, blank=True, help_text="The consent line the app showed, word for word")
+    consent_at = models.DateTimeField(null=True, blank=True, help_text="When they last agreed to it")
+    owner_alerted_at = models.DateTimeField(null=True, blank=True, help_text="When the new sign-up email went to the owner")
     ghl_contact_id = models.CharField(max_length=40, blank=True)
+    ghl_had_tags = models.JSONField(null=True, blank=True, help_text="Newsletter tags the GoHighLevel contact already had before "
+                                    "the app tagged it. A removal leaves these on. Empty until the first sync.")
     ghl_synced_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(Lower("email"), name="one_signup_per_email")]
 
     def __str__(self):
         return self.email
+
+    @property
+    def full_name(self):
+        return " ".join(x for x in (self.first_name, self.last_name) if x)
+
+
+class SignupPhone(models.Model):
+    """A phone that signed up with this email. Several phones can share one sign-up (a work phone and a home phone).
+    "Remove my info" on a phone only unlinks that phone; the sign-up itself goes when its last phone is removed. That
+    way someone who only knows an email address can't sign up with it on their own phone and then remove the owner."""
+    signup = models.ForeignKey(AppSignup, on_delete=models.CASCADE, related_name="phones")
+    install_hash = models.CharField(max_length=64, db_index=True, help_text="Hashed random id of the phone. Not a person.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [models.UniqueConstraint(fields=["signup", "install_hash"], name="one_link_per_phone_per_signup")]
+
+    def __str__(self):
+        return f"Phone for {self.signup_id}"
+
+
+def split_name(name):
+    """"Jane van Doe" -> ("Jane", "van Doe"): the first word, then the rest. That is how GoHighLevel wants it."""
+    words = str(name or "").split()
+    return (words[0][:80], " ".join(words[1:])[:120]) if words else ("", "")
+
+
+class SignupRemoval(models.Model):
+    """Someone asked in the app to remove their sign-up. The sign-up row is already deleted; this short-lived row only
+    holds what is still to do in GoHighLevel (take the newsletter tags off) and for the owner's alert. It is deleted
+    as soon as both are done, and the cron retries it until then."""
+    email = models.EmailField()
+    name = models.CharField(max_length=200, blank=True)
+    ghl_contact_id = models.CharField(max_length=40, blank=True)
+    ghl_had_tags = models.JSONField(null=True, blank=True, help_text="Copied from the sign-up: tags the contact had before the app")
+    ghl_done_at = models.DateTimeField(null=True, blank=True)
+    owner_alerted_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=0, help_text="Tries at the GoHighLevel step")
+    last_tried_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name = "sign-up removal still to finish"
+        verbose_name_plural = "sign-up removals still to finish"
+
+    def __str__(self):
+        return f"Remove {self.email}"
+
+
+class OwnerDigest(models.Model):
+    """One row per Pacific day the daily summary email was handled, so it never goes out twice."""
+    day = models.DateField(unique=True)
+    sent = models.BooleanField(default=False, help_text="Off when the day had nothing to report, so no email went out")
+    new_phones = models.PositiveIntegerField(default=0)
+    signups = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-day"]
+        verbose_name = "daily summary email"
+
+    def __str__(self):
+        return f"{self.day} {'sent' if self.sent else 'nothing to send'}"
 
 
 class FeedItemQuerySet(models.QuerySet):

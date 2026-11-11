@@ -7,6 +7,7 @@ urlpatterns = [
     path("talks/", views.talk_list),
     path("talks/<int:issue>/", views.talk_detail),
     path("signups/", views.signup),
+    path("signups/remove/", views.signup_remove),
     path("feed/", views.feed_list),
     path("feed/<int:pk>/", views.feed_detail),
     path("ingest/", views.ingest),

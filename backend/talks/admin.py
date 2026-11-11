@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 
 from .integrations import send_talk_push, sync_signup_to_ghl
-from .models import AppSignup, ToolboxTalk
+from .models import AppSignup, SignupPhone, ToolboxTalk
 
 
 @admin.register(ToolboxTalk)
@@ -29,12 +29,24 @@ class ToolboxTalkAdmin(admin.ModelAdmin):
             self.message_user(request, f"Issue {talk.issue}: {'sent' if ok else detail}", level)
 
 
+class SignupPhoneInline(admin.TabularInline):
+    """The phones linked to a sign-up. "Remove my info" on one of them unlinks it; the sign-up goes with the last one."""
+    model = SignupPhone
+    extra = 0
+    can_delete = False
+    readonly_fields = ("install_hash", "created_at")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(AppSignup)
 class AppSignupAdmin(admin.ModelAdmin):
-    list_display = ("email", "first_name", "company", "wants_offers", "created_at", "ghl_synced_at")
-    list_filter = ("wants_offers",)
-    search_fields = ("email", "company")
-    readonly_fields = ("ghl_contact_id", "ghl_synced_at", "created_at")
+    list_display = ("email", "first_name", "last_name", "company", "source", "wants_offers", "created_at", "ghl_synced_at")
+    list_filter = ("source", "wants_offers")
+    search_fields = ("email", "first_name", "last_name", "company")
+    readonly_fields = ("consent_text", "consent_at", "owner_alerted_at", "ghl_contact_id", "ghl_had_tags", "ghl_synced_at", "created_at")
+    inlines = (SignupPhoneInline,)
     actions = ("sync_to_ghl",)
 
     @admin.action(description="Sync selected sign-ups to GoHighLevel")
@@ -205,3 +217,26 @@ class OtisFeedbackAdmin(admin.ModelAdmin):
     @admin.display(description="Question")
     def short_question(self, obj):
         return (obj.question[:80] + "…") if len(obj.question) > 80 else (obj.question or "(not shared)")
+
+
+# ---- Owner alerts --------------------------------------------------------------------------------
+from .models import OwnerDigest, SignupRemoval
+
+
+@admin.register(SignupRemoval)
+class SignupRemovalAdmin(admin.ModelAdmin):
+    """Normally empty: a row only stays while GoHighLevel could not be reached. The cron keeps trying."""
+    list_display = ("email", "created_at", "ghl_done_at", "owner_alerted_at", "attempts", "last_tried_at")
+    readonly_fields = ("email", "name", "ghl_contact_id", "ghl_had_tags", "ghl_done_at", "owner_alerted_at", "attempts", "last_tried_at", "created_at")
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(OwnerDigest)
+class OwnerDigestAdmin(admin.ModelAdmin):
+    list_display = ("day", "sent", "new_phones", "signups", "created_at")
+    readonly_fields = ("day", "sent", "new_phones", "signups", "created_at")
+
+    def has_add_permission(self, request):
+        return False

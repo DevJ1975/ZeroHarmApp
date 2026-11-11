@@ -29,6 +29,9 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | OTIS | Long regulation passages could overflow the phone model's context | Sources are trimmed to the part that matches the question |
 | Weak signal | Screens waited up to 10 seconds on the network before showing saved data | Saved copy first, refresh in the background |
 | Weak signal | A vote made with no signal was lost | Votes queue and send later |
+| Sign-ups (E1, E3) | Duplicate rows per email; consent kept without its wording or time | One row per email; consent line and time stored; people can remove their sign-up in the app |
+| Alerts (A2, in part) | Nobody was told about new sign-ups or downloads | Email on each new sign-up and removal, and a daily summary of new phones |
+| GoHighLevel | Syncing a contact replaced every tag it already had, which could take people off the newsletter | Tags are now added in a separate call and never replaced |
 | Monday Minute (B1) | The AI published without having passed the safety test | Safety gate: talks wait for approval until the current AI setup passes the test |
 | Zero Harm Weekly (C1) | Early unlock opened the whole year and leaked "Last week's answer" | Only the next two talks open early, without last week's answer |
 | Monday Minute (gate) | A talk marked ready on Wednesday still published if the AI later failed its safety test; a small hand-picked test could open the gate; approving a backlog sent a push per talk | The gate is re-checked before release; only full tests count, with a floor per kind of mistake; one push per approval |
@@ -42,7 +45,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | # | Severity | Finding | Proposed fix |
 |---|---|---|---|
 | A1 | Blocker | The Railway web and cron services have no deployment. `DJANGO_SECRET_KEY` is not set, so Django refuses to start. `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `INGEST_KEY` and `BACKOFFICE_KEY` are also missing, so pushes, GHL sync, publishing from GHL and the back office won't work. | Set the variables on web and cron, connect the services to the repo's main branch, deploy. |
-| A2 | High | No alerting. Failures only show in logs or the dashboard. | Send a notice (email through GHL, or a push to an admin tag) when: a week is blocked, a talk is pulled, an OSHA rule changes, a push fails, or the cron hasn't run for an hour. |
+| A2 | High | No alerting. Failures only show in logs or the dashboard. **Partly done:** with `OWNER_ALERT_EMAIL` set, the owner gets an email on every new sign-up and removal, and a daily summary of new phones. Failure alerts are still open. | Send a notice (email through GHL, or a push to an admin tag) when: a week is blocked, a talk is pulled, an OSHA rule changes, a push fails, or the cron hasn't run for an hour. |
 | A3 | High | No error monitoring, uptime check or confirmed database backup. | Add an error tracker, an uptime monitor on `/api/health/`, and confirm Railway Postgres backups are on. |
 | A4 | Medium | One admin login, no second factor, and the admin is on the public internet. | Add two-factor login for the admin and one account per person. |
 | A5 | Medium | No staging environment. Every change goes straight to production. | A second Railway environment with its own database and Ollama server. |
@@ -83,9 +86,9 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 
 | # | Severity | Finding | Proposed fix |
 |---|---|---|---|
-| E1 | Medium | Signing up twice with the same email creates two rows. Counts are inflated. | One row per email, updated on repeat sign-ups. |
+| E1 | Medium | **Fixed.** Signing up twice with the same email created two rows, so counts were inflated. | Done: one row per email (capitals ignored), updated on repeat sign-ups. Existing duplicates are merged by a migration and the database refuses new ones. |
 | E2 | Medium | Saving a sheet to records creates or updates a GHL contact for the supervisor and tags it. The app says the sheet is sent to Trainovate, but not that a contact record is created. | Say so next to the button, and keep marketing tags tied to the separate offers consent. Needs the privacy policy (F1). |
-| E3 | Low | The offers consent is stored as yes or no, without the wording or the time it was given. | Store the time and the consent text version. |
+| E3 | Low | **Fixed.** Consent was stored as yes or no, without the wording or the time it was given. | Done: the app sends the consent line it showed, and the server stores it word for word with the time. The offers choice is kept on the same row. |
 
 ### F. Privacy and legal (need a person)
 
@@ -109,7 +112,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 1. A1: set the Railway secrets and deploy web and cron.
 2. B1: run the safety test on the local model and add the publish gate. If the model fails, switch `AI_PROVIDER` to `anthropic` or add an approval step.
 3. C1: limit early unlock and hide "Last week's answer".
-4. A2: alerts for blocked weeks, pulled talks, rule changes and failed pushes.
+4. A2: alerts for blocked weeks, pulled talks, rule changes and failed pushes. (Sign-up and download alerts are done.)
 5. A7 and F1: privacy policy, OneSignal production mode, store assets.
 
 **First month**
@@ -118,7 +121,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 8. B3, B4: publish time and category spacing.
 9. D2: retention rule and clean-up job, after the lawyer's answer.
 10. A3, A4: monitoring, backups check, two-factor admin.
-11. E1, E2, E3: sign-up clean-up and consent records.
+11. E2: say that saving a sheet creates a contact record. (E1 and E3 are done.)
 
 **Later**
 12. B5, B6, B7: moderation tests, display name rules, notes on the dashboard.

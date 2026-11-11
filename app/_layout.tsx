@@ -8,7 +8,10 @@ import { AppState, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { HolidaySplash } from '@/components/Holiday';
+import { HowTo } from '@/components/HowTo';
+import { Welcome } from '@/components/Welcome';
 import { fonts } from '@/constants/theme';
+import { firstRun, flushAccount, markHowToDone, whatToShow } from '@/lib/account';
 import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
 import { isHoliday, refreshSeason } from '@/lib/season';
@@ -26,6 +29,13 @@ export default function RootLayout() {
   // The holiday opening screen plays once per cold start, decided by the date when the app opens.
   const [opening, setOpening] = useState(isHoliday);
   const closeOpening = useCallback(() => setOpening(false), []);
+  // The welcome sign-in and the how-to show once, on the first open. Read before the first frame so the tabs never flash.
+  const [first, setFirst] = useState(firstRun);
+  const closeWelcome = useCallback(() => setFirst((f) => ({ ...f, welcomeDone: true })), []);
+  const closeHowTo = useCallback(() => {
+    setFirst({ welcomeDone: true, howToDone: true });
+    markHowToDone().catch(() => {});
+  }, []);
   const [loaded, error] = useFonts({
     Barlow_400Regular,
     Barlow_500Medium,
@@ -40,11 +50,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     startPush();
-    // Sheets and votes saved with no signal go out now, and again each time the app comes back to the front:
+    // Sheets, votes and a sign-up saved with no signal go out now, and again each time the app comes back to the front:
     // people walk from a dead spot on the floor to the break room with the phone in their pocket.
     const flush = () => {
       flushSheets();
       flushVotes();
+      flushAccount();
       refreshSeason();
       reportOpen();
     };
@@ -59,8 +70,15 @@ export default function RootLayout() {
 
   if (!loaded) return null;
 
+  // The holiday opening screen plays alone. What comes next waits under it, out of reach of taps and screen readers,
+  // so the opening fades straight into it. A returning person has nothing waiting and lands on the Monday tab.
+  const next = whatToShow({ ...first, opening: false });
+  const covered = whatToShow({ ...first, opening }) === 'opening';
+  const firstRunUp = next !== 'app';
+
   return (
     <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} accessibilityElementsHidden={firstRunUp} importantForAccessibility={firstRunUp ? 'no-hide-descendants' : 'auto'}>
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerTitleStyle: { fontFamily: fonts.displayMedium }, headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -76,9 +94,13 @@ export default function RootLayout() {
         <Stack.Screen name="zero-hour/[n]" options={{ title: 'Zero Hour' }} />
         <Stack.Screen name="alerts" options={{ title: 'Regulatory alerts' }} />
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
+        <Stack.Screen name="how-to" options={{ title: 'How to use Zero Harm' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
+    </View>
+    {next === 'welcome' && <Welcome onDone={closeWelcome} covered={covered} />}
+    {next === 'howto' && <HowTo cover onDone={closeHowTo} covered={covered} />}
     {opening && <HolidaySplash onDone={closeOpening} />}
     </View>
   );

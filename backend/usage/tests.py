@@ -15,7 +15,7 @@ from monday.api import _hash
 
 from . import geo
 from .management.commands import geo_update
-from .models import AppOpen
+from .models import AppOpen, first_opens
 
 INSTALL = "3f6c1c1e-8a55-4a0e-9d7b-1c2d3e4f5a6b"
 ADDRESS = "203.0.113.77"
@@ -299,3 +299,21 @@ class ReviewFixTests(TestCase):
         keys = " ".join(str(k) for k in cache._cache.keys())
         self.assertIn("throttle_usage_", keys)
         self.assertNotIn("203.0.113.77", keys)
+
+
+class FirstOpenTests(TestCase):
+    """A "download" is a phone's first-ever counted open."""
+
+    def test_one_row_per_new_phone_on_its_first_day_only(self):
+        def opened(phone, day, platform="ios"):
+            AppOpen.objects.create(install_hash=phone, day=dt.date(2026, 11, day), platform=platform)
+        opened("a", 1)
+        opened("a", 5)
+        opened("b", 5, "android")
+        opened("c", 5)
+        opened("c", 6)
+        opened("d", 7)
+        day5 = first_opens(dt.date(2026, 11, 5), dt.date(2026, 11, 5))
+        self.assertEqual(sorted(day5.values_list("install_hash", "platform")), [("b", "android"), ("c", "ios")])
+        self.assertEqual(first_opens(dt.date(2026, 11, 6), dt.date(2026, 11, 6)).count(), 0)
+        self.assertEqual(first_opens(dt.date(2026, 11, 1), dt.date(2026, 11, 7)).count(), 4)

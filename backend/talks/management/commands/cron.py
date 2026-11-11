@@ -4,6 +4,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from invite.tagging import retry_tags as retry_invite_tags
+from talks import owner_alerts
 from talks.ghl_sync import sync_year
 from talks.integrations import send_episode_push, send_feed_push, sync_sheet_to_ghl
 from talks.models import Episode, FeedItem, GhlSync, SigninSheet
@@ -48,6 +50,14 @@ class Command(BaseCommand):
             sync_sheet_to_ghl(sheet)
 
         call_command("sync_signups")
+        # Emails to the owner: sign-up alerts and removals that did not go out the first time, then the daily summary.
+        alerts, removals = owner_alerts.retry_signup_alerts(), owner_alerts.retry_removals()
+        if alerts or removals:
+            self.stdout.write(f"Owner alerts: {alerts} sign-up alerts sent late, {removals} removals finished")
+        tagged = retry_invite_tags()  # invite-link taps GoHighLevel didn't tag the first time, from the last 2 days
+        if tagged:
+            self.stdout.write(f"Invite link: {tagged} taps tagged late")
+        call_command("owner_digest")
         call_command("regs_sync")  # weekly; pauses topics and OTIS entries if OSHA changes a cited rule
         call_command("monday_minute")
         if now.minute < 15:  # hourly is plenty: one small delete of anonymous app-open rows past USAGE_KEEP_DAYS

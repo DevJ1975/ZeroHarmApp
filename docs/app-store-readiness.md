@@ -17,6 +17,9 @@ items under "Done in code" still need a check on a real build.
 | Settings | Privacy policy, Terms of use, Contact support and Delete my data rows appear once their addresses are set (see below). Settings is now reachable from the Monday tab. |
 | Wording | Removed the hard-coded "January 3" date, the PDF mention when there is no PDF, and "your first issue arrives Sunday". |
 | Simulator | `eas.json` has a `simulator` profile for an iPhone Simulator build. |
+| Sign-in is optional (rule 5.1.1) | The welcome screen asks for a name and email and says the app is free, with a "Not now" link. Every feature works without signing in. No password and no email code. |
+| Newsletter consent | One line under the button says they will get Zero Harm Weekly by email each week and can unsubscribe anytime. The server stores that line and the time. |
+| Removing a sign-up in the app | "Remove my info" removes that phone from the sign-up (`POST /api/signups/remove/`). When it was the last phone linked to the email, the name and email are deleted from the server at once and the newsletter tags the app added come off in GoHighLevel. Tags the contact had before the app are left alone. A phone can never remove someone else's sign-up. |
 
 ## Only you can do these (in order)
 
@@ -29,13 +32,14 @@ items under "Done in code" still need a check on a real build.
 7. **Push:** upload an APNs key (.p8) to OneSignal and send a test push to a TestFlight build.
 8. **App Store Connect listing:** 6.9-inch iPhone screenshots from the real build, description that says Monday Minute is AI-written and OTIS is an on-device AI assistant (no claim of OSHA compliance), support and privacy URLs, age rating with user-generated content declared, and the App Privacy answers below.
 9. **Test on a real iPhone:** the OTIS download (0.5 to 1.3 GB) with the app in the background, crew sign-in, print and share, and the holiday opening screen.
+10. **After approval:** set `APP_STORE_URL` (and `PLAY_STORE_URL` once Android is live) on the Railway web service. The invite link sent from GoHighLevel (`/get/?c={{contact.id}}`) then sends phones straight to the store, with no app update. Until then it shows "Coming soon".
 
 ## App Privacy answers
 
 | Data | Linked to the person | Tracking | Purpose |
 |---|---|---|---|
-| Email address | Yes | No | App functionality; marketing (newsletter, offers when turned on) |
-| Name | Yes | No | App functionality |
+| Email address (now also asked for on the welcome screen; optional) | Yes | No | App functionality; marketing (the weekly newsletter, offers when turned on) |
+| Name (now also asked for on the welcome screen; optional) | Yes | No | App functionality; marketing (the newsletter is addressed to them) |
 | Photos (crew photo on a saved sheet) | Yes | No | App functionality |
 | Other user content (signed sheets, comments, notes, suggestions, OTIS question if opted in) | Yes | No | App functionality; analytics |
 | Device ID (push id, hashed install id) | No | No | App functionality |
@@ -44,7 +48,8 @@ items under "Done in code" still need a check on a real build.
 
 ## Notes for the reviewer (paste into App Store Connect)
 
-- No login. Every feature works without signing up.
+- No account is needed. The first screen asks for a name and email for the free weekly newsletter. Tap "Not now" to skip it. Every feature works without signing in, and there is no password.
+- A sign-up can be removed in the app, in Settings.
 - Monday tab: this week's AI-written talk. Scroll down for thumbs, comments, Report and Block (the ••• on a comment) and the community rules shown before a first post. Comments are screened before they show, and reports are handled within 24 hours at the support address.
 - Crew sign-in: Start crew sign-in, type a name, sign, optionally take a group photo, then Print or Share.
 - OTIS: an AI assistant that runs on the phone. First use downloads a model over Wi-Fi. Questions never leave the phone.
@@ -53,7 +58,7 @@ items under "Done in code" still need a check on a real build.
 
 ## Still open in code
 
-- A server-side "delete my data" endpoint and deleting your own comment (today it is an email request).
+- Removing a sign-up (name and email) in the app is done: a phone removes itself, and the sign-up goes when its last phone is removed. Still open: deleting your own comment and saved sign-in sheets from the server (today that is an email request), and deleting the GoHighLevel contact itself (removal takes the tags off and marks it; the contact is deleted by hand).
 - An alert to you on every comment report (audit item A2), so the 24-hour promise does not depend on checking the dashboard.
 - A reason picker on reports, a "Blocked people" list, and blocking agency words in display names (audit B6).
 - The sign-in sheet note should say a contact record is created (audit E2). Wording needs the privacy policy first.

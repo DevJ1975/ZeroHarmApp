@@ -13,7 +13,11 @@ BASE = "https://services.leadconnectorhq.com"
 
 
 class GhlError(Exception):
-    pass
+    """A failed call. `status` is the HTTP code (0 when GoHighLevel could not be reached) and `body` what it answered."""
+
+    def __init__(self, message, status=0, body=""):
+        super().__init__(message)
+        self.status, self.body = status, body
 
 
 def configured():
@@ -34,7 +38,8 @@ def request(method, path, query=None, body=None, raw=None, content_type="applica
             text = res.read()
             return json.loads(text) if text else {}
     except urllib.error.HTTPError as err:
-        raise GhlError(f"{method} {path} -> {err.code}: {err.read().decode(errors='replace')[:300]}") from err
+        text = err.read().decode(errors="replace")[:300]
+        raise GhlError(f"{method} {path} -> {err.code}: {text}", status=err.code, body=text) from err
     except (urllib.error.URLError, TimeoutError) as err:
         raise GhlError(f"{method} {path} -> {err}") from err
 
@@ -74,15 +79,48 @@ def upload_media(filename, content, mime="application/pdf"):
     return url
 
 
-def upsert_contact(email, first_name="", company="", tags=()):
-    payload = {"locationId": settings.GHL_LOCATION_ID, "email": email, "tags": list(tags), "source": "Zero Harm app"}
+def upsert_contact(email, first_name="", company="", tags=(), last_name="", source="Zero Harm app", timeout=30):
+    """Creates or updates the contact, then adds the tags. The tags are added in a second call on purpose: tags sent
+    with the upsert itself replace every tag the contact already has, which would take a person off the newsletter."""
+    payload = {"locationId": settings.GHL_LOCATION_ID, "email": email}
+    if source:
+        payload["source"] = source
     if first_name:
         payload["firstName"] = first_name
+    if last_name:
+        payload["lastName"] = last_name
     if company:
         payload["companyName"] = company
-    data = request("POST", "/contacts/upsert", body=payload)
-    return (data.get("contact") or {}).get("id", "")
+    data = request("POST", "/contacts/upsert", body=payload, timeout=timeout)
+    contact_id = (data.get("contact") or {}).get("id", "")
+    if contact_id and tags:
+        add_tags(contact_id, tags, timeout=timeout)
+    return contact_id
 
 
-def add_note(contact_id, text):
-    request("POST", f"/contacts/{contact_id}/notes", body={"body": text})
+def contact_tags(contact_id, timeout=30):
+    """The tags on one contact."""
+    return list((request("GET", f"/contacts/{contact_id}", timeout=timeout).get("contact") or {}).get("tags") or [])
+
+
+def find_contact(email, timeout=30):
+    """The contact with this email, or {} when there is none. Only looks: unlike the upsert, it never makes a contact."""
+    data = request("GET", "/contacts/search/duplicate", {"locationId": settings.GHL_LOCATION_ID, "email": email}, timeout=timeout)
+    return data.get("contact") or {}
+
+
+def add_tags(contact_id, tags, timeout=30):
+    request("POST", f"/contacts/{contact_id}/tags", body={"tags": list(tags)}, timeout=timeout)
+
+
+def remove_tags(contact_id, tags, timeout=30):
+    request("DELETE", f"/contacts/{contact_id}/tags", body={"tags": list(tags)}, timeout=timeout)
+
+
+def add_note(contact_id, text, timeout=30):
+    request("POST", f"/contacts/{contact_id}/notes", body={"body": text}, timeout=timeout)
+
+
+def send_email(contact_id, subject, html, timeout=30):
+    """Sends one email to a contact through GoHighLevel's Conversations API (the location's own email sender)."""
+    request("POST", "/conversations/messages", body={"type": "Email", "contactId": contact_id, "subject": subject, "html": html}, timeout=timeout)

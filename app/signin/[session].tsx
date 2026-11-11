@@ -7,7 +7,7 @@ import SignatureScreen, { SignatureViewRef } from 'react-native-signature-canvas
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { attendeeCount, buildSigninSheet, keepOnPhone, printPdf, sharePdf } from '@/lib/pdf';
-import { getProfile, Profile, saveProfile, validEmail } from '@/lib/profile';
+import { getProfile, Profile, saveProfile, tidyEmail, validEmail } from '@/lib/profile';
 import { saveSheetToRecords } from '@/lib/sheets';
 import { addSignin, getSession, listSignins, setGroupPhoto, setKeptPdf, Signin, SigninSession } from '@/lib/signins';
 import { getSubject, SheetSubject } from '@/lib/subject';
@@ -101,6 +101,8 @@ export default function SigninScreen() {
     }
     const subject = await getSubject(session);
     if (!subject) return;
+    const email = tidyEmail(profile.email);
+    if (email !== profile.email) setProfile({ ...profile, email });
     setBusy('save');
     setResult('');
     try {
@@ -110,7 +112,7 @@ export default function SigninScreen() {
       await keep(subject, fresh, uri);
       setResult(
         sent
-          ? `Saved to your Zero Harm records for ${profile.email}.`
+          ? `Saved to your Zero Harm records for ${email}.`
           : 'Saved on this phone. It will go to your records the next time you have signal.',
       );
       refresh();

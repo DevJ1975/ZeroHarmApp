@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { api, isConfigured } from '@/lib/config';
-import { getProfile, validEmail } from '@/lib/profile';
+import { getProfile, tidyEmail, validEmail } from '@/lib/profile';
 
 const THEMES = ['Hazardous Energy', 'Chemicals', 'Machine Guarding', 'Respiratory & Eye', 'Falls', 'Heat', 'Forklifts', 'Electrical',
   'Emergency Action', 'Fire Prevention', 'Lifting & Driving', 'Winter Safety', 'Something else'];
@@ -42,7 +42,7 @@ export default function SuggestScreen() {
     try {
       await api('/suggestions/', {
         method: 'POST',
-        body: JSON.stringify({ topic, details, month_theme: theme, name, email: email.trim().toLowerCase(), company, may_contact: contact }),
+        body: JSON.stringify({ topic, details, month_theme: theme, name, email: tidyEmail(email), company, may_contact: contact }),
       });
       setStatus('sent');
     } catch {

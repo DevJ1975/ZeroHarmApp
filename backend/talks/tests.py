@@ -47,13 +47,13 @@ class SignupTests(TestCase):
 
     def test_signup_saves_and_validates(self):
         ok = self.client.post("/api/signups/", {"email": " Crew@Example.com ", "wants_offers": True}, content_type="application/json")
-        self.assertEqual(ok.status_code, 201)
+        self.assertEqual(ok.status_code, 200)
         self.assertEqual(AppSignup.objects.get().email, "crew@example.com")
         bad = self.client.post("/api/signups/", {"email": "nope"}, content_type="application/json")
         self.assertEqual(bad.status_code, 400)
 
-    def test_signup_rate_limit(self):
-        for _ in range(5):
+    def test_repeats_have_a_wide_limit_of_their_own(self):
+        for _ in range(120):
             self.client.post("/api/signups/", {"email": "a@b.co"}, content_type="application/json")
         r = self.client.post("/api/signups/", {"email": "a@b.co"}, content_type="application/json")
         self.assertEqual(r.status_code, 429)
@@ -538,3 +538,630 @@ class ConfigTests(TestCase):
         self.assertLess(len(res.content), 120_000)
         plain = self.client.get("/api/talks/")
         self.assertEqual(self.client.get("/api/talks/", HTTP_IF_NONE_MATCH=plain["ETag"]).status_code, 304)
+
+
+# ---- Welcome sign-in: one row per email, GoHighLevel lead, owner alerts, removal ------------------
+import datetime as dt
+import importlib
+
+from usage.models import AppOpen
+
+from . import owner_alerts
+from .ghl import GhlError
+from .integrations import sync_signup_to_ghl
+from .models import OwnerDigest, SignupPhone, SignupRemoval, split_name
+
+INSTALL = "3f6c1c1e-8a55-4a0e-9d7b-1c2d3e4f5a6b"
+CONSENT = "You'll get Zero Harm Weekly by email each week. Unsubscribe anytime."
+GHL_ON = dict(SECRET_KEY="test", GHL_PRIVATE_TOKEN="token", GHL_LOCATION_ID="loc", OWNER_ALERT_EMAIL="owner@example.com")
+
+
+class FakeGhl:
+    """Stands in for GoHighLevel. Records every call made through integrations._post and ghl.request; `down` makes
+    both fail the way a dead network does. Nothing here touches the network."""
+
+    def __init__(self):
+        self.down, self.calls = False, []
+        self.tags = []          # the tags on contact lead1 before the app touches it
+        self.upsert_tags = None  # set to a list to send the tags back in the upsert answer instead
+        self.known = set()       # emails that have a contact (made by an upsert, or set by a test)
+        self.fail = {}           # (method, path) -> (status, body): GoHighLevel answers that call with an error
+        self.hook = None         # called before each tag call; lets a test act while the sync is running
+
+    def post(self, url, headers, payload, timeout=10):
+        path = url.replace("https://services.leadconnectorhq.com", "")
+        self.calls.append(("POST", path, payload, timeout))
+        if self.down:
+            return 0, {"error": "timed out"}
+        if path == "/contacts/upsert":
+            self.known.add(payload["email"])
+            contact = {"id": "lead1", **({"tags": self.upsert_tags} if self.upsert_tags is not None else {})}
+            return 200, {"contact": contact}
+        if self.hook:
+            self.hook()
+        return 200, {}
+
+    def request(self, method, path, query=None, body=None, raw=None, content_type="application/json", timeout=30):
+        self.calls.append((method, path, body or query, timeout))
+        if self.down:
+            raise GhlError(f"{method} {path} -> timed out")
+        if (method, path) in self.fail:
+            status, text = self.fail[(method, path)]
+            raise GhlError(f"{method} {path} -> {status}: {text}", status=status, body=text)
+        if path == "/contacts/upsert":
+            return {"contact": {"id": "owner1"}}
+        if method == "GET" and path == "/contacts/search/duplicate":
+            return {"contact": {"id": "lead1", "tags": list(self.tags)} if query["email"] in self.known else None}
+        if method == "GET" and path.startswith("/contacts/"):
+            return {"contact": {"id": path.split("/")[2], "tags": list(self.tags)}}
+        return {}
+
+    def to(self, path, method="POST"):
+        return [c for c in self.calls if c[1] == path and c[0] == method]
+
+    @property
+    def emails(self):
+        return [c[2] for c in self.to("/conversations/messages")]
+
+
+class GhlTestCase(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.ghl = FakeGhl()
+        for target, fake in (("talks.integrations._post", self.ghl.post), ("talks.ghl.request", self.ghl.request)):
+            patcher = patch(target, side_effect=fake)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def signup(self, **body):
+        return self.client.post("/api/signups/", {"email": "jane@plant.com", **body}, content_type="application/json")
+
+    def remove(self, install_id=INSTALL):
+        return self.client.post("/api/signups/remove/", {"install_id": install_id}, content_type="application/json")
+
+
+@override_settings(**GHL_ON)
+class WelcomeSignupTests(GhlTestCase):
+    def test_new_and_repeat_emails_get_the_same_answer_with_one_row(self):
+        first = self.signup(name="Jane van Doe", source="welcome", install_id=INSTALL, consent=CONSENT)
+        self.assertEqual((first.status_code, first.json()), (200, {"ok": True}))
+        row = AppSignup.objects.get()
+        self.assertEqual((row.first_name, row.last_name, row.source, row.consent_text), ("Jane", "van Doe", "welcome", CONSENT))
+        self.assertIsNotNone(row.consent_at)
+        self.assertEqual([len(h) for h in row.phones.values_list("install_hash", flat=True)], [64])
+        created = row.created_at
+
+        again = self.signup(email=" JANE@Plant.com ", name="Jane Doe", company="Acme Foods", wants_offers=True, source="settings", install_id=INSTALL)
+        self.assertEqual((again.status_code, again.json()), (200, {"ok": True}))
+        row = AppSignup.objects.get()  # still one row
+        self.assertEqual((row.email, row.last_name, row.company, row.wants_offers), ("jane@plant.com", "Doe", "Acme Foods", True))
+        self.assertEqual((row.source, row.created_at), ("welcome", created))  # where and when they first signed up stay
+        self.assertEqual(row.phones.count(), 1)
+
+    def test_database_refuses_a_second_row_for_the_same_email(self):
+        from django.db import IntegrityError, transaction
+        AppSignup.objects.create(email="jane@plant.com")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            AppSignup.objects.create(email="Jane@Plant.com")
+
+    def test_name_split_and_old_clients(self):
+        self.assertEqual(split_name("Jane"), ("Jane", ""))
+        self.assertEqual(split_name("  Jane   van  Doe "), ("Jane", "van Doe"))
+        self.assertEqual(split_name(""), ("", ""))
+        self.signup(first_name="Bo", company="Dock Co")  # an app version from before the welcome screen
+        row = AppSignup.objects.get()
+        self.assertEqual((row.first_name, row.last_name, row.source, row.phones.count(), row.consent_at), ("Bo", "", "settings", 0, None))
+
+    def test_bad_input(self):
+        self.assertEqual(self.signup(email="nope").status_code, 400)
+        self.assertEqual(self.client.post("/api/signups/", "[1]", content_type="application/json").status_code, 400)
+        self.signup(install_id="short", source="somewhere", name="x" * 300)  # ignored or cut, never an error
+        row = AppSignup.objects.get()
+        self.assertEqual((row.phones.count(), row.source, len(row.first_name)), (0, "settings", 80))
+
+    def test_lead_goes_to_ghl_with_last_name_and_tags(self):
+        self.signup(name="Jane van Doe", company="Acme", wants_offers=True, source="welcome")
+        upsert = self.ghl.to("/contacts/upsert")[0][2]
+        self.assertEqual(upsert, {"locationId": "loc", "email": "jane@plant.com", "source": "Zero Harm app",
+                                  "firstName": "Jane", "lastName": "van Doe", "companyName": "Acme"})
+        self.assertNotIn("tags", upsert)  # tags sent with the upsert would replace the contact's other tags
+        tags = self.ghl.to("/contacts/lead1/tags")[0][2]["tags"]
+        self.assertEqual(tags, ["zero-harm-app", "zero-harm-weekly", "zero-harm-app-signup", "zero-harm-offers-optin"])
+        row = AppSignup.objects.get()
+        self.assertEqual(row.ghl_contact_id, "lead1")
+        self.assertIsNotNone(row.ghl_synced_at)
+
+    def test_offers_tag_only_when_opted_in_and_taken_off_on_a_repeat_without_it(self):
+        self.signup(name="Jane Doe", wants_offers=True, install_id=INSTALL)
+        self.signup(name="Jane Doe", wants_offers=False, install_id=INSTALL)
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags")[-1][2]["tags"], ["zero-harm-app", "zero-harm-weekly", "zero-harm-app-signup"])
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2], {"tags": ["zero-harm-offers-optin"]})
+
+    def test_owner_alert_once_for_a_new_email_never_for_repeats(self):
+        self.signup(name="Jane Doe", company="Acme Foods", source="welcome")
+        self.signup(name="Jane Doe")
+        self.signup(name="Jane D")
+        self.assertEqual(len(self.ghl.emails), 1)
+        mail = self.ghl.emails[0]
+        self.assertEqual((mail["type"], mail["contactId"], mail["subject"]), ("Email", "owner1", "New Zero Harm sign-up: Jane Doe"))
+        for text in ("jane@plant.com", "Acme Foods", "the welcome screen", "Pacific", "<b>Sign-ups so far:</b> 1", "zero-harm-weekly"):
+            self.assertIn(text, mail["html"])
+        self.assertIsNotNone(AppSignup.objects.get().owner_alerted_at)
+        # The owner's own contact: made once, tagged in a separate call, never marked as an app lead.
+        owner = [c for c in self.ghl.calls if c[0] == "POST" and c[1] == "/contacts/upsert" and c[2].get("email") == "owner@example.com"]
+        self.assertEqual([c[2] for c in owner], [{"locationId": "loc", "email": "owner@example.com"}])
+        self.assertEqual(self.ghl.to("/contacts/owner1/tags")[0][2], {"tags": ["zero-harm-owner"]})
+        self.assertEqual(owner_alerts.retry_signup_alerts(now=timezone.now() + timedelta(hours=1)), 0)
+        self.assertEqual(len(self.ghl.emails), 1)
+
+    def test_alert_escapes_what_the_person_typed(self):
+        self.signup(name="<script>alert(1)</script> O'Neil", company="<img src=x onerror=1>&Co")
+        html = self.ghl.emails[0]["html"]
+        self.assertNotIn("<script>", html)
+        self.assertNotIn("<img", html)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt; O&#x27;Neil", html)
+        self.assertIn("&lt;img src=x onerror=1&gt;&amp;Co", html)
+
+    def test_signup_succeeds_when_ghl_is_down_and_the_cron_sends_the_alert_later(self):
+        self.ghl.down = True
+        self.assertEqual(self.signup(name="Jane Doe").status_code, 200)
+        row = AppSignup.objects.get()
+        self.assertEqual((row.ghl_synced_at, row.owner_alerted_at), (None, None))
+        self.assertTrue(all(c[3] <= 5 for c in self.ghl.calls))  # short timeouts while the phone waits
+        self.assertEqual(len(self.ghl.calls), 1)  # one try, then it gives up until the cron
+
+        later = timezone.now() + timedelta(minutes=20)
+        self.assertEqual(owner_alerts.retry_signup_alerts(now=later), 0)  # still down
+        self.ghl.down = False
+        self.assertEqual(owner_alerts.retry_signup_alerts(now=later), 1)
+        self.assertEqual(owner_alerts.retry_signup_alerts(now=later), 0)
+        self.assertEqual([m["subject"] for m in self.ghl.emails], ["New Zero Harm sign-up: Jane Doe"])
+        call_command("sync_signups", stdout=StringIO())
+        self.assertEqual(AppSignup.objects.get().ghl_contact_id, "lead1")
+
+    def test_the_cron_itself_sends_what_was_missed(self):
+        self.ghl.down = True
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.ghl.down = False
+        with patch("django.utils.timezone.now", return_value=timezone.now() + timedelta(minutes=20)), \
+                patch("talks.management.commands.cron.call_command") as commands:
+            out = StringIO()
+            call_command("cron", stdout=out)
+        self.assertIn("Owner alerts: 1 sign-up alerts sent late, 0 removals finished", out.getvalue())
+        self.assertIn("owner_digest", [c[0][0] for c in commands.call_args_list])
+        self.assertEqual(len(self.ghl.emails), 1)
+
+    def test_cron_retry_leaves_old_and_brand_new_rows_alone(self):
+        old = AppSignup.objects.create(email="old@plant.com")
+        AppSignup.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=3))
+        AppSignup.objects.create(email="new@plant.com")  # seconds old: the sign-up request may still be sending it
+        self.assertEqual(owner_alerts.retry_signup_alerts(), 0)
+        self.assertEqual(self.ghl.emails, [])
+
+    def test_no_alerts_without_an_owner_address(self):
+        with self.settings(OWNER_ALERT_EMAIL=""):
+            self.assertEqual(self.signup(name="Jane Doe").status_code, 200)
+            self.assertEqual(owner_alerts.retry_signup_alerts(now=timezone.now() + timedelta(hours=1)), 0)
+            self.assertEqual(owner_alerts.send_due_digests(), [])
+        self.assertEqual(self.ghl.emails, [])
+        self.assertEqual(len(self.ghl.to("/contacts/upsert")), 1)  # the lead still went to GoHighLevel
+
+    def test_nothing_is_sent_without_ghl_settings(self):
+        with self.settings(GHL_PRIVATE_TOKEN=""):
+            self.assertEqual(self.signup(name="Jane Doe").status_code, 200)
+            self.assertFalse(sync_signup_to_ghl(AppSignup.objects.get()))
+        self.assertEqual(self.ghl.calls, [])
+
+    def test_a_crew_can_sign_in_together_on_one_network(self):
+        with patch("talks.views.sync_signup_to_ghl", return_value=False):
+            for i in range(30):
+                self.assertEqual(self.signup(email=f"crew{i}@plant.com").status_code, 200)
+            for _ in range(10):  # repeats of an email already here don't use up the limit
+                self.assertEqual(self.signup(email="crew0@plant.com").status_code, 200)
+            self.assertEqual(self.signup(email="one-too-many@plant.com").status_code, 429)
+            self.assertEqual(self.signup(email="crew1@plant.com").status_code, 200)
+        self.assertEqual(AppSignup.objects.count(), 30)
+
+
+class MergeDuplicateSignupsTests(TestCase):
+    def test_merge_keeps_the_earliest_row_and_the_ghl_id(self):
+        merge = importlib.import_module("talks.migrations.0013_merge_duplicate_signups").merge_duplicate_signups
+        from django.db import connection
+        # The rule that stops duplicates came after the merge. Drop its index to make some; the test's rollback puts it back.
+        with connection.cursor() as cursor:
+            cursor.execute("DROP INDEX one_signup_per_email")
+        synced = timezone.now()
+        rows = [
+            AppSignup.objects.create(email="Jane@Plant.com", source="zero-harm-app"),
+            AppSignup.objects.create(email="jane@plant.com", first_name="Jane", company="Acme", ghl_contact_id="g1", ghl_synced_at=synced),
+            AppSignup.objects.create(email="JANE@plant.com ", first_name="Janet", wants_offers=True, ghl_contact_id="g2"),
+            AppSignup.objects.create(email="bo@dock.com", first_name="Bo", source="zero-harm-app"),
+        ]
+        for i, row in enumerate(rows):
+            AppSignup.objects.filter(pk=row.pk).update(created_at=datetime(2026, 5, 1 + i, tzinfo=dt_tz.utc))
+        self.assertEqual(merge(AppSignup), 2)
+        self.assertEqual(merge(AppSignup), 0)  # safe to run again
+        self.assertEqual(AppSignup.objects.count(), 2)
+        jane = AppSignup.objects.get(email="jane@plant.com")
+        self.assertEqual(jane.pk, rows[0].pk)
+        self.assertEqual(jane.created_at, datetime(2026, 5, 1, tzinfo=dt_tz.utc))
+        self.assertEqual((jane.first_name, jane.company, jane.ghl_contact_id, jane.ghl_synced_at, jane.wants_offers, jane.source),
+                         ("Jane", "Acme", "g1", synced, True, "settings"))
+        self.assertEqual(AppSignup.objects.get(email="bo@dock.com").source, "settings")
+
+
+@override_settings(**GHL_ON)
+class SignupRemoveTests(GhlTestCase):
+    def test_remove_deletes_the_row_and_untags_the_contact(self):
+        self.signup(name="Jane Doe", install_id=INSTALL, wants_offers=True)
+        self.signup(email="bo@dock.com", name="Bo", install_id="another-phone-id")
+        self.ghl.calls.clear()
+        res = self.remove()
+        self.assertEqual((res.status_code, res.json()), (200, {"ok": True}))
+        self.assertEqual(list(AppSignup.objects.values_list("email", flat=True)), ["bo@dock.com"])
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2],
+                         {"tags": ["zero-harm-weekly", "zero-harm-offers-optin", "zero-harm-app-signup"]})
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags")[0][2], {"tags": ["zero-harm-removed"]})
+        note = self.ghl.to("/contacts/lead1/notes")[0][2]["body"]
+        self.assertIn("Removed their sign-up in the Zero Harm app on", note)
+        self.assertIn(str(timezone.localdate().year), note)
+        self.assertEqual([m["subject"] for m in self.ghl.emails], ["Zero Harm removal request: jane@plant.com"])
+        self.assertFalse(SignupRemoval.objects.exists())  # nothing left to do, so nothing is kept
+
+    def test_remove_always_answers_200(self):
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.ghl.calls.clear()
+        for body in ({"install_id": "some-other-phone"}, {"install_id": "x"}, {}, {"install_id": 12345678}):
+            res = self.client.post("/api/signups/remove/", body, content_type="application/json")
+            self.assertEqual((res.status_code, res.json()), (200, {"ok": True}))
+        self.assertEqual(self.client.post("/api/signups/remove/", "not json", content_type="application/json").status_code, 200)
+        self.assertEqual(AppSignup.objects.count(), 1)
+        self.assertEqual(self.ghl.calls, [])
+
+    def test_remove_is_kept_and_retried_when_ghl_is_down(self):
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.ghl.calls.clear()
+        self.ghl.down = True
+        self.assertEqual(self.remove().status_code, 200)
+        self.assertFalse(AppSignup.objects.exists())  # their data is gone from the app's server right away
+        pending = SignupRemoval.objects.get()
+        self.assertEqual((pending.email, pending.ghl_contact_id, pending.ghl_done_at), ("jane@plant.com", "lead1", None))
+        self.assertTrue(all(c[3] <= 5 for c in self.ghl.calls))
+
+        later = timezone.now() + timedelta(minutes=20)
+        self.assertEqual(owner_alerts.retry_removals(now=later), 0)
+        self.assertTrue(SignupRemoval.objects.exists())
+        self.ghl.down = False
+        self.ghl.calls.clear()
+        self.assertEqual(owner_alerts.retry_removals(now=later), 1)
+        self.assertFalse(SignupRemoval.objects.exists())
+        self.assertEqual(len(self.ghl.to("/contacts/lead1/tags", "DELETE")), 1)
+        self.assertEqual(len(self.ghl.emails), 1)
+
+    def test_remove_before_the_lead_reached_ghl_only_tells_the_owner(self):
+        self.ghl.down = True
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.ghl.down = False
+        self.ghl.calls.clear()
+        self.remove()
+        self.assertFalse(AppSignup.objects.exists())
+        self.assertFalse(SignupRemoval.objects.exists())
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE"), [])
+        self.assertIn("had not reached GoHighLevel", self.ghl.emails[0]["html"])
+        call_command("sync_signups", stdout=StringIO())  # the deleted sign-up is never sent to GoHighLevel afterwards
+        self.assertEqual([c for c in self.ghl.to("/contacts/upsert") if c[2]["email"] == "jane@plant.com"], [])
+
+    def test_remove_rate_limit(self):
+        for _ in range(5):
+            self.assertEqual(self.remove().status_code, 200)
+        self.assertEqual(self.remove().status_code, 429)
+
+
+OTHER = "9b1d7c2e-0f44-4c6a-8e1f-aa00bb11cc22"  # another phone
+
+
+@override_settings(**GHL_ON)
+class SignupPhoneTests(GhlTestCase):
+    """Every phone that signs up with an email is linked to it, and a phone can only remove itself."""
+
+    def test_a_repeat_from_another_phone_links_it_and_changes_nothing_else(self):
+        self.signup(name="Jane Doe", install_id=INSTALL, consent=CONSENT)
+        consent_at = AppSignup.objects.get().consent_at
+        again = self.signup(name="Mallory Evil", company="Evil Co", wants_offers=True, consent="something else", install_id=OTHER)
+        self.assertEqual((again.status_code, again.json()), (200, {"ok": True}))
+        row = AppSignup.objects.get()
+        self.assertEqual((row.first_name, row.last_name, row.consent_text, row.consent_at, row.wants_offers),
+                         ("Jane", "Doe", CONSENT, consent_at, False))
+        self.assertEqual(row.company, "Evil Co")  # it was blank, so it is filled in
+        self.assertEqual(row.phones.count(), 2)
+        self.signup(company="Other Co", install_id=OTHER)  # once linked, the second phone counts as theirs too
+        self.signup(name="Someone Else", company="Old App Co")  # an old app version that sends no phone id: blanks only
+        row = AppSignup.objects.get()
+        self.assertEqual((row.first_name, row.company, row.phones.count()), ("Jane", "Other Co", 2))
+
+    def test_another_phone_can_only_remove_itself(self):
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.signup(name="Mallory", install_id=OTHER)
+        self.ghl.calls.clear()
+        res = self.remove(OTHER)
+        self.assertEqual((res.status_code, res.json()), (200, {"ok": True}))
+        row = AppSignup.objects.get()  # Jane is still signed up
+        self.assertEqual(row.phones.count(), 1)
+        self.assertEqual((self.ghl.calls, SignupRemoval.objects.count()), ([], 0))  # GoHighLevel untouched, no alert
+        self.assertEqual(self.remove(OTHER).json(), {"ok": True})  # again: nothing left for that phone
+        self.assertTrue(AppSignup.objects.exists())
+
+        self.remove(INSTALL)  # her own (last) phone removes the sign-up
+        self.assertFalse(AppSignup.objects.exists())
+        self.assertEqual(len(self.ghl.to("/contacts/lead1/tags", "DELETE")), 1)
+        self.assertEqual([m["subject"] for m in self.ghl.emails], ["Zero Harm removal request: jane@plant.com"])
+
+    def test_old_single_phone_column_is_copied_into_the_links(self):
+        copy_phones = importlib.import_module("talks.migrations.0016_copy_signup_phones").copy_phones
+        jane, bo = AppSignup.objects.create(email="jane@plant.com"), AppSignup.objects.create(email="bo@dock.com")
+        old_rows = [(jane.pk, "h" * 64, jane.created_at), (bo.pk, "g" * 64, bo.created_at)]
+
+        class OldAppSignup:  # the sign-up model as it was before 0017, with its install_hash column
+            class objects:
+                @staticmethod
+                def exclude(**kw):
+                    return type("Q", (), {"values_list": staticmethod(lambda *a: old_rows)})()
+
+        self.assertEqual(copy_phones(OldAppSignup, SignupPhone), 2)
+        self.assertEqual(copy_phones(OldAppSignup, SignupPhone), 0)  # safe to run again
+        self.assertEqual(list(jane.phones.values_list("install_hash", flat=True)), ["h" * 64])
+        self.assertEqual(jane.phones.get().created_at, jane.created_at)
+
+
+@override_settings(**GHL_ON)
+class RemovalTagTests(GhlTestCase):
+    def test_tags_the_contact_already_had_are_noted_and_left_on(self):
+        self.ghl.tags = ["zero-harm-weekly", "customer"]
+        self.signup(name="Jane Doe", install_id=INSTALL, wants_offers=True)
+        self.assertEqual(self.ghl.to("/contacts/lead1", "GET")[0][1], "/contacts/lead1")  # the upsert answer had no tags
+        self.assertEqual(AppSignup.objects.get().ghl_had_tags, ["zero-harm-weekly"])
+        self.ghl.calls.clear()
+        self.remove()
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2], {"tags": ["zero-harm-offers-optin", "zero-harm-app-signup"]})
+        self.assertIn("They had zero-harm-weekly before signing up in the app, so those were left on.", self.ghl.emails[0]["html"])
+
+    def test_tags_in_the_upsert_answer_are_used_and_an_offers_tag_they_had_stays_on_a_repeat(self):
+        self.ghl.upsert_tags = ["zero-harm-offers-optin"]
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.assertEqual(self.ghl.to("/contacts/lead1", "GET"), [])
+        self.assertEqual(AppSignup.objects.get().ghl_had_tags, ["zero-harm-offers-optin"])
+        self.signup(name="Jane Doe", install_id=INSTALL, wants_offers=False)
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE"), [])  # their own offers tag is not the app's to take off
+        self.remove()
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2], {"tags": ["zero-harm-weekly", "zero-harm-app-signup"]})
+
+    def test_signing_up_again_after_a_removal_takes_the_removed_tag_off(self):
+        self.ghl.tags = ["zero-harm-removed"]
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        tag_calls = [c for c in self.ghl.calls if c[1] == "/contacts/lead1/tags"]
+        self.assertEqual([(c[0], c[2]["tags"][-1]) for c in tag_calls], [("POST", "zero-harm-app-signup"), ("DELETE", "zero-harm-removed")])
+        self.assertIsNotNone(AppSignup.objects.get().ghl_synced_at)
+        self.signup(name="Jane Doe", install_id=INSTALL)  # only checked on the first sync
+        self.assertEqual([c[2] for c in self.ghl.to("/contacts/lead1/tags", "DELETE")].count({"tags": ["zero-harm-removed"]}), 1)
+
+
+@override_settings(**GHL_ON)
+class PendingRemovalTests(GhlTestCase):
+    def test_signing_up_again_calls_off_a_removal_still_waiting_for_ghl(self):
+        self.ghl.tags = ["zero-harm-weekly"]
+        self.signup(name="Jane Doe", install_id=INSTALL)
+        self.ghl.down = True
+        self.remove()
+        self.assertEqual(SignupRemoval.objects.get().ghl_had_tags, ["zero-harm-weekly"])
+        self.ghl.down = False
+        self.ghl.calls.clear()
+        self.assertEqual(self.signup(name="Jane Doe", install_id=INSTALL).status_code, 200)
+        self.assertFalse(SignupRemoval.objects.exists())
+        self.assertEqual(owner_alerts.retry_removals(now=timezone.now() + timedelta(minutes=20)), 0)
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE"), [])
+        self.assertEqual(AppSignup.objects.get().ghl_had_tags, ["zero-harm-weekly"])  # what it knew carries over
+
+    def test_finish_removal_leaves_ghl_alone_when_the_email_is_signed_up_again(self):
+        AppSignup.objects.create(email="jane@plant.com", ghl_contact_id="lead1")
+        removal = SignupRemoval.objects.create(email="Jane@Plant.com", ghl_contact_id="lead1")
+        self.assertTrue(owner_alerts.finish_removal(removal))
+        self.assertEqual([c for c in self.ghl.calls if c[1].startswith("/contacts/lead1")], [])
+        self.assertIn("have since signed up again", self.ghl.emails[0]["html"])
+        self.assertFalse(SignupRemoval.objects.exists())
+
+
+@override_settings(**GHL_ON)
+class RemovalFailureTests(GhlTestCase):
+    def pending(self, **kw):
+        return SignupRemoval.objects.create(email="jane@plant.com", name="Jane Doe", ghl_contact_id="lead1", ghl_had_tags=[], **kw)
+
+    def test_a_contact_ghl_no_longer_has_counts_as_done(self):
+        for status, text in ((404, "Contact not found"), (400, "Contact with id lead1 not found"), (422, '{"message":"lead1 is not valid"}')):
+            self.ghl.fail = {("DELETE", "/contacts/lead1/tags"): (status, text)}
+            self.assertTrue(owner_alerts.finish_removal(self.pending()), status)
+        self.assertFalse(SignupRemoval.objects.exists())
+        self.ghl.fail = {("DELETE", "/contacts/lead1/tags"): (400, "Bad request")}  # a 400 that is not about the contact
+        self.assertFalse(owner_alerts.finish_removal(self.pending()))
+        self.assertEqual(SignupRemoval.objects.get().attempts, 1)
+
+    def test_gives_up_after_7_days_and_asks_the_owner_to_finish_by_hand(self):
+        self.ghl.fail = {("DELETE", "/contacts/lead1/tags"): (500, "Internal error")}
+        removal = self.pending()
+        self.assertEqual(owner_alerts.retry_removals(now=timezone.now() + timedelta(days=6)), 0)
+        self.assertTrue(SignupRemoval.objects.exists())
+        self.assertEqual(owner_alerts.retry_removals(now=timezone.now() + timedelta(days=7, minutes=1)), 1)
+        self.assertFalse(SignupRemoval.objects.filter(pk=removal.pk).exists())  # their name and email are not kept
+        mail, = self.ghl.emails
+        self.assertEqual(mail["subject"], "Zero Harm removal needs finishing by hand: jane@plant.com")
+        for text in ("lead1", "zero-harm-weekly, zero-harm-offers-optin, zero-harm-app-signup", "zero-harm-removed", "yourself"):
+            self.assertIn(text, mail["html"])
+
+    def test_stuck_removals_do_not_hold_up_newer_ones(self):
+        self.ghl.fail = {("DELETE", "/contacts/stuck/tags"): (500, "Internal error")}
+        now = timezone.now() + timedelta(minutes=30)
+        for _ in range(25):
+            SignupRemoval.objects.create(email="stuck@plant.com", ghl_contact_id="stuck", last_tried_at=now - timedelta(minutes=5))
+        newer = SignupRemoval.objects.create(email="jane@plant.com", ghl_contact_id="lead1")
+        self.assertEqual(owner_alerts.retry_removals(now=now), 1)
+        self.assertFalse(SignupRemoval.objects.filter(pk=newer.pk).exists())
+        self.assertEqual(SignupRemoval.objects.filter(attempts=1).count(), 19)  # it took one of the 20 places
+
+
+@override_settings(**GHL_ON)
+class RemovalDuringSyncTests(GhlTestCase):
+    def test_a_removal_during_the_tagging_takes_the_new_tags_back_off(self):
+        self.ghl.hook = lambda: AppSignup.objects.filter(email="jane@plant.com").delete()
+        self.assertEqual(self.signup(name="Jane Doe", install_id=INSTALL).status_code, 200)  # no error for the phone
+        self.ghl.hook = None
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2], {"tags": ["zero-harm-weekly", "zero-harm-app-signup"]})
+        self.assertEqual(self.ghl.emails, [])
+
+    def test_a_row_removed_before_the_tagging_is_not_tagged(self):
+        row = AppSignup.objects.create(email="jane@plant.com")
+        AppSignup.objects.filter(pk=row.pk).delete()
+        self.assertFalse(sync_signup_to_ghl(row))
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags"), [])
+
+    def test_a_removal_with_no_contact_id_looks_the_email_up(self):
+        self.ghl.known.add("jane@plant.com")
+        self.ghl.tags = ["zero-harm-weekly"]
+        removal = SignupRemoval.objects.create(email="jane@plant.com", name="Jane Doe")
+        self.assertTrue(owner_alerts.finish_removal(removal))
+        self.assertEqual(self.ghl.to("/contacts/search/duplicate", "GET")[0][2], {"locationId": "loc", "email": "jane@plant.com"})
+        self.assertEqual([c for c in self.ghl.to("/contacts/upsert") if c[2]["email"] == "jane@plant.com"], [])  # looking never makes one
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags", "DELETE")[0][2], {"tags": ["zero-harm-offers-optin", "zero-harm-app-signup"]})
+        self.assertEqual(self.ghl.to("/contacts/lead1/tags")[0][2], {"tags": ["zero-harm-removed"]})
+
+
+@override_settings(**GHL_ON)
+class OwnerDigestTests(GhlTestCase):
+    DAY = dt.date(2026, 11, 9)
+    MORNING = datetime(2026, 11, 10, 15, 5, tzinfo=dt_tz.utc)  # 7:05 AM Pacific on Nov 10
+
+    def opened(self, phone, day, platform="ios", city="", region="", country=""):
+        AppOpen.objects.create(install_hash=phone, day=day, platform=platform, city=city, region=region, country=country)
+
+    def signed_up(self, email, when):
+        AppSignup.objects.filter(pk=AppSignup.objects.create(email=email).pk).update(created_at=when)
+
+    def a_busy_day(self):
+        self.opened("old", dt.date(2026, 11, 1))
+        self.opened("old", self.DAY)  # active that day, but not new
+        self.opened("a", self.DAY, "ios", "Houston", "Texas", "US")
+        self.opened("b", self.DAY, "android", "Houston", "Texas", "US")
+        self.opened("c", self.DAY, "android", "", "Nevada", "US")
+        self.opened("d", self.DAY, "ios")
+        self.opened("a", dt.date(2026, 11, 10))  # a later open by the same phone is not a second download
+        self.signed_up("in@plant.com", datetime(2026, 11, 9, 8, 30, tzinfo=dt_tz.utc))      # 12:30 AM Pacific on the 9th
+        self.signed_up("late@plant.com", datetime(2026, 11, 10, 7, 30, tzinfo=dt_tz.utc))   # 11:30 PM Pacific on the 9th
+        self.signed_up("before@plant.com", datetime(2026, 11, 9, 7, 30, tzinfo=dt_tz.utc))  # 11:30 PM Pacific on the 8th
+        OwnerDigest.objects.create(day=dt.date(2026, 11, 7))
+        OwnerDigest.objects.create(day=dt.date(2026, 11, 8))
+
+    def test_numbers_for_one_pacific_day(self):
+        self.a_busy_day()
+        n = owner_alerts.digest_numbers(self.DAY)
+        self.assertEqual((n["new_phones"], n["ios"], n["android"]), (4, 2, 2))
+        self.assertEqual((n["places"], n["unknown_places"], n["other_places"]), ([("Houston, Texas", 2), ("Nevada", 1)], 1, 0))
+        self.assertEqual((n["signups"], n["active"], n["total_phones"], n["total_signups"]), (2, 5, 5, 3))
+
+    def test_at_most_8_places_then_the_rest_together(self):
+        for i in range(11):
+            self.opened(f"p{i}", self.DAY, city=f"Town {chr(65 + i)}", region="Ohio", country="US")
+        n = owner_alerts.digest_numbers(self.DAY)
+        self.assertEqual((len(n["places"]), n["other_places"]), (8, 3))
+
+    def test_sent_once_a_day_after_7_pacific(self):
+        self.a_busy_day()
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING - timedelta(minutes=10)), [])  # 6:55 AM: too early
+        self.assertEqual(self.ghl.emails, [])
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING), ["Owner summary for 2026-11-09: sent"])
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING + timedelta(minutes=15)), [])
+        mail, = self.ghl.emails
+        self.assertEqual(mail["subject"], "Zero Harm yesterday: 4 new phones, 2 sign-ups")
+        for text in ("4 (2 iPhone, 2 Android)", "Houston, Texas (2), Nevada (1), unknown (1)", "<b>Phones active that day:</b> 5",
+                     "<b>All sign-ups so far:</b> 3", "calendar day in Pacific time", "switched off the anonymous usage count are not included"):
+            self.assertIn(text, mail["html"])
+        row = OwnerDigest.objects.get(day=self.DAY)
+        self.assertEqual((row.sent, row.new_phones, row.signups), (True, 4, 2))
+
+    def test_nothing_is_sent_for_an_empty_day(self):
+        self.opened("old", dt.date(2026, 11, 1))
+        self.opened("old", self.DAY)  # an active phone, but no new phones and no sign-ups
+        OwnerDigest.objects.create(day=dt.date(2026, 11, 7))
+        OwnerDigest.objects.create(day=dt.date(2026, 11, 8))
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING), ["Owner summary for 2026-11-09: nothing to report"])
+        self.assertEqual(self.ghl.calls, [])
+        self.assertFalse(OwnerDigest.objects.get(day=self.DAY).sent)
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING), [])
+
+    def test_catches_up_at_most_3_missed_days(self):
+        for back in range(1, 8):  # a new phone on each of the last 7 days, and no summary sent for any of them
+            self.opened(f"p{back}", dt.date(2026, 11, 10) - timedelta(days=back))
+        owner_alerts.send_due_digests(now=self.MORNING)
+        self.assertEqual([m["subject"] for m in self.ghl.emails],
+                         ["Zero Harm Nov 7: 1 new phone, 0 sign-ups", "Zero Harm Nov 8: 1 new phone, 0 sign-ups", "Zero Harm yesterday: 1 new phone, 0 sign-ups"])
+        self.assertEqual(OwnerDigest.objects.count(), 3)
+
+    def test_a_failed_send_is_tried_again(self):
+        self.a_busy_day()
+        self.ghl.down = True
+        self.assertEqual(owner_alerts.send_due_digests(now=self.MORNING), ["Owner summary for 2026-11-09: FAILED, will retry"])
+        self.assertFalse(OwnerDigest.objects.filter(day=self.DAY).exists())
+        self.ghl.down = False
+        with patch("django.utils.timezone.now", return_value=self.MORNING + timedelta(minutes=15)):
+            out = StringIO()
+            call_command("owner_digest", stdout=out)
+        self.assertIn("2026-11-09: sent", out.getvalue())
+        self.assertEqual(len(self.ghl.emails), 1)
+
+
+import json  # noqa: E402
+
+from .models import SignupPhone, SignupRemoval  # noqa: E402
+
+
+class ReviewRoundTwoTests(TestCase):
+    """Second review: unclaimed rows, probing, address-hopping, alert floods, removal racing a sign-up."""
+
+    def setUp(self):
+        cache.clear()
+
+    def post(self, path, body, **extra):
+        return self.client.post(path, json.dumps(body), content_type="application/json", **extra)
+
+    def test_a_row_with_no_phone_cannot_be_claimed_and_removed(self):
+        AppSignup.objects.create(email="old@plant.com", first_name="Old")  # signed up before phones were recorded
+        self.post("/api/signups/", {"email": "old@plant.com", "install_id": "attacker-phone-0001"})
+        self.assertFalse(SignupPhone.objects.exists())
+        self.post("/api/signups/remove/", {"install_id": "attacker-phone-0001"})
+        self.assertTrue(AppSignup.objects.filter(email="old@plant.com").exists())
+
+    def test_the_answer_does_not_say_whether_an_email_signed_up(self):
+        first = self.post("/api/signups/", {"email": "a@plant.com"})
+        again = self.post("/api/signups/", {"email": "a@plant.com"})
+        self.assertEqual((first.status_code, first.content), (again.status_code, again.content))
+
+    @override_settings(NUM_PROXIES=1)
+    def test_hopping_addresses_in_one_ipv6_network_is_still_limited(self):
+        codes = [self.post("/api/signups/remove/", {"install_id": "zh-phone-00001"}, HTTP_X_FORWARDED_FOR=f"2001:db8:1:1::{i:x}").status_code
+                 for i in range(8)]
+        self.assertEqual(codes.count(429), 3)
+        self.assertFalse(any("2001:db8" in str(k) for k in cache._cache.keys()))
+
+    @override_settings(OWNER_ALERT_EMAIL="owner@x.com")
+    def test_instant_alerts_are_capped_each_hour(self):
+        from . import owner_alerts
+        with patch.object(owner_alerts, "send", return_value=True) as send:
+            for i in range(owner_alerts.ALERTS_PER_HOUR + 5):
+                owner_alerts.alert_signup(AppSignup.objects.create(email=f"p{i}@plant.com"))
+        self.assertEqual(send.call_count, owner_alerts.ALERTS_PER_HOUR)
+        self.assertFalse(AppSignup.objects.filter(owner_alerted_at__isnull=True).exists())  # the cron won't send them later
+
+    def test_a_removal_called_off_meanwhile_does_nothing(self):
+        from . import owner_alerts
+        removal = SignupRemoval.objects.create(email="a@plant.com", ghl_contact_id="c1")
+        SignupRemoval.objects.filter(pk=removal.pk).delete()
+        with patch.object(owner_alerts, "_untag") as untag:
+            self.assertTrue(owner_alerts.finish_removal(removal))
+        untag.assert_not_called()

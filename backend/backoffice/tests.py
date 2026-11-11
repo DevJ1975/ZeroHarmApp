@@ -79,6 +79,14 @@ class MetricsTests(TestCase):
         self.assertIn("comment waiting for a check", texts)
         self.assertIn("sign-in sheet that didn't reach GoHighLevel", texts)
 
+    def test_signups_tile_splits_welcome_and_settings(self):
+        AppSignup.objects.create(email="w1@b.com", source="welcome")
+        AppSignup.objects.create(email="w2@b.com", source="welcome")
+        old = AppSignup.objects.create(email="old@b.com", source="welcome")
+        AppSignup.objects.filter(pk=old.pk).update(created_at=timezone.now() - dt.timedelta(days=60))
+        tile = {t["label"]: t for t in metrics.dashboard(30, today=self.today)["tiles"]}["Email sign-ups"]
+        self.assertEqual((tile["value"], tile["note"]), (3, "2 welcome screen · 1 Settings · 4 in total"))
+
     def test_empty_weeks_draw_nothing_and_page_renders(self):
         chart = metrics.bars([(dt.date(2026, 11, 2), 0), (dt.date(2026, 11, 9), 4)])
         self.assertEqual(chart["bars"][0]["path"], "")
@@ -129,6 +137,14 @@ class UsageTests(TestCase):
         self.assertEqual(sum(r["phones"] for r in u["cities"]), u["phones"])
         self.assertEqual(metrics.usage(90, today=self.today)["phones"], 7)
 
+    def test_new_phones_are_first_ever_opens_in_the_period(self):
+        self.assertEqual(metrics.usage(30, today=self.today)["new_phones"], 6)  # g was first seen a day before the period
+        self.seen("z", 200)
+        self.seen("z", 1)  # active again in the period, but not new
+        u = metrics.usage(30, today=self.today)
+        self.assertEqual((u["phones"], u["new_phones"]), (7, 6))
+        self.assertEqual(metrics.usage(365, today=self.today)["new_phones"], 8)
+
     def test_only_the_top_ten_places_are_listed(self):
         AppOpen.objects.all().delete()
         for i in range(13):
@@ -143,7 +159,7 @@ class UsageTests(TestCase):
     def test_page_shows_the_section_and_credits_db_ip_only_when_in_use(self):
         with mock.patch.object(metrics.timezone, "localdate", return_value=self.today), mock.patch.object(geo, "available", return_value=True):
             html = self.client.get("/backoffice/?key=k").content.decode()
-        for text in ("Where the app is used", "Phones active, last 7 days", "Phones active, last 30 days", "3 iPhone · 3 Android",
+        for text in ("Where the app is used", "Phones active, last 7 days", "Phones active, last 30 days", "New phones, last 30 days", "3 iPhone · 3 Android",
                      "Places are approximate", "company VPN or a cellular network", "States and regions", "<td>Houston</td><td>Texas, United States</td>",
                      '<a href="https://db-ip.com" target="_blank" rel="noopener">IP geolocation by DB-IP</a>'):
             self.assertIn(text, html)
