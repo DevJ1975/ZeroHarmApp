@@ -74,7 +74,7 @@ def _draft_spanish(modeladmin, request, queryset):
 
 def _approve_spanish(modeladmin, request, queryset):
     ready = queryset.exclude(body_md_es="").exclude(title_es="")
-    n = ready.update(spanish_status="approved")
+    n = ready.update(spanish_status="approved", updated_at=_tz.now())  # update() skips auto_now; phones need the new time to refresh
     modeladmin.message_user(request, f"Approved Spanish for {n} talk(s). The Español button now shows for them.")
 
 

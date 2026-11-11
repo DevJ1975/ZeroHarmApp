@@ -1,5 +1,6 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
+import { noteStaleContent } from './live';
 import { savedFirst } from './saved-first';
 
 export type FeedKind = 'alert' | 'course' | 'tool' | 'video' | 'newsletter';
@@ -48,7 +49,8 @@ export async function listFeed(kinds: FeedKind[], onFresh?: (items: FeedItem[]) 
       });
       return ordered(items);
     },
-    { onFresh },
+    // A content change seen while this reload used the saved copy is retried on the next check.
+    { onFresh, onOffline: noteStaleContent },
   );
   return value ?? [];
 }

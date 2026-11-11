@@ -37,8 +37,24 @@ class TalkReleaseTests(TestCase):
             call_command("send_talk_push", stdout=StringIO())
             call_command("send_talk_push", stdout=StringIO())  # second run must not resend
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(post.call_args[0][2]["data"], {"issue": 1})
+        self.assertEqual(post.call_args[0][2]["data"], {"issue": 1, "refresh": True})
         self.assertIsNotNone(ToolboxTalk.objects.get(issue=1).push_sent_at)
+
+    def test_push_waits_until_live_and_skips_held_talks(self):
+        send_at = ToolboxTalk.objects.get(issue=1).send_at
+        with patch("talks.integrations._post", return_value=(200, {"id": "abc"})) as post, \
+             self.settings(ONESIGNAL_APP_ID="app", ONESIGNAL_REST_API_KEY="key"):
+            with patch("django.utils.timezone.now", return_value=send_at - timedelta(seconds=30)):
+                call_command("send_talk_push", stdout=StringIO())  # not live yet: phones would refetch too early
+            self.assertEqual(post.call_count, 0)
+            ToolboxTalk.objects.filter(issue=1).update(needs_review=True)
+            with patch("django.utils.timezone.now", return_value=send_at + timedelta(minutes=1)):
+                call_command("send_talk_push", stdout=StringIO())  # held for review: the app wouldn't show it
+            self.assertEqual(post.call_count, 0)
+            ToolboxTalk.objects.filter(issue=1).update(needs_review=False)
+            with patch("django.utils.timezone.now", return_value=send_at + timedelta(minutes=16)):
+                call_command("send_talk_push", stdout=StringIO())
+            self.assertEqual(post.call_count, 1)
 
 
 class SignupTests(TestCase):
@@ -113,6 +129,15 @@ class GhlYearSyncTests(TestCase):
 
 
 class SpanishTests(TestCase):
+    def test_admin_approve_moves_updated_at(self):
+        from .admin import _approve_spanish
+
+        ToolboxTalk.objects.filter(issue=1).update(title_es="Compruebe", body_md_es="Texto", updated_at=datetime(2026, 1, 1, tzinfo=dt_tz.utc))
+        _approve_spanish(type("Admin", (), {"message_user": lambda *a, **k: None})(), None, ToolboxTalk.objects.filter(issue=1))
+        talk = ToolboxTalk.objects.get(issue=1)
+        self.assertEqual(talk.spanish_status, "approved")
+        self.assertGreater(talk.updated_at, datetime(2026, 1, 2, tzinfo=dt_tz.utc))  # so phones are told to refresh
+
     def test_spanish_only_when_approved(self):
         talk = ToolboxTalk.objects.get(issue=1)
         talk.title_es, talk.body_md_es, talk.spanish_status = "Compruebe que no hay energía", "Texto", "draft"
@@ -291,6 +316,16 @@ class ZeroHourTests(TestCase):
         self.assertEqual(ep.card_pdf_url, "https://x/card.pdf")
         self.assertIn("on hold", log[0])
         self.assertEqual(ep.release_at.astimezone(PACIFIC_TZ).weekday(), 3)
+
+    def test_sync_with_nothing_new_leaves_episodes_untouched(self):
+        files = [{"name": "ZH_E05_v1.mp4", "contentType": "video/mp4", "url": "https://x/v1.mp4", "encodedFormats": ["cts-a_720p.mp4"]},
+                 {"name": "ZH_E05_Huddle_Card.pdf", "contentType": "application/pdf", "url": "https://x/card.pdf"}]
+        sync_episodes(files)
+        first = Episode.objects.get(number=5).updated_at
+        sync_episodes(files)  # the hourly run with the same files
+        self.assertEqual(Episode.objects.get(number=5).updated_at, first)  # so the content version doesn't move every hour
+        sync_episodes(files[:1] + [{**files[1], "url": "https://x/card2.pdf"}])
+        self.assertGreater(Episode.objects.get(number=5).updated_at, first)
 
     def test_next_thursday(self):
         t = next_thursday_5am(datetime(2026, 11, 6, 20, tzinfo=dt_tz.utc))  # a Friday

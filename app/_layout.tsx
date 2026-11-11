@@ -3,15 +3,18 @@ import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-goog
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { HolidaySplash } from '@/components/Holiday';
 import { HowTo } from '@/components/HowTo';
+import { IntroSplash } from '@/components/IntroSplash';
 import { Welcome } from '@/components/Welcome';
-import { fonts } from '@/constants/theme';
+import { fonts, themes } from '@/constants/theme';
 import { firstRun, flushAccount, markHowToDone, whatToShow } from '@/lib/account';
+import { startLive } from '@/lib/live';
 import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
 import { isHoliday, refreshSeason } from '@/lib/season';
@@ -26,9 +29,10 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const scheme = useColorScheme();
-  // The holiday opening screen plays once per cold start, decided by the date when the app opens.
-  const [opening, setOpening] = useState(isHoliday);
-  const closeOpening = useCallback(() => setOpening(false), []);
+  // One opening screen per cold start, decided by the date when the app opens: the holiday screen in December,
+  // the footage intro the rest of the year. null once it has played.
+  const [opening, setOpening] = useState<'holiday' | 'intro' | null>(() => (isHoliday() ? 'holiday' : 'intro'));
+  const closeOpening = useCallback(() => setOpening(null), []);
   // The welcome sign-in and the how-to show once, on the first open. Read before the first frame so the tabs never flash.
   const [first, setFirst] = useState(firstRun);
   const closeWelcome = useCallback(() => setFirst((f) => ({ ...f, welcomeDone: true })), []);
@@ -48,8 +52,14 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // The root view sits behind every screen (transitions, keyboard): match it to the theme, not app.json's splash yellow.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(themes[scheme === 'dark' ? 'dark' : 'light'].background);
+  }, [scheme]);
+
   useEffect(() => {
     startPush();
+    startLive(); // reload lists when new talks, alerts or episodes are published
     // Sheets, votes and a sign-up saved with no signal go out now, and again each time the app comes back to the front:
     // people walk from a dead spot on the floor to the break room with the phone in their pocket.
     const flush = () => {
@@ -64,16 +74,23 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
+  // The footage intro hides the native launch screen itself, once its first frame is drawn (see IntroSplash).
+  // Every other opening hands over as soon as the fonts are in.
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+    if (loaded && opening !== 'intro') SplashScreen.hideAsync();
+  }, [loaded, opening]);
+
+  // Stable, so a re-render during the intro (e.g. a dark-mode switch) hands IntroSplash the same function.
+  const hideSplash = useCallback(() => {
+    SplashScreen.hideAsync();
+  }, []);
 
   if (!loaded) return null;
 
-  // The holiday opening screen plays alone. What comes next waits under it, out of reach of taps and screen readers,
+  // The opening screen plays alone. What comes next waits under it, out of reach of taps and screen readers,
   // so the opening fades straight into it. A returning person has nothing waiting and lands on the Monday tab.
   const next = whatToShow({ ...first, opening: false });
-  const covered = whatToShow({ ...first, opening }) === 'opening';
+  const covered = whatToShow({ ...first, opening: opening !== null }) === 'opening';
   const firstRunUp = next !== 'app';
 
   return (
@@ -101,7 +118,8 @@ export default function RootLayout() {
     </View>
     {next === 'welcome' && <Welcome onDone={closeWelcome} covered={covered} />}
     {next === 'howto' && <HowTo cover onDone={closeHowTo} covered={covered} />}
-    {opening && <HolidaySplash onDone={closeOpening} />}
+    {opening === 'holiday' && <HolidaySplash onDone={closeOpening} />}
+    {opening === 'intro' && <IntroSplash onReady={hideSplash} onDone={closeOpening} />}
     </View>
   );
 }

@@ -7,9 +7,11 @@ import { fonts, space, useTheme } from '@/constants/theme';
 import { AlertCard } from '@/components/feed';
 import { holiday, HolidayBanner, HomeSafeCard } from '@/components/Holiday';
 import { EpisodeCard } from '@/components/EpisodeCard';
+import { OtisAvatar } from '@/components/OtisAvatar';
 import { WeatherBar } from '@/components/WeatherBar';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed } from '@/lib/feed';
+import { useContentRefresh } from '@/lib/live';
 import { markStale } from '@/lib/saved-first';
 import { useHoliday } from '@/lib/season';
 import { arrangeTalks, isEarly, issueNumber, listTalks, sendDay, Talk } from '@/lib/talks';
@@ -35,6 +37,7 @@ export default function TodayScreen() {
     ['talks', 'feed-alert', 'episodes'].forEach(markStale);
     return load();
   }, [load]);
+  useContentRefresh(refresh); // a talk, alert or episode published or pulled while this screen is open
 
   const { current, past, early } = arrangeTalks(talks ?? []);
 
@@ -110,11 +113,12 @@ export default function TodayScreen() {
         accessibilityLabel="Ask OTIS, the Zero Harm safety assistant"
         onPress={() => router.push('/otis')}
         style={[styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
-        <Text style={[styles.otisTitle, { color: t.text }]}>Ask OTIS</Text>
-        <Body muted>Safety questions answered from Zero Harm talks and OSHA General Industry rules. Works with no signal.</Body>
+        <OtisAvatar size={56} />
+        <View style={styles.otisText}>
+          <Text style={[styles.otisTitle, { color: t.text }]}>Ask OTIS</Text>
+          <Body muted>Safety questions answered from Zero Harm talks and OSHA General Industry rules. Works with no signal.</Body>
+        </View>
       </Pressable>
-
-      
 
       {early.length > 0 && (
         <View style={{ gap: space.sm }}>
@@ -173,7 +177,8 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.displayMedium, fontSize: 22, marginTop: space.sm },
   row: { flexDirection: 'row', gap: space.md, paddingVertical: 12, borderBottomWidth: 1 },
   rowNum: { fontFamily: fonts.displayMedium, fontSize: 18, width: 28 },
-  otis: { borderWidth: 1, borderRadius: 6, padding: space.md, gap: 2 },
+  otis: { borderWidth: 1, borderRadius: 6, padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.md },
+  otisText: { flex: 1, gap: 2 },
   otisTitle: { fontFamily: fonts.displayMedium, fontSize: 22 },
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
   rowTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, flex: 1 },

@@ -73,7 +73,13 @@ DATABASES = {
     )
 }
 
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+# "shared" lives in the database, so the console wrong-key count holds across a restart and stays one count no
+# matter how many processes serve (the Dockerfile runs a single threaded worker today, "default" is per process).
+# Its table is made by migration talks/0018 (and createcachetable in the Dockerfile start command).
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "shared": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "zeroharm_cache"},
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -143,6 +149,8 @@ if GHL_EMBED_ADMIN and not DEBUG:
 # the page says "coming soon". Set them on Railway once the app is approved; no app update needed.
 APP_STORE_URL = os.environ.get("APP_STORE_URL", "").strip()
 PLAY_STORE_URL = os.environ.get("PLAY_STORE_URL", "").strip()
+# Bearer key for the local content console (console/ folder). Blank turns the /api/console/ endpoints off.
+CONSOLE_KEY = os.environ.get("CONSOLE_KEY", "")
 # OTIS on-device assistant: model names from react-native-executorch
 OTIS_ENABLED = os.environ.get("OTIS_ENABLED", "1") == "1"
 

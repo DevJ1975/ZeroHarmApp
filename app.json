@@ -69,6 +69,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-system-ui",
       "expo-sqlite",
       "expo-sharing",
       [

@@ -1,5 +1,6 @@
 import { api, isConfigured } from './config';
 import { getDb } from './db';
+import { noteStaleContent } from './live';
 import { savedFirst } from './saved-first';
 
 export type TalkText = { title: string; story_title: string; crew_question: string; body_md: string };
@@ -51,11 +52,23 @@ export function arrangeTalks(talks: Talk[], now = new Date()) {
   };
 }
 
+/**
+ * Make the phone copy match the server list, so a pulled talk does not come back offline.
+ * No transaction: the app shares one connection, and the feed loader's transaction running
+ * at the same time would collide with ours and roll both back.
+ */
 async function cache(talks: Talk[]) {
+  // Check the whole reply before touching the copy, so a bad reply leaves it as it was.
+  if (!Array.isArray(talks) || !talks.every((t) => Number.isInteger(t?.issue))) {
+    throw new Error('talks reply is malformed');
+  }
   const db = await getDb();
   for (const t of talks) {
     await db.runAsync('INSERT OR REPLACE INTO talks_cache (issue, json) VALUES (?, ?)', t.issue, JSON.stringify(t));
   }
+  // Add first, then drop the rest: the copy is never empty in between. An empty list clears it.
+  const ids = JSON.stringify(talks.map((t) => t.issue));
+  await db.runAsync('DELETE FROM talks_cache WHERE issue NOT IN (SELECT value FROM json_each(?))', ids);
 }
 
 async function readCache(): Promise<Talk[]> {
@@ -69,9 +82,7 @@ const notConfigured = () => Promise.reject(new Error('API not configured'));
 async function fetchTalks(): Promise<Talk[]> {
   if (!isConfigured()) return notConfigured();
   const { talks } = await api<{ talks: Talk[] }>('/talks/');
-  const db = await getDb();
-  await db.runAsync('DELETE FROM talks_cache'); // a talk held back for review must not stay in the offline copy
-  await cache(talks);
+  await cache(talks); // cache() drops the talks the server no longer returns, so a pulled talk leaves the copy
   return talks;
 }
 
@@ -91,7 +102,10 @@ export async function listTalks(onFresh?: (list: TalkList) => void): Promise<Tal
     fetchTalks,
     {
       onFresh: (talks) => onFresh?.({ talks, offline: false }),
-      onOffline: () => readCache().then((talks) => onFresh?.({ talks, offline: true })),
+      onOffline: () => {
+        noteStaleContent(); // a content change seen now is retried on the next check
+        return readCache().then((talks) => onFresh?.({ talks, offline: true }));
+      },
     },
   );
   return { talks: value ?? [], offline: value === null && !fromSaved && isConfigured() };

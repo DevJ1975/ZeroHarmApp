@@ -6,8 +6,10 @@ import { setTelemetryEnabled, useLLMChatSession } from 'react-native-executorch'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 
+import { OtisAvatar } from '@/components/OtisAvatar';
 import { Body, Button } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
+import { useContentRefresh } from '@/lib/live';
 import { getFeedbackPrefs, sendFeedback } from '@/lib/otis/feedback';
 import { KbItem, loadKb, search } from '@/lib/otis/kb';
 import { getManifest, llmModel, Manifest, sizeLabel } from '@/lib/otis/manifest';
@@ -82,7 +84,8 @@ export default function OtisScreen() {
     const size = sizeLabel(model.size_mb);
     return (
       <SafeAreaView edges={['bottom']} style={[styles.fill, { backgroundColor: t.background }]}>
-        <ScrollView contentContainerStyle={{ padding: space.md, gap: space.md }}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: space.md, gap: space.md }}>
+          <OtisAvatar size={112} />
           <Text style={[styles.h1, { color: t.text }]}>{updating ? 'OTIS has an update' : 'Meet OTIS'}</Text>
           <Body>
             OTIS answers safety questions from Zero Harm Weekly talks, Zero Hour huddle cards and plain-language OSHA General Industry rules, and
@@ -122,6 +125,7 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  const viewHeight = useRef(0);
   const nextId = useRef(1);
   const turns = msgs.filter((m) => m.role === 'user').length;
 
@@ -131,6 +135,7 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
     loadKb().then(setKb);
     getFeedbackPrefs().then((p) => setCanRate(feedbackOn && p.helpImprove));
   }, [feedbackOn]);
+  useContentRefresh(() => loadKb().then(setKb)); // new talks or KB entries reach OTIS without reopening
 
   const add = (m: Omit<Msg, 'id'>) => {
     const id = nextId.current++;
@@ -182,7 +187,10 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
         <ScrollView
           ref={scroller}
-          onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
+          contentInsetAdjustmentBehavior="automatic"
+          onLayout={(e) => (viewHeight.current = e.nativeEvent.layout.height)}
+          // Only follow new messages once they overflow; scrollToEnd on short content would park it under the header.
+          onContentSizeChange={(_, h) => h > viewHeight.current && scroller.current?.scrollToEnd({ animated: true })}
           contentContainerStyle={{ padding: space.md, gap: space.md }}>
           {loading && (
             <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.rule }]}>
@@ -200,7 +208,10 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
             </View>
           )}
           {msgs.length === 0 && !loading && (
-            <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, OSHA rules, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
+            <View style={styles.empty}>
+              <OtisAvatar size={88} />
+              <Body muted>Ask about lockout, chemicals, heat, ladders, forklifts, OSHA rules, or how to use the app. For example: “Who can take off a coworker’s lock?”</Body>
+            </View>
           )}
           {msgs.map((m) =>
             m.role === 'urgent' ? (
@@ -214,7 +225,10 @@ function OtisChat({ model, feedbackOn, onNewChat }: { model: OtisModel; feedback
               </View>
             ) : (
               <View key={m.id} style={[styles.bubble, styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
-                <Text style={[styles.who, { color: t.muted }]}>OTIS</Text>
+                <View style={styles.whoRow}>
+                  <OtisAvatar size={28} />
+                  <Text style={[styles.who, { color: t.muted }]}>OTIS</Text>
+                </View>
                 {m.pending && !m.text ? <ActivityIndicator /> : <Text style={[styles.msg, { color: t.text }]}>{m.text}</Text>}
                 {!m.pending && m.sources?.map((s, i) => {
                   const reg = regLinks(s.source)[0];
@@ -307,6 +321,8 @@ const styles = StyleSheet.create({
   me: { alignSelf: 'flex-end' },
   otis: { alignSelf: 'flex-start', borderWidth: 1 },
   who: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1 },
+  empty: { alignItems: 'center', gap: space.md, paddingTop: space.lg },
+  whoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   msg: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   source: { borderTopWidth: 1, paddingTop: 6 },
   sourceText: { fontFamily: fonts.bodyMedium, fontSize: 14 },

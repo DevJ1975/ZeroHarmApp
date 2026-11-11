@@ -33,12 +33,13 @@ def talk_push_payload(talk):
         "filters": [{"field": "tag", "key": "weekly_talk", "relation": "=", "value": "on"}],
         "headings": {"en": "This week’s toolbox talk"},
         "contents": {"en": f"🦺 {talk.title}. 5 minutes, ready for Monday’s crew meeting."},
-        "data": {"issue": talk.issue},  # the app opens /talk/<issue> when tapped
+        "data": {"issue": talk.issue, "refresh": True},  # the app opens /talk/<issue> and refetches content
     }
 
 
-def send_talk_push(talk, dry_run=False):
-    """Sends the weekly push to devices with weekly_talk = on. Returns (ok, detail)."""
+def send_talk_push(talk, dry_run=False, mark_sent=True):
+    """Sends the weekly push to devices with weekly_talk = on. Returns (ok, detail).
+    mark_sent=False (an early push from the console) leaves push_sent_at alone, so the release push still goes out."""
     payload = talk_push_payload(talk)
     if dry_run:
         return True, payload
@@ -50,8 +51,9 @@ def send_talk_push(talk, dry_run=False):
         payload,
     )
     if 200 <= status < 300:
-        talk.push_sent_at = timezone.now()
-        talk.save(update_fields=["push_sent_at"])
+        if mark_sent:
+            talk.push_sent_at = timezone.now()
+            talk.save(update_fields=["push_sent_at"])
         return True, body
     log.error("OneSignal push for issue %s failed: %s %s", talk.issue, status, body)
     return False, body
@@ -150,11 +152,11 @@ def feed_push_payload(item):
         "filters": [{"field": "tag", "key": tag, "relation": "=", "value": "on"}],
         "headings": {"en": heading},
         "contents": {"en": item.title},
-        "data": {"feed_id": item.pk, "kind": item.kind},
+        "data": {"feed_id": item.pk, "kind": item.kind, "refresh": True},
     }
 
 
-def send_feed_push(item, dry_run=False):
+def send_feed_push(item, dry_run=False, mark_sent=True):
     payload = feed_push_payload(item)
     if dry_run:
         return True, payload
@@ -162,8 +164,9 @@ def send_feed_push(item, dry_run=False):
         return False, "OneSignal is not configured."
     status, body = _post("https://api.onesignal.com/notifications?c=push", {"Authorization": f"Key {settings.ONESIGNAL_REST_API_KEY}"}, payload)
     if 200 <= status < 300:
-        item.push_sent_at = timezone.now()
-        item.save(update_fields=["push_sent_at"])
+        if mark_sent:
+            item.push_sent_at = timezone.now()
+            item.save(update_fields=["push_sent_at"])
         return True, body
     log.error("OneSignal push for feed item %s failed: %s %s", item.pk, status, body)
     return False, body
@@ -218,7 +221,7 @@ def sync_suggestion_to_ghl(s):
         return False
 
 
-def send_episode_push(ep, dry_run=False):
+def send_episode_push(ep, dry_run=False, mark_sent=True):
     """New Zero Hour episode, to devices with 'Zero Hour episodes' switched on."""
     payload = {
         "app_id": settings.ONESIGNAL_APP_ID,
@@ -226,7 +229,7 @@ def send_episode_push(ep, dry_run=False):
         "filters": [{"field": "tag", "key": "zero_hour", "relation": "=", "value": "on"}],
         "headings": {"en": f"Zero Hour · Episode {ep.number}"},
         "contents": {"en": f"{ep.title}. 5 minutes, sound on, then a 10-minute huddle."},
-        "data": {"episode": ep.number},
+        "data": {"episode": ep.number, "refresh": True},
     }
     if dry_run:
         return True, payload
@@ -234,8 +237,39 @@ def send_episode_push(ep, dry_run=False):
         return False, "OneSignal is not configured."
     status, body = _post("https://api.onesignal.com/notifications?c=push", {"Authorization": f"Key {settings.ONESIGNAL_REST_API_KEY}"}, payload)
     if 200 <= status < 300:
-        ep.push_sent_at = timezone.now()
-        ep.save(update_fields=["push_sent_at"])
+        if mark_sent:
+            ep.push_sent_at = timezone.now()
+            ep.save(update_fields=["push_sent_at"])
         return True, body
     log.error("OneSignal push for episode %s failed: %s %s", ep.number, status, body)
+    return False, body
+
+
+BROADCAST_TAGS = ("weekly_talk", "alerts", "zero_hour", "offers")
+
+
+def broadcast_payload(audience, heading, message, route=None):
+    """A one-off push from the console to everyone with ONE topic switched on. Never sent to all devices."""
+    if audience not in BROADCAST_TAGS:
+        raise ValueError(f"Unknown audience {audience!r}")
+    return {
+        "app_id": settings.ONESIGNAL_APP_ID,
+        "target_channel": "push",
+        "filters": [{"field": "tag", "key": audience, "relation": "=", "value": "on"}],
+        "headings": {"en": heading},
+        "contents": {"en": message},
+        "data": {"route": route, "refresh": True},  # the app refetches content, then opens route if there is one
+    }
+
+
+def send_broadcast(audience, heading, message, route=None, dry_run=False):
+    payload = broadcast_payload(audience, heading, message, route)
+    if dry_run:
+        return True, payload
+    if not (settings.ONESIGNAL_APP_ID and settings.ONESIGNAL_REST_API_KEY):
+        return False, "OneSignal is not configured."
+    status, body = _post("https://api.onesignal.com/notifications?c=push", {"Authorization": f"Key {settings.ONESIGNAL_REST_API_KEY}"}, payload)
+    if 200 <= status < 300:
+        return True, body
+    log.error("OneSignal broadcast to %s failed: %s %s", audience, status, body)
     return False, body

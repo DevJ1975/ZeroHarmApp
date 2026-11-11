@@ -26,8 +26,9 @@ RUN DJANGO_SECRET_KEY=build-only python manage.py geo_update || echo "Geo: skipp
 
 EXPOSE 8000
 
-# Migrations run on every start (they are a no-op when nothing changed), then gunicorn serves on $PORT.
-# One process with 8 threads: the work is waiting on the database and other services, so threads handle it, memory
-# stays low, and rate limits and caches (kept in process memory) are the same for every request. 120 s covers a slow
-# sign-in sheet upload to GoHighLevel.
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --worker-class gthread --workers 1 --threads 8 --timeout 120 --graceful-timeout 30 --access-logfile -"]
+# Migrations and the shared cache table are set up on every start (both are a no-op when nothing changed), then
+# gunicorn serves on $PORT. One process with 8 threads: the work is waiting on the database and other services, so
+# threads handle it, memory stays low, and rate limits and caches (kept in process memory) are the same for every
+# request. 150 s covers a slow sign-in sheet upload to GoHighLevel and lets a console Spanish draft (Claude, up to
+# 120 s) finish instead of the worker being killed.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py createcachetable && exec gunicorn zeroharm.wsgi:application --bind 0.0.0.0:${PORT} --worker-class gthread --workers 1 --threads 8 --timeout 150 --graceful-timeout 30 --access-logfile -"]
