@@ -22,6 +22,8 @@ const ACCOUNT_KEY = 'account_profile';
 // Set when the server turned the sign-up down as bad input. Holds what was typed, so Settings can show it to fix.
 const NEEDS_FIX_KEY = 'account_needs_fix';
 const OUTBOX_KEY = 'account_outbox';
+// What the server last said that the person has to be told. See AccountNotice.
+const NOTICE_KEY = 'account_notice';
 
 const NAME_MAX = 120;
 const COMPANY_MAX = 120;
@@ -89,7 +91,56 @@ export async function signedIn(): Promise<boolean> {
  * What Settings shows under "Your account". 'in' with the name and email signed up with; 'fix' when the server turned
  * the sign-up down, with what was typed so it can be corrected; 'out' otherwise.
  */
-export type Account = { state: 'in' | 'out' | 'fix'; name: string; email: string };
+export type Account = { state: 'in' | 'out' | 'fix'; name: string; email: string; notice?: AccountNotice };
+
+/**
+ * Two answers from the server that the screen must not paper over.
+ * 'not_changed': the email was already signed up from another phone, or from this phone before the app was deleted and
+ *   installed again (a new install gets a new id, so the server cannot tell the two apart). This phone is linked to
+ *   it, but the name, company and offers choice just typed were NOT saved. Never show them as saved.
+ * 'removal_pending': "Remove my info" came from a phone that did not make the sign-up. Nothing was deleted; a person at
+ *   Trainovate was asked to do it. Never say "Removed".
+ */
+export type AccountNotice = 'not_changed' | 'removal_pending';
+
+/** What "Remove my info" did. 'waiting': no signal yet, the request is saved on the phone and goes out later. */
+export type RemoveOutcome = 'removed' | 'pending' | 'waiting';
+
+/** Plain lines for these answers, so every screen says the same thing. */
+export const NOT_CHANGED_LINE =
+  'This email is already signed up from another phone or an earlier install of the app, so your name, company and offers choice were not changed. Contact support and we will change them.';
+/** The same line for a build with no support address, where there is no "Contact support" button to point to. */
+export const NOT_CHANGED_LINE_NO_CONTACT =
+  'This email is already signed up from another phone or an earlier install of the app, so your name, company and offers choice were not changed.';
+/** The line to show: it says "Contact support" only when the screen can show a way to do it. */
+export const notChangedLine = (supportEmail: string): string => (supportEmail.trim() !== '' ? NOT_CHANGED_LINE : NOT_CHANGED_LINE_NO_CONTACT);
+export const REMOVED_LINE = 'Removed. Your name and email are cleared from this phone. If this phone made your sign-up, the sign-up is deleted too.';
+export const REMOVAL_PENDING_LINE = 'We got your request. A person will remove your info.';
+export const REMOVAL_WAITING_LINE = 'Cleared from this phone. Your request will send when you have signal.';
+/** The text of the "Remove my info?" question. It describes what really happens, for the phone that signed up and for any other. */
+export const REMOVE_CONFIRM_TEXT =
+  'This clears your name and email from this phone. If this phone made your sign-up, the sign-up is deleted and the app stops adding you to Zero Harm Weekly. ' +
+  'If another phone made it, nothing is deleted yet: we ask a person at Trainovate to remove it. If you joined Zero Harm Weekly another way, use Unsubscribe in any of its emails.';
+
+/** The line for what "Remove my info" did. */
+export const removalLine = (outcome: RemoveOutcome) => (outcome === 'pending' ? REMOVAL_PENDING_LINE : outcome === 'waiting' ? REMOVAL_WAITING_LINE : REMOVED_LINE);
+
+/** "Signed in as Maria Lopez, maria@example.com". Just the email when the server did not take the name from this phone. */
+export const signedInAs = (account: { name: string; email: string }) => `Signed in as ${[account.name, account.email].filter(Boolean).join(', ')}`;
+
+const REMOVAL_NOTICE_DAYS = 30; // after this the line has done its job and Settings goes quiet again
+
+async function readNotice(): Promise<AccountNotice | null> {
+  try {
+    const v = JSON.parse((await Storage.getItem(NOTICE_KEY)) ?? 'null') as { kind?: unknown; at?: unknown } | null;
+    if (v?.kind === 'not_changed') return 'not_changed';
+    if (v?.kind === 'removal_pending' && typeof v.at === 'number' && Date.now() - v.at < REMOVAL_NOTICE_DAYS * 86_400_000) return 'removal_pending';
+  } catch {
+    // a damaged value is the same as no notice
+  }
+  return null;
+}
+const saveNotice = (kind: AccountNotice) => Storage.setItem(NOTICE_KEY, JSON.stringify({ kind, at: Date.now() }));
 
 function readPair(raw: string | null): { name: string; email: string } {
   try {
@@ -101,10 +152,11 @@ function readPair(raw: string | null): { name: string; email: string } {
 }
 
 export async function getAccount(): Promise<Account> {
-  if (await signedIn()) return { state: 'in', ...readPair(await Storage.getItem(ACCOUNT_KEY)) };
+  const notice = await readNotice();
+  if (await signedIn()) return { state: 'in', ...readPair(await Storage.getItem(ACCOUNT_KEY)), ...(notice === 'not_changed' ? { notice } : {}) };
   const fix = await Storage.getItem(NEEDS_FIX_KEY);
   if (fix) return { state: 'fix', ...readPair(fix) };
-  return { state: 'out', name: '', email: '' };
+  return { state: 'out', name: '', email: '', ...(notice === 'removal_pending' ? { notice } : {}) };
 }
 
 // ---- Outbox -----------------------------------------------------------------------------------------
@@ -136,31 +188,48 @@ function inLine(step: () => Promise<void>): Promise<void> {
   line = next.catch(() => {});
   return next;
 }
-const changeOutbox = (change: (box: Outbox) => Outbox) => inLine(async () => Storage.setItem(OUTBOX_KEY, JSON.stringify(change(await readOutbox()))));
 
 /** True when the server said no for good (a bad email, say). "Slow down" (429) and timeouts are worth another try. */
 const refused = (err: unknown) => err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
 /** True when the server said what was sent is wrong (a bad email, say), so the person needs to fix it and sign in again. */
 const badInput = (err: unknown) => err instanceof ApiError && (err.status === 400 || err.status === 422);
 
+// What became of the removal that was last sent, so removeMyInfo can tell the person. `at` is the removal's own stamp.
+let removalTried = 0;
+let removalDone: { at: number; pending: boolean } | null = null;
+
 /** Sends what is waiting. Returns false when the signal dropped and the rest should wait for next time. */
 async function sendWaiting(): Promise<boolean> {
   const { remove, signup } = await readOutbox();
   if (remove) {
+    let pending = false;
+    removalTried = remove.at;
     try {
-      await api('/signups/remove/', { method: 'POST', body: JSON.stringify({ install_id: await installId() }) });
+      const res = await api<{ pending?: unknown } | null>('/signups/remove/', { method: 'POST', body: JSON.stringify({ install_id: await installId() }) });
+      // This phone did not make the sign-up, so the server deleted nothing and asked a person to look at it.
+      pending = res?.pending === true;
     } catch (err) {
       if (!refused(err)) return false; // keep it, and hold the sign-up behind it so the order stays right
     }
-    // Cleared only if it is still the same one: the person may have tapped something while the request was in the air.
-    await changeOutbox((now) => (now.remove?.at === remove.at ? { ...now, remove: undefined } : now));
+    removalDone = { at: remove.at, pending };
+    await inLine(async () => {
+      const now = await readOutbox();
+      // Cleared only if it is still the same one: the person may have tapped something while the request was in the air.
+      if (now.remove?.at !== remove.at) return;
+      await Storage.setItem(OUTBOX_KEY, JSON.stringify({ ...now, remove: undefined }));
+      // A sign-in made since then is the newer wish: the notice would only confuse.
+      if (pending && !now.signup) await saveNotice('removal_pending');
+    });
   }
   if (signup) {
     // A removal that arrived while the first request was out comes first. The next pass sends it.
     if ((await readOutbox()).remove) return true;
     let bad = false;
+    let unchanged = false;
     try {
-      await api('/signups/', { method: 'POST', body: JSON.stringify({ ...signup.body, install_id: await installId() }) });
+      const res = await api<{ changed?: unknown } | null>('/signups/', { method: 'POST', body: JSON.stringify({ ...signup.body, install_id: await installId() }) });
+      // Another phone made this sign-up. This one is linked to it, and nothing that was typed here was saved.
+      unchanged = res?.changed === false;
     } catch (err) {
       if (!refused(err)) return false;
       bad = badInput(err);
@@ -169,6 +238,13 @@ async function sendWaiting(): Promise<boolean> {
       const now = await readOutbox();
       if (now.signup?.at !== signup.at) return; // signed in again or removed meanwhile: that newer tap wins
       await Storage.setItem(OUTBOX_KEY, JSON.stringify({ ...now, signup: undefined }));
+      if (unchanged) {
+        // The phone must not show a name the server did not take. The email is true: this phone is linked to it.
+        await Storage.setItem(ACCOUNT_KEY, JSON.stringify({ name: '', email: signup.body.email }));
+        await saveNotice('not_changed');
+      } else {
+        await Storage.removeItem(NOTICE_KEY);
+      }
       if (bad) {
         // The phone must not keep saying "Signed in" for a sign-up the server never kept.
         await Storage.removeItem(SIGNED_IN_KEY);
@@ -238,17 +314,21 @@ export async function signIn(input: { name: string; email: string; company?: str
     await Storage.setItem(SIGNED_IN_KEY, 'yes');
     await Storage.setItem(WELCOME_KEY, 'yes');
     await Storage.removeItem(NEEDS_FIX_KEY);
+    await Storage.removeItem(NOTICE_KEY); // what the server said about an earlier sign-in or removal no longer applies
     await Storage.setItem(OUTBOX_KEY, JSON.stringify({ ...(await readOutbox()), signup: { at: stamp(), body } }));
   });
   flushAccount(); // not awaited: the person never waits on the network
 }
 
 /**
- * "Remove my info": asks the server to unlink this phone from the sign-up (the server removes the sign-up, and the
- * newsletter with it, only when no other phone of that person is linked), and clears the name, email and signed-in
- * state here. A sign-up that never left the phone is cancelled.
+ * "Remove my info": clears the name, email and signed-in state on this phone at once, and asks the server to remove
+ * the sign-up. What the server does depends on which phone asks. The phone that made the sign-up: it is deleted, and
+ * the newsletter with it ('removed'). Any other phone: nothing is deleted, the phone is unlinked and a person at
+ * Trainovate is asked to remove it ('pending'), so say "We got your request", never "Removed". With no signal the
+ * request waits on the phone ('waiting'). A sign-up that never left the phone is cancelled.
+ * This one does wait for the server (a few seconds at most), because the screen has to tell the truth about it.
  */
-export async function removeMyInfo(): Promise<void> {
+export async function removeMyInfo(): Promise<RemoveOutcome> {
   // The sign-in sheet profile is cleared only while it still holds the account's details. If someone else on the crew
   // has since put their own details there, theirs stay.
   const account = readPair(await Storage.getItem(ACCOUNT_KEY));
@@ -256,11 +336,17 @@ export async function removeMyInfo(): Promise<void> {
   if (!sheet.email || (account.email && sheet.email.toLowerCase() === account.email.toLowerCase())) {
     await saveProfile({ name: '', email: '', company: '' });
   }
+  const at = stamp();
   await inLine(async () => {
     await Storage.removeItem(SIGNED_IN_KEY);
     await Storage.removeItem(ACCOUNT_KEY);
     await Storage.removeItem(NEEDS_FIX_KEY);
-    await Storage.setItem(OUTBOX_KEY, JSON.stringify({ remove: { at: stamp() } }));
+    await Storage.removeItem(NOTICE_KEY);
+    await Storage.setItem(OUTBOX_KEY, JSON.stringify({ remove: { at } }));
   });
-  flushAccount();
+  await flushAccount();
+  // The call above may have joined a send that was already on its way out and never looked at this removal.
+  if (removalTried !== at) await flushAccount();
+  if (removalDone?.at !== at) return 'waiting';
+  return removalDone.pending ? 'pending' : 'removed';
 }

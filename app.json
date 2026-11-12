@@ -60,7 +60,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "ai.trainovate.zeroharm"
+      "package": "ai.trainovate.zeroharm",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -98,7 +103,12 @@
       [
         "onesignal-expo-plugin",
         {
-          "mode": "development"
+          "mode": "development",
+          "disableLocation": true,
+          "smallIcons": [
+            "./assets/images/ic_stat_onesignal_default.png"
+          ],
+          "smallIconAccentColor": "#F5C400"
         }
       ],
       [
@@ -127,6 +137,9 @@
         {
           "ios": {
             "deploymentTarget": "17.0"
+          },
+          "android": {
+            "extraProguardRules": "-keep class com.eko.RNBGDTaskConfig { *; }\n-keep class com.eko.RNBGDUploadTaskConfig { *; }\n-keep class com.eko.UploadPartResult { *; }\n-keep class com.eko.utils.StorageManager$PausedDownloadInfoData { *; }\n-keepattributes Signature\n-keep class com.google.gson.reflect.TypeToken { *; }\n-keep class * extends com.google.gson.reflect.TypeToken\n-keep class com.tencent.mmkv.** { *; }"
           }
         }
       ],

@@ -6,8 +6,17 @@ import {
   flushAccount,
   getAccount,
   markHowToDone,
+  NOT_CHANGED_LINE,
+  NOT_CHANGED_LINE_NO_CONTACT,
+  notChangedLine,
+  REMOVAL_PENDING_LINE,
+  REMOVAL_WAITING_LINE,
+  REMOVE_CONFIRM_TEXT,
+  REMOVED_LINE,
+  removalLine,
   removeMyInfo,
   signedIn,
+  signedInAs,
   signIn,
   skip,
   whatToShow,
@@ -342,5 +351,161 @@ describe('the account name and email', () => {
     await flushAccount();
     await removeMyInfo();
     expect(await getAccount()).toEqual({ state: 'out', name: '', email: '' });
+  });
+});
+
+// The server has two answers the app must not paper over. A sign-up belongs to the first phone linked to it: any other
+// phone that signs in with the email is linked and changes nothing ({"ok": true, "changed": false}), and "Remove my
+// info" from such a phone deletes nothing and asks a person to do it ({"ok": true, "pending": true}).
+describe('a sign-in from a phone that did not make the sign-up', () => {
+  it('stays signed in, drops the name the server did not take, and says so', async () => {
+    send.mockResolvedValueOnce({ ok: true, changed: false });
+    await signIn({ ...maria, company: 'Acme Steel', source: 'settings', wantsOffers: true });
+    await flushAccount();
+    expect(await signedIn()).toBe(true);
+    expect(await getAccount()).toEqual({ state: 'in', name: '', email: 'maria@example.com', notice: 'not_changed' });
+    expect(signedInAs(await getAccount())).toBe('Signed in as maria@example.com');
+    // The sign-in sheet profile is this phone's own and is not what the notice is about.
+    expect((await getProfile()).name).toBe('Maria Lopez');
+
+    await flushAccount();
+    expect(send).toHaveBeenCalledTimes(1); // it is not sent again
+  });
+
+  it('shows the name as saved only when the server took it', async () => {
+    await signIn(maria);
+    await flushAccount();
+    const account = await getAccount();
+    expect(account).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.com' });
+    expect(account).not.toHaveProperty('notice');
+    expect(signedInAs(account)).toBe('Signed in as Maria Lopez, maria@example.com');
+  });
+
+  it('says nothing until the server has answered, so a dead spot shows no false notice', async () => {
+    send.mockRejectedValue(new Error('no signal'));
+    await signIn(maria);
+    await flushAccount();
+    expect(await getAccount()).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.com' });
+
+    send.mockReset().mockResolvedValue({ ok: true, changed: false });
+    await flushAccount();
+    expect(await getAccount()).toMatchObject({ state: 'in', name: '', notice: 'not_changed' });
+  });
+
+  it('clears the notice when a later sign-in is taken', async () => {
+    send.mockResolvedValueOnce({ ok: true, changed: false });
+    await signIn(maria);
+    await flushAccount();
+    expect((await getAccount()).notice).toBe('not_changed');
+
+    await signIn({ name: 'Maria Lopez', email: 'maria@example.org' }); // a different email: this phone makes that sign-up
+    expect(await getAccount()).not.toHaveProperty('notice'); // the old answer is not shown against the new sign-in
+    await flushAccount();
+    expect(await getAccount()).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.org' });
+  });
+
+  it('does not touch a newer sign-in made while the answer was in the air', async () => {
+    let finish: (v: unknown) => void = () => {};
+    send.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    await signIn(maria);
+    while (send.mock.calls.length === 0) await Promise.resolve();
+    await signIn({ name: 'Maria Lopez', email: 'maria@example.org' });
+    finish({ ok: true, changed: false });
+    await flushAccount();
+    await flushAccount();
+    expect(await getAccount()).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.org' });
+  });
+
+  it('treats any other answer as saved (an older server sends only ok)', async () => {
+    for (const answer of [{ ok: true }, { ok: true, changed: true }, {}, null]) {
+      mockStore.clear();
+      send.mockReset().mockResolvedValue(answer);
+      await signIn(maria);
+      await flushAccount();
+      expect(await getAccount()).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.com' });
+    }
+  });
+});
+
+describe('what Remove my info really did', () => {
+  it("says 'removed' when the server carried it out", async () => {
+    await signIn(maria);
+    await flushAccount();
+    send.mockResolvedValueOnce({ ok: true });
+    expect(await removeMyInfo()).toBe('removed');
+    expect(await getAccount()).toEqual({ state: 'out', name: '', email: '' });
+    expect(removalLine('removed')).toBe(REMOVED_LINE);
+  });
+
+  it("says 'pending' when the server only took a request, and never 'removed'", async () => {
+    await signIn(maria);
+    await flushAccount();
+    send.mockResolvedValueOnce({ ok: true, pending: true });
+    expect(await removeMyInfo()).toBe('pending');
+    // The phone is cleared either way; the notice stays so Settings can keep saying what is true.
+    expect(await signedIn()).toBe(false);
+    expect(await getAccount()).toEqual({ state: 'out', name: '', email: '', notice: 'removal_pending' });
+    expect(removalLine('pending')).toBe('We got your request. A person will remove your info.');
+    expect(removalLine('pending')).toBe(REMOVAL_PENDING_LINE);
+    expect(REMOVAL_PENDING_LINE).not.toMatch(/removed/i);
+  });
+
+  it("says 'waiting' with no signal, then keeps the server's answer when the request goes out later", async () => {
+    await signIn(maria);
+    await flushAccount();
+    send.mockReset().mockRejectedValue(new Error('no signal'));
+    expect(await removeMyInfo()).toBe('waiting');
+    expect(removalLine('waiting')).toBe(REMOVAL_WAITING_LINE);
+    expect(await getAccount()).toEqual({ state: 'out', name: '', email: '' });
+
+    send.mockReset().mockResolvedValue({ ok: true, pending: true });
+    await flushAccount();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toBe('/signups/remove/');
+    expect((await getAccount()).notice).toBe('removal_pending');
+  });
+
+  it("says 'waiting' when the app has no server address yet", async () => {
+    (isConfigured as jest.Mock).mockReturnValue(false);
+    expect(await removeMyInfo()).toBe('waiting');
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('signing in again clears the pending notice', async () => {
+    send.mockResolvedValueOnce({ ok: true, pending: true });
+    await removeMyInfo();
+    expect((await getAccount()).notice).toBe('removal_pending');
+    await signIn(maria);
+    await flushAccount();
+    expect(await getAccount()).toEqual({ state: 'in', name: 'Maria Lopez', email: 'maria@example.com' });
+  });
+
+  it('stops showing the pending notice after a month', async () => {
+    send.mockResolvedValueOnce({ ok: true, pending: true });
+    await removeMyInfo();
+    const saved = JSON.parse(mockStore.get('account_notice')!);
+    mockStore.set('account_notice', JSON.stringify({ ...saved, at: Date.now() - 31 * 86_400_000 }));
+    expect(await getAccount()).toEqual({ state: 'out', name: '', email: '' });
+  });
+
+  it('a damaged notice is the same as none', async () => {
+    mockStore.set('account_notice', '{not json');
+    expect(await getAccount()).toEqual({ state: 'out', name: '', email: '' });
+  });
+
+  it('the lines say what is true in plain words', () => {
+    expect(NOT_CHANGED_LINE).toMatch(/not changed/);
+    // A reinstall on the same phone gets this answer too, so the line must not say it was certainly another phone.
+    expect(NOT_CHANGED_LINE).toMatch(/another phone or an earlier install of the app/);
+    expect(NOT_CHANGED_LINE).not.toMatch(/Only the phone that signed up/);
+    expect(NOT_CHANGED_LINE).toMatch(/Contact support/);
+    // A build with no support address has no button to contact support, so its line does not point to one.
+    expect(notChangedLine('help@example.com')).toBe(NOT_CHANGED_LINE);
+    expect(notChangedLine('')).toBe(NOT_CHANGED_LINE_NO_CONTACT);
+    expect(NOT_CHANGED_LINE_NO_CONTACT).toMatch(/not changed\.$/);
+    expect(NOT_CHANGED_LINE_NO_CONTACT).not.toMatch(/support/i);
+    expect(REMOVE_CONFIRM_TEXT).toMatch(/If this phone made your sign-up, the sign-up is deleted/);
+    expect(REMOVE_CONFIRM_TEXT).toMatch(/nothing is deleted yet/);
+    expect(REMOVE_CONFIRM_TEXT).toMatch(/a person at Trainovate/);
   });
 });

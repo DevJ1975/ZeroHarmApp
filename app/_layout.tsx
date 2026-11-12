@@ -1,13 +1,14 @@
 import { Barlow_400Regular, Barlow_500Medium, Barlow_600SemiBold } from '@expo-google-fonts/barlow';
 import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { CrashScreen } from '@/components/CrashScreen';
 import { HolidaySplash } from '@/components/Holiday';
 import { HowTo } from '@/components/HowTo';
 import { IntroSplash } from '@/components/IntroSplash';
@@ -19,20 +20,39 @@ import { flushVotes } from '@/lib/monday';
 import { startPush } from '@/lib/push';
 import { isHoliday, refreshSeason } from '@/lib/season';
 import { flushSheets } from '@/lib/sheets';
+import { flushCrashes, installCrashReporter, noteScreen } from '@/lib/support/crash';
+import { flushReports } from '@/lib/support/reports';
 import { reportOpen } from '@/lib/usage';
 
-export { ErrorBoundary } from 'expo-router';
+// Before anything else runs, so an error while the app is still starting is caught too.
+installCrashReporter();
 
-export const unstable_settings = { anchor: '(tabs)' };
+/**
+ * Shown in place of the whole app when the layout itself throws (a font that will not load, say). It is drawn above
+ * the navigator, so it stands on its own: see CrashScreen.
+ */
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen {...props} />;
+}
+
+// screenErrorBoundary: when one screen throws, only that screen shows the error. The header, the back button and the
+// tabs stay, so the person can leave it and the rest of the app keeps working.
+export const unstable_settings = { anchor: '(tabs)', screenErrorBoundary: ErrorBoundary };
 
 SplashScreen.preventAutoHideAsync();
+
+// "Try again" on the error screen draws the layout afresh. The opening screen has had its turn by then.
+let openingPlayed = false;
 
 export default function RootLayout() {
   const scheme = useColorScheme();
   // One opening screen per cold start, decided by the date when the app opens: the holiday screen in December,
   // the footage intro the rest of the year. null once it has played.
-  const [opening, setOpening] = useState<'holiday' | 'intro' | null>(() => (isHoliday() ? 'holiday' : 'intro'));
-  const closeOpening = useCallback(() => setOpening(null), []);
+  const [opening, setOpening] = useState<'holiday' | 'intro' | null>(() => (openingPlayed ? null : isHoliday() ? 'holiday' : 'intro'));
+  const closeOpening = useCallback(() => {
+    openingPlayed = true;
+    setOpening(null);
+  }, []);
   // The welcome sign-in and the how-to show once, on the first open. Read before the first frame so the tabs never flash.
   const [first, setFirst] = useState(firstRun);
   const closeWelcome = useCallback(() => setFirst((f) => ({ ...f, welcomeDone: true })), []);
@@ -52,6 +72,12 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // A crash report says which screen the person was on. The route only, never what is after a "?".
+  const pathname = usePathname();
+  useEffect(() => {
+    noteScreen(pathname);
+  }, [pathname]);
+
   // The root view sits behind every screen (transitions, keyboard): match it to the theme, not app.json's splash yellow.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(themes[scheme === 'dark' ? 'dark' : 'light'].background);
@@ -60,12 +86,15 @@ export default function RootLayout() {
   useEffect(() => {
     startPush();
     startLive(); // reload lists when new talks, alerts or episodes are published
-    // Sheets, votes and a sign-up saved with no signal go out now, and again each time the app comes back to the front:
-    // people walk from a dead spot on the floor to the break room with the phone in their pocket.
+    // Sheets, votes, a sign-up, problem reports and crash reports saved with no signal go out now, and again each time
+    // the app comes back to the front: people walk from a dead spot on the floor to the break room with the phone in
+    // their pocket.
     const flush = () => {
       flushSheets();
       flushVotes();
       flushAccount();
+      flushReports();
+      flushCrashes();
       refreshSeason();
       reportOpen();
     };
@@ -112,6 +141,8 @@ export default function RootLayout() {
         <Stack.Screen name="alerts" options={{ title: 'Regulatory alerts' }} />
         <Stack.Screen name="alert/[id]" options={{ title: 'Regulatory alert' }} />
         <Stack.Screen name="how-to" options={{ title: 'How to use Zero Harm' }} />
+        <Stack.Screen name="report" options={{ title: 'Report a problem' }} />
+        <Stack.Screen name="my-reports" options={{ title: 'My reports' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

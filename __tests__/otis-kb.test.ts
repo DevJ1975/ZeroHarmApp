@@ -41,6 +41,7 @@ const doc = (p: Partial<KbItem>): KbItem => ({
   lang: p.lang ?? 'en',
   issue: p.issue ?? null,
   tags: p.tags,
+  ...(p.kind ? { kind: p.kind } : {}),
 });
 
 // Filler passages so idf behaves like a real KB (a term in every passage carries no signal).
@@ -228,6 +229,98 @@ describe('search', () => {
   test('word queries still use the prefix rule after the digit check', () => {
     const kb = [...filler, doc({ id: 'h', title: 'Fall gear', text: 'Inspect harnesses daily' })];
     expect(ids(search(kb, 'harness', 'en'))).toEqual(['h']);
+  });
+});
+
+// Tech-support entries about the app ride in the same download, marked kind: 'support'. They are shown word for
+// word and must never be mixed into safety answers, so each search sees only its own kind.
+describe('safety and support passages are kept apart', () => {
+  let search: typeof import('../lib/otis/kb').search;
+  let searchSupport: typeof import('../lib/otis/kb').searchSupport;
+  let isSupport: typeof import('../lib/otis/kb').isSupport;
+  beforeAll(() => {
+    ({ search, searchSupport, isSupport } = require('../lib/otis/kb'));
+  });
+
+  const support = [
+    doc({ id: 'k90', kind: 'support', source: 'Zero Harm app help', title: 'The app crashes or closes by itself', tags: 'crash, crashed, crashing, closes, se cierra, no funciona', text: '1. Close the app and open it again. 2. Update the app. 3. Restart the phone.' }),
+    doc({ id: 'k91', kind: 'support', source: 'Zero Harm app help', title: 'OTIS download is stuck', tags: 'download, stuck, frozen, descarga, trabada', text: '1. Connect to Wi-Fi. 2. Keep the OTIS screen open. 3. Free up storage.' }),
+    doc({ id: 'k92', kind: 'support', source: 'Zero Harm app help', title: 'Notifications are not arriving', tags: 'notification, notifications, push, notificaciones, no llegan', text: '1. Open Settings. 2. Turn the switches on. 3. Allow notifications in phone settings.' }),
+    doc({ id: 'k93', kind: 'support', source: 'Zero Harm app help', title: 'How to run a toolbox talk in the app', tags: 'sign-in, signature, group photo, attendance', text: 'Open this week\'s talk on the Today screen. Tap Start crew sign-in.' }),
+    doc({ id: 'k94', kind: 'support', source: 'Zero Harm app help', title: 'The ladder photo will not upload', tags: 'ladder, photo', text: 'Ladder ladder ladder. Try again on Wi-Fi.' }),
+  ];
+  const safety = [
+    ...filler,
+    doc({ id: 'ladder', title: 'Ladder safety', text: 'Keep three points of contact on a ladder. Report a broken ladder and tag it out.' }),
+    doc({ id: 'crash', title: 'Forklift crash into racking', text: 'A forklift crash can bring down a rack. Stuck loads are a hazard. Close the aisle.' }),
+    doc({ id: 'r9', title: 'Notification of incidents', source: '29 CFR 1904.39', text: 'Notifications to OSHA of a fatality are due in eight hours.' }),
+  ];
+  const kb = [...safety, ...support];
+
+  test('isSupport reads the kind, not the id or the source', () => {
+    expect(support.every(isSupport)).toBe(true);
+    expect(safety.some(isSupport)).toBe(false);
+    expect(isSupport(doc({ id: 'k1', source: 'Zero Harm app help' }))).toBe(false);
+  });
+
+  test('safety search never returns a support entry, even when it is the best match by words', () => {
+    for (const q of ['ladder', 'ladder photo upload', 'the app crashes', 'notifications', 'OTIS download is stuck', 'toolbox talk sign-in']) {
+      expect(search(kb, q, 'en', 10).filter(isSupport)).toEqual([]);
+    }
+    expect(ids(search(kb, 'ladder', 'en'))).toEqual(['ladder']);
+  });
+
+  test('support search never returns a safety passage, even when it is the best match by words', () => {
+    for (const q of ['forklift crash', 'ladder', 'notifications to OSHA', 'stuck loads', 'heat stress', 'close the aisle']) {
+      expect(searchSupport(kb, q, 'en', 10).every(isSupport)).toBe(true);
+    }
+    expect(searchSupport(kb, 'heat stress', 'en')).toEqual([]);
+    expect(searchSupport(kb, 'eye wash station', 'en')).toEqual([]);
+  });
+
+  test('support search finds the entry for a plain complaint, best first, two by default', () => {
+    expect(ids(searchSupport(kb, 'the app keeps crashing', 'en'))[0]).toBe('k90');
+    expect(ids(searchSupport(kb, 'app crashed', 'en'))[0]).toBe('k90');
+    expect(ids(searchSupport(kb, 'otis download is stuck at 40%', 'en'))[0]).toBe('k91');
+    expect(ids(searchSupport(kb, "I'm not getting notifications", 'en'))[0]).toBe('k92');
+    expect(ids(searchSupport(kb, 'how do I run a toolbox talk in the app', 'en'))[0]).toBe('k93');
+    expect(searchSupport(kb, 'ladder photo', 'en').length).toBeLessThanOrEqual(2);
+    expect(searchSupport(kb, 'ladder photo', 'en', 1)).toHaveLength(1);
+  });
+
+  test('Spanish complaints reach the English entries through their Spanish tags', () => {
+    expect(ids(searchSupport(kb, 'la app se cierra', 'es'))[0]).toBe('k90');
+    expect(ids(searchSupport(kb, 'no me llegan las notificaciones', 'es'))[0]).toBe('k92');
+    expect(ids(searchSupport(kb, 'la descarga de OTIS está trabada', 'es'))[0]).toBe('k91');
+  });
+
+  test('words that fit every app complaint do not pick an entry on their own', () => {
+    expect(searchSupport(kb, 'the app is not working', 'en').map((d) => d.id)).not.toContain('k94');
+    expect(searchSupport(kb, 'problem with the app', 'en')).toEqual([]);
+    expect(searchSupport(kb, 'help', 'en')).toEqual([]);
+    expect(searchSupport(kb, '', 'en')).toEqual([]);
+  });
+
+  test('an entry that holds under half of the words that matter is not shown', () => {
+    // "report" and "hazard" are not in any support entry; one stray word is not enough for a word-for-word answer.
+    expect(searchSupport(kb, 'how do I use the app to report a ladder hazard', 'en')).toEqual([]);
+  });
+
+  test('the cache keeps the two kinds apart when the same KB is asked both ways', () => {
+    expect(ids(search(kb, 'ladder', 'en'))).toEqual(['ladder']);
+    expect(ids(searchSupport(kb, 'ladder', 'en'))).toEqual(['k94']);
+    expect(ids(search(kb, 'ladder', 'en'))).toEqual(['ladder']);
+    expect(ids(searchSupport(kb, 'ladder', 'es'))).toEqual(['k94']);
+    expect(ids(search(kb, 'ladder', 'es'))).toEqual(['ladder']);
+  });
+
+  test('support entries do not change how safety passages rank', () => {
+    const q = 'forklift crash stuck load';
+    expect(ids(search(kb, q, 'en', 10))).toEqual(ids(search(safety, q, 'en', 10)));
+  });
+
+  test('a KB with no support entries gives no support answer', () => {
+    expect(searchSupport(safety, 'the app keeps crashing', 'en')).toEqual([]);
   });
 });
 
