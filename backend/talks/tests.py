@@ -1200,3 +1200,79 @@ class ReviewRoundTwoTests(TestCase):
         with patch.object(owner_alerts, "_untag") as untag:
             self.assertTrue(owner_alerts.finish_removal(removal))
         untag.assert_not_called()
+
+
+class NamedClientTests(TestCase):
+    """GoHighLevel and OneSignal sit behind Cloudflare, which answers Python's default client name
+    ("Python-urllib/3.x") with a 403 (error 1010) before it looks at the token. Every call must name itself."""
+
+    class _Reply:
+        status = 200
+
+        def read(self):
+            return b"{}"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _sent_request(self, call):
+        with patch("urllib.request.urlopen", return_value=self._Reply()) as urlopen:
+            call()
+        return urlopen.call_args.args[0]
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_gohighlevel_calls_name_the_client(self):
+        from . import ghl
+
+        req = self._sent_request(lambda: ghl.find_contact("someone@example.com"))
+        self.assertEqual(req.get_header("User-agent"), ghl.USER_AGENT)
+        self.assertNotIn("urllib", req.get_header("User-agent").lower())
+        self.assertEqual(req.get_header("Authorization"), "Bearer pit-test")  # the token still rides along
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_gohighlevel_writes_name_the_client_and_keep_their_content_type(self):
+        from . import ghl
+
+        req = self._sent_request(lambda: ghl.add_tags("abc", ["zero-harm-app"]))
+        self.assertEqual(req.get_header("User-agent"), ghl.USER_AGENT)
+        self.assertEqual(req.get_header("Content-type"), "application/json")
+
+    def test_onesignal_calls_name_the_client(self):
+        from .integrations import _post
+
+        req = self._sent_request(lambda: _post("https://api.onesignal.com/notifications", {"Authorization": "Key k"}, {"a": 1}))
+        self.assertNotIn("urllib", (req.get_header("User-agent") or "python-urllib").lower())
+        self.assertEqual(req.get_header("Authorization"), "Key k")
+
+
+class GhlTemplateListTests(TestCase):
+    """The year sync reads Zero Harm Weekly templates from GoHighLevel's /emails/builder list."""
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_lists_every_page_from_the_builder_address_and_carries_the_update_time(self):
+        from . import ghl
+
+        pages = [
+            {"builders": [{"id": "a", "name": "Zero Harm Weekly #01", "previewUrl": "https://x/a", "lastUpdated": "2026-11-01T00:00:00Z"},
+                          {"id": "b", "name": "Zero Harm Weekly #02", "previewUrl": "https://x/b", "lastUpdated": "2026-11-02T00:00:00Z"}], "total": 3},
+            {"builders": [{"id": "c", "name": "Zero Harm Weekly #03", "previewUrl": "https://x/c", "lastUpdated": "2026-11-03T00:00:00Z"}], "total": 3},
+        ]
+        with patch.object(ghl, "request", side_effect=pages) as request:
+            items = ghl.list_templates("Zero Harm Weekly", page_size=2)
+        self.assertEqual([i["id"] for i in items], ["a", "b", "c"])
+        self.assertEqual(items[0]["updatedAt"], "2026-11-01T00:00:00Z")  # what sync_year compares
+        self.assertEqual(items[2]["previewUrl"], "https://x/c")  # what sync_year fetches
+        first, second = request.call_args_list
+        self.assertEqual(first.args[:2], ("GET", "/emails/builder"))
+        self.assertEqual(first.args[2], {"locationId": "loc", "name": "Zero Harm Weekly", "limit": 2, "offset": 0})
+        self.assertEqual(second.args[2]["offset"], 2)
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_no_templates_is_an_empty_list(self):
+        from . import ghl
+
+        with patch.object(ghl, "request", return_value={"builders": [], "total": 0}):
+            self.assertEqual(ghl.list_templates("Zero Harm Weekly"), [])

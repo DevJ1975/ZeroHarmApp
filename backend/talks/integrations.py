@@ -14,7 +14,8 @@ def _post(url, headers, payload, timeout=10):
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", **headers},
+        # A named client: OneSignal is behind Cloudflare too, which can refuse Python's default client name.
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "ZeroHarmApp/1.0", **headers},
         method="POST",
     )
     try:

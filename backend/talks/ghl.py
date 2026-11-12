@@ -10,6 +10,7 @@ from django.conf import settings
 
 log = logging.getLogger(__name__)
 BASE = "https://services.leadconnectorhq.com"
+USER_AGENT = "ZeroHarmApp/1.0"
 
 
 class GhlError(Exception):
@@ -25,7 +26,15 @@ def configured():
 
 
 def _headers(extra=None):
-    return {"Authorization": f"Bearer {settings.GHL_PRIVATE_TOKEN}", "Version": "2021-07-28", "Accept": "application/json", **(extra or {})}
+    # GoHighLevel sits behind Cloudflare, which refuses Python's default "Python-urllib" client name with a 403
+    # (error 1010) before the token is even looked at. A named client gets through.
+    return {
+        "Authorization": f"Bearer {settings.GHL_PRIVATE_TOKEN}",
+        "Version": "2021-07-28",
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,
+        **(extra or {}),
+    }
 
 
 def request(method, path, query=None, body=None, raw=None, content_type="application/json", timeout=30):
@@ -45,19 +54,23 @@ def request(method, path, query=None, body=None, raw=None, content_type="applica
 
 
 def fetch_text(url, timeout=30):
-    req = urllib.request.Request(url, headers={"User-Agent": "ZeroHarmApp/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as res:
         return res.read().decode("utf-8", errors="replace")
 
 
 def list_templates(search, page_size=50):  # GHL allows at most 50 per page
-    """All email templates whose name matches `search`."""
+    """All email templates whose name matches `search`.
+
+    GoHighLevel lists them at /emails/builder under "builders" (the older /emails/locations/<id>/templates
+    address answers 404). Each one carries "lastUpdated"; it is copied to "updatedAt", which the year sync
+    uses to pick the newest of two templates for the same issue."""
     items, offset = [], 0
     while True:
-        data = request("GET", f"/emails/locations/{settings.GHL_LOCATION_ID}/templates",
-                       {"search": search, "limit": page_size, "offset": offset})
-        batch = data.get("items") or data.get("templates") or []
-        items.extend(batch)
+        data = request("GET", "/emails/builder",
+                       {"locationId": settings.GHL_LOCATION_ID, "name": search, "limit": page_size, "offset": offset})
+        batch = data.get("builders") or []
+        items.extend({**t, "updatedAt": t.get("updatedAt") or t.get("lastUpdated") or ""} for t in batch)
         if len(batch) < page_size:
             return items
         offset += page_size
