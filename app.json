@@ -136,6 +136,12 @@
     "experiments": {
       "typedRoutes": true
     },
-    "backgroundColor": "#F5C400"
+    "backgroundColor": "#F5C400",
+    "extra": {
+      "eas": {
+        "projectId": "6d1a5343-bb2d-4c05-860f-7df5386db3be"
+      }
+    },
+    "owner": "trainovations"
   }
 }
