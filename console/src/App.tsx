@@ -16,11 +16,11 @@ function ConnectionBanner({ conn }: { conn: Connection | null }) {
   if (!conn || conn.ok) return null;
   const title =
     conn.status === 401 ? 'The console key was not accepted.'
-    : conn.status === 429 ? 'Too many failed attempts. Wait an hour, then try again.'
+    : conn.status === 429 ? 'The console key is wrong, and it has been tried too many times.'
     : conn.status === 503 ? 'The content console is switched off or not set up.'
     : 'Can’t reach the Zero Harm API.';
   const help =
-    conn.status === 401 ? 'Make sure CONSOLE_KEY in console/.env.local matches the CONSOLE_KEY variable on Railway, then restart npm run dev.'
+    conn.status === 401 || conn.status === 429 ? 'Make sure CONSOLE_KEY in console/.env.local matches the CONSOLE_KEY variable on Railway, then restart npm run dev. The right key works straight away; waiting does not fix a wrong one.'
     : conn.status === 0 ? ''
     : 'Check CONSOLE_API_URL in console/.env.local and that the Railway web service is running.';
   async function retry() {
@@ -79,6 +79,7 @@ export default function App() {
           ))}
         </ul>
         <p className="nav-note">Changes go live in the app the next time someone opens it.</p>
+        <p className="nav-credit">Made with love ❤️ from Las Vegas, Trainovate</p>
       </nav>
       <main id="main" tabIndex={-1}>
         <ConnectionBanner conn={conn} />

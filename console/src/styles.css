@@ -70,6 +70,7 @@ main:focus { outline: none; }
 .nav a:hover { background: var(--bg); }
 .nav a[aria-current='page'] { background: var(--bg); border-left-color: var(--text); font-weight: 600; }
 .nav-note { font-size: 13px; color: var(--muted); margin: 20px 8px 0; }
+.nav-credit { font-size: 12px; color: var(--muted); margin: 16px 8px 0; }
 main { padding: 28px 32px 64px; max-width: 1320px; width: 100%; }
 
 @media (max-width: 860px) {
@@ -77,7 +78,7 @@ main { padding: 28px 32px 64px; max-width: 1320px; width: 100%; }
   .nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); padding: 14px 16px; }
   .brand { margin-bottom: 12px; }
   .nav ul { grid-template-columns: repeat(auto-fill, minmax(min(132px, 100%), 1fr)); }
-  .nav-note { display: none; }
+  .nav-note, .nav-credit { display: none; }
   main { padding: 20px 16px 48px; }
   h1 { font-size: 28px; }
 }

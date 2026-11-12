@@ -218,6 +218,7 @@ export default function SettingsScreen() {
           <Body muted>Remove my info, at the top, unlinks this phone from your sign-up. Delete my data opens an email to us, for anything not tied to this phone. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions and comments.</Body>
         </>
       )}
+      <Text style={[styles.credit, { color: t.muted }]}>Made with love ❤️ from Las Vegas, Trainovate</Text>
     </Screen>
   );
 }
@@ -226,4 +227,5 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.displayMedium, fontSize: 24, marginTop: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderBottomWidth: 1 },
   rowLabel: { fontFamily: fonts.bodyBold, fontSize: 17 },
+  credit: { fontFamily: fonts.body, fontSize: 14, textAlign: 'center', marginTop: space.lg, marginBottom: space.md },
 });
