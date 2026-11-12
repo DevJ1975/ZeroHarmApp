@@ -28,10 +28,12 @@ api = NinjaAPI(title="Zero Harm API", version="2.0.0", urls_namespace="api-v2", 
 
 def _mount_routers():
     from monday.api import router as monday_router
+    from support.api import router as support_router
     from usage.api import router as usage_router
 
     api.add_router("/monday-minute", monday_router)
     api.add_router("/app", usage_router)
+    api.add_router("/support", support_router)
 
 BUILTIN_SIZE_MB = {"QWEN3_1_7B": 1300, "QWEN3_0_6B": 510}
 MIN_MEMORY_GB_FOR_BIG_MODEL = 6
@@ -102,6 +104,8 @@ class KbItem(Schema):
     issue: int | None = None
     episode: int | None = None
     tags: str | None = None
+    kind: Literal["support"] | None = Field(
+        None, description="Only on app help entries. Show these word for word, and never use them for a safety answer.")
 
 
 class KbOut(Schema):

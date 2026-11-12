@@ -601,10 +601,19 @@ def otis_kb(request):
     return JsonResponse({"version": version.isoformat() if version else "0", "items": items})
 
 
+def _kb_entry_item(e):
+    """One knowledge base entry as the phone gets it. Only an app help entry carries "kind": a safety entry is sent
+    exactly as before, so nothing that reads safety passages has to change. The phone shows a "support" item word for
+    word and keeps it out of safety answers."""
+    item = {"id": f"k{e.pk}", "title": e.title, "text": e.body, "source": e.source or e.title, "lang": "en", "tags": e.tags, "issue": None}
+    if e.kind == KbEntry.SUPPORT:
+        item["kind"] = KbEntry.SUPPORT
+    return item
+
+
 def kb_items():
     """Reviewed KB entries plus every released talk (English, and approved Spanish) and Zero Hour huddle card."""
-    items = [{"id": f"k{e.pk}", "title": e.title, "text": e.body, "source": e.source or e.title, "lang": "en", "tags": e.tags, "issue": None}
-             for e in KbEntry.objects.filter(published=True)]
+    items = [_kb_entry_item(e) for e in KbEntry.objects.filter(published=True)]
     for talk in ToolboxTalk.objects.available():
         items += _talk_chunks(talk)
         if talk.spanish_status == ToolboxTalk.ES_APPROVED:

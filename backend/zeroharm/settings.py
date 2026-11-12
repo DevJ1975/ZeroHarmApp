@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "monday",
     "regs",
     "usage",
+    "support",
     "backoffice",
     "invite",
 ]
@@ -217,6 +218,21 @@ USAGE_ENABLED = os.environ.get("USAGE_ENABLED", "1") == "1"
 # the free DB-IP one here (python manage.py geo_update). Without the file, places from the network are blank.
 GEOIP_DB_PATH = os.environ.get("GEOIP_DB_PATH", str(BASE_DIR / "geo" / "dbip-city-lite.mmdb"))
 USAGE_KEEP_DAYS = int(os.environ.get("USAGE_KEEP_DAYS", "400"))  # usage_prune deletes older rows; 400 keeps a year-over-year view
+
+# Support tickets and crash reports (support/): problems people report from the app, OTIS answers they flag, and
+# errors the app reports by itself. SUPPORT_ENABLED=0 stops storing anything (phones still get a normal answer).
+# The network address and the raw install id are never stored.
+SUPPORT_ENABLED = os.environ.get("SUPPORT_ENABLED", "1") == "1"
+# support_prune deletes single crash reports older than this many days. Tickets and their counts stay. A blank or
+# mistyped value means 90; 0 or less means 1 (0 would delete every crash report each hour).
+try:
+    SUPPORT_CRASH_KEEP_DAYS = max(1, int(os.environ.get("SUPPORT_CRASH_KEEP_DAYS", "").strip() or 90))
+except ValueError:
+    SUPPORT_CRASH_KEEP_DAYS = 90
+# The public address of this server, like https://api.example.com, used to put an "Open it" link to the admin in the
+# owner's ticket emails. The cron service has no address of its own, so set the same value on web and cron.
+# Blank = no link.
+PUBLIC_URL = os.environ.get("PUBLIC_URL", "").strip().rstrip("/")
 
 # Monday Minute: the weekly AI-written talk, separate from Zero Harm Weekly.
 MONDAY_MINUTE_ENABLED = os.environ.get("MONDAY_MINUTE_ENABLED", "1") == "1"

@@ -98,6 +98,118 @@ describe('request building', () => {
   });
 });
 
+describe('support tickets', () => {
+  const ticket = {
+    id: 12, number: 'ZH-12', kind: 'problem', status: 'new', source: 'form', title: 'The app closes', text: 'The app closes when I open a talk.',
+    reply: '', owner_note: '', count: 1, app_version: '1.4.0', platform: 'android', os_version: '15', device: 'Pixel 8', screen: '/talk/[id]',
+    lang: 'en', name: 'Sam', email: 'sam@example.com', may_contact: true, created_at: '2026-11-10T18:00:00Z', updated_at: '2026-11-10T18:00:00Z', last_seen: null,
+  };
+
+  test('the list asks for open tickets of every kind unless told otherwise, and unwraps its envelope', async () => {
+    respond(200, JSON.stringify({ tickets: [ticket] }));
+    expect(await api.tickets()).toEqual([ticket]);
+    expect(calls[0].method).toBe('GET');
+    expect(calls[0].url).toBe('/api/console/tickets/?status=open&kind=all');
+    expect(calls[0].body).toBeUndefined();
+  });
+
+  test('the list sends the chosen status and kind, one at a time or together', async () => {
+    respond(200, JSON.stringify({ tickets: [] }));
+    await api.tickets({ status: 'in_progress', kind: 'crash' });
+    await api.tickets({ status: 'all' });
+    await api.tickets({ kind: 'answer' });
+    await api.tickets({ status: 'closed', kind: 'problem' });
+    expect(calls.map((c) => c.url)).toEqual([
+      '/api/console/tickets/?status=in_progress&kind=crash',
+      '/api/console/tickets/?status=all&kind=all',
+      '/api/console/tickets/?status=open&kind=answer',
+      '/api/console/tickets/?status=closed&kind=problem',
+    ]);
+  });
+
+  test('one ticket comes back with its crash reports beside it', async () => {
+    const crash = { created_at: '2026-11-10T18:00:00Z', fatal: true, name: 'TypeError', message: 'x is undefined', stack: 'at a\nat b', screen: '/otis', app_version: '1.4.0', platform: 'ios', os_version: '26.1', device: 'iPhone 17' };
+    respond(200, JSON.stringify({ ticket: { ...ticket, kind: 'crash', count: 3 }, crashes: [crash] }));
+    const d = await api.ticket(12);
+    expect(calls[0].method).toBe('GET');
+    expect(calls[0].url).toBe('/api/console/tickets/12/');
+    expect(d.ticket.count).toBe(3);
+    expect(d.crashes).toEqual([crash]);
+  });
+
+  test('a save PATCHes only what it is given and unwraps the saved ticket', async () => {
+    respond(200, JSON.stringify({ ticket: { ...ticket, status: 'fixed', reply: 'Fixed in 1.4.1.' } }));
+    const saved = await api.updateTicket(12, { status: 'fixed', reply: 'Fixed in 1.4.1.' });
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe('/api/console/tickets/12/');
+    expect(JSON.parse(calls[0].body!)).toEqual({ status: 'fixed', reply: 'Fixed in 1.4.1.' });
+    expect(saved.status).toBe('fixed');
+    expect(saved.reply).toBe('Fixed in 1.4.1.');
+  });
+
+  test('a private note is sent as owner_note, never as reply', async () => {
+    respond(200, JSON.stringify({ ticket }));
+    await api.updateTicket(12, { owner_note: 'Same bug as ZH-9.' });
+    expect(JSON.parse(calls[0].body!)).toEqual({ owner_note: 'Same bug as ZH-9.' });
+  });
+
+  test('a field problem (400) gives the server’s own sentence and leaves the connection banner alone', async () => {
+    const seen: Connection[] = [];
+    const off = onConnection((c) => seen.push(c));
+    respond(400, JSON.stringify({ error: 'reply can be 2000 characters at most.' }), 'Bad Request');
+    const err = await api.updateTicket(12, { reply: 'x'.repeat(2001) }).catch((e) => e);
+    off();
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(400);
+    expect(err.message).toBe('reply can be 2000 characters at most.');
+    expect(seen).toEqual([]);
+  });
+
+  test('an unknown ticket (404) gives the server’s sentence', async () => {
+    respond(404, JSON.stringify({ error: 'No ticket with that number.' }), 'Not Found');
+    const err = await api.ticket(999).catch((e) => e);
+    expect(err.status).toBe(404);
+    expect(err.message).toBe('No ticket with that number.');
+  });
+
+  test('without the console key (401) the list fails and the banner is told', async () => {
+    const seen: Connection[] = [];
+    const off = onConnection((c) => seen.push(c));
+    respond(401, JSON.stringify({ error: 'Not authorized.' }));
+    const err = await api.tickets().catch((e) => e);
+    off();
+    expect(err.status).toBe(401);
+    expect(seen).toEqual([{ ok: false, status: 401, error: 'Not authorized.' }]);
+  });
+});
+
+describe('knowledge base kind', () => {
+  test('a new entry carries its kind', async () => {
+    respond(201, JSON.stringify({ id: 9, title: 'The app keeps closing', body: '1. Close the app.', source: 'Zero Harm app help', tags: 'crash', published: true, kind: 'support' }));
+    const made = await api.createKb({ kind: 'support', title: 'The app keeps closing', body: '1. Close the app.', source: 'Zero Harm app help', tags: 'crash', published: true });
+    expect(calls[0].method).toBe('POST');
+    expect(calls[0].url).toBe('/api/console/kb/');
+    expect(JSON.parse(calls[0].body!).kind).toBe('support');
+    expect(made.kind).toBe('support');
+  });
+
+  test('the server’s rule about OSHA numbers in app help comes back as its own sentence', async () => {
+    const error = "App help can't name an OSHA section number (like 1910.147). Take the number out, or make this a safety entry.";
+    respond(400, JSON.stringify({ error }), 'Bad Request');
+    const err = await api.updateKb(9, { kind: 'support' }).catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.message).toBe(error);
+  });
+
+  test('changing only the kind sends only the kind', async () => {
+    respond(200, JSON.stringify({ id: 9, kind: 'safety' }));
+    await api.updateKb(9, { kind: 'safety' });
+    expect(calls[0].method).toBe('PATCH');
+    expect(calls[0].url).toBe('/api/console/kb/9/');
+    expect(JSON.parse(calls[0].body!)).toEqual({ kind: 'safety' });
+  });
+});
+
 describe('errors', () => {
   test('uses the server "error" message and keeps the status', async () => {
     respond(400, JSON.stringify({ error: 'Title is required.' }), 'Bad Request');

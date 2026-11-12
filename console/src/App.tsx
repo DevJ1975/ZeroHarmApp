@@ -9,6 +9,7 @@ import Ideas from './screens/Ideas';
 import Kb from './screens/Kb';
 import Overview from './screens/Overview';
 import Talks from './screens/Talks';
+import Tickets from './screens/Tickets';
 import { Button } from './ui';
 
 function ConnectionBanner({ conn }: { conn: Connection | null }) {
@@ -89,6 +90,7 @@ export default function App() {
         {screen === 'zero-hour' && <Episodes />}
         {screen === 'otis' && <Kb />}
         {screen === 'ideas' && <Ideas />}
+        {screen === 'tickets' && <Tickets />}
         {screen === 'send' && <Broadcast />}
       </main>
     </div>

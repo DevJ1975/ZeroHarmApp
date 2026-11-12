@@ -1,5 +1,5 @@
 /** Console screens. The current one lives in the URL hash so a refresh keeps your place. */
-export type ScreenId = 'overview' | 'talks' | 'feed' | 'zero-hour' | 'otis' | 'ideas' | 'send';
+export type ScreenId = 'overview' | 'talks' | 'feed' | 'zero-hour' | 'otis' | 'ideas' | 'tickets' | 'send';
 
 export const SCREENS: { id: ScreenId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -8,6 +8,7 @@ export const SCREENS: { id: ScreenId; label: string }[] = [
   { id: 'zero-hour', label: 'Zero Hour' },
   { id: 'otis', label: 'OTIS knowledge base' },
   { id: 'ideas', label: 'Talk ideas' },
+  { id: 'tickets', label: 'Support tickets' },
   { id: 'send', label: 'Send a notification' },
 ];
 

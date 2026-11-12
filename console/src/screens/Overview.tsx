@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { api, type Counts, type UpcomingItem } from '../api';
+import { api, type Counts, type Overview as OverviewData, type UpcomingItem } from '../api';
 import { go, type ScreenId } from '../nav';
 import { formatPacific } from '../time';
 import { Button, Loading, PageHeader, Pill, Section, useLoad } from '../ui';
@@ -13,6 +13,7 @@ const COUNT_LABELS: { key: keyof Counts; label: string; screen: ScreenId }[] = [
   { key: 'episodes_released', label: 'Zero Hour episodes out', screen: 'zero-hour' },
   { key: 'kb_entries', label: 'OTIS entries', screen: 'otis' },
   { key: 'suggestions_new', label: 'New talk ideas', screen: 'ideas' },
+  { key: 'tickets_open', label: 'Open support tickets', screen: 'tickets' },
   { key: 'sheets_failed', label: 'Sign-in sheets not saved to GHL', screen: 'overview' },
 ];
 
@@ -34,17 +35,24 @@ function UpcomingRow({ item }: { item: UpcomingItem }) {
   );
 }
 
+/** The "Needs attention" lines. Each one names the screen where it gets fixed. */
+export function warningsFor(data: OverviewData): { text: string; screen: ScreenId }[] {
+  const warnings: { text: string; screen: ScreenId }[] = [];
+  if (!data.onesignal_configured) warnings.push({ text: 'OneSignal is not configured on the web service, so no notifications can go out. Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY on Railway.', screen: 'send' });
+  if (data.counts.talks_needing_review > 0) warnings.push({ text: `${data.counts.talks_needing_review} talk(s) need review and are held out of the app.`, screen: 'talks' });
+  // A web service older than this console sends no ticket count. That is not a warning.
+  const open = data.counts.tickets_open ?? 0;
+  if (open > 0) warnings.push({ text: `${open} support ticket${open === 1 ? ' is' : 's are'} open. Someone reported a problem, flagged an OTIS answer, or the app crashed.`, screen: 'tickets' });
+  if (data.counts.sheets_failed > 0) warnings.push({ text: `${data.counts.sheets_failed} crew sign-in sheet(s) failed to save to GoHighLevel. Check them in the Django admin.`, screen: 'overview' });
+  if (!data.anthropic_configured) warnings.push({ text: 'Spanish drafting is off: ANTHROPIC_API_KEY is not set on the web service.', screen: 'talks' });
+  return warnings;
+}
+
 export default function Overview() {
   const { data, error, loading, reload } = useLoad(api.overview);
   useEffect(() => { reload(); }, [reload]);
 
-  const warnings: { text: string; screen: ScreenId }[] = [];
-  if (data) {
-    if (!data.onesignal_configured) warnings.push({ text: 'OneSignal is not configured on the web service, so no notifications can go out. Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY on Railway.', screen: 'send' });
-    if (data.counts.talks_needing_review > 0) warnings.push({ text: `${data.counts.talks_needing_review} talk(s) need review and are held out of the app.`, screen: 'talks' });
-    if (data.counts.sheets_failed > 0) warnings.push({ text: `${data.counts.sheets_failed} crew sign-in sheet(s) failed to save to GoHighLevel. Check them in the Django admin.`, screen: 'overview' });
-    if (!data.anthropic_configured) warnings.push({ text: 'Spanish drafting is off: ANTHROPIC_API_KEY is not set on the web service.', screen: 'talks' });
-  }
+  const warnings = data ? warningsFor(data) : [];
 
   return (
     <>
@@ -74,7 +82,7 @@ export default function Overview() {
           <div className="stats">
             {COUNT_LABELS.map((c) => (
               <button key={c.key} type="button" className="stat" onClick={() => go(c.screen)}>
-                <span className="stat-value">{data.counts[c.key]}</span>
+                <span className="stat-value">{data.counts[c.key] ?? '—'}</span>
                 <span className="stat-label">{c.label}</span>
               </button>
             ))}

@@ -56,11 +56,15 @@ class Command(BaseCommand):
             tagged = self.step("Invite link tags", retry_invite_tags)  # taps GoHighLevel didn't tag the first time, last 2 days
             if tagged:
                 self.stdout.write(f"Invite link: {tagged} taps tagged late")
+            # Support: reports whose email to the owner did not go out, the one email about new and growing crashes,
+            # and reporters who asked for a reply and are not in GoHighLevel yet.
+            self.step("Support tickets", self.support, now)
             self.step("owner_digest", call_command, "owner_digest")
             self.step("regs_sync", call_command, "regs_sync")  # weekly; pauses topics and OTIS entries if OSHA changes a cited rule
             self.step("monday_minute", call_command, "monday_minute")
             if now.minute < 15:  # hourly is plenty: one small delete of anonymous app-open rows past USAGE_KEEP_DAYS
                 self.step("usage_prune", call_command, "usage_prune")
+                self.step("support_prune", call_command, "support_prune")  # single crash reports past SUPPORT_CRASH_KEEP_DAYS
         finally:
             done.set()
             pusher.join()
@@ -164,6 +168,11 @@ class Command(BaseCommand):
         from talks.views import retry_removal_request_notices  # here, not at the top: a fault there is then one failed step
 
         retry_removal_request_notices()
+
+    def support(self, now):
+        from support import alerts  # here, not at the top: a fault in that module is then one failed step
+
+        alerts.run(now, say=self.stdout.write)
 
     def sheets(self, now):
         """Sign-in sheets from the last 14 days that are not in GoHighLevel yet, oldest first, 20 a run.

@@ -10,6 +10,7 @@ import time
 from django.conf import settings
 
 from .ai import AIUnavailable, GenerationError, is_local
+from . import generate
 from .generate import judge, review
 from .models import MondayTopic
 
@@ -48,13 +49,30 @@ def planted(topic: MondayTopic, kind: str) -> dict | None:
     return talk
 
 
+def _asked_like_the_pipeline(call):
+    """Asks one review the way the weekly pipeline does: an answer that cannot be used (bad JSON, ran out of room) is
+    asked again, with the retry note and its own seed, up to generate.STEP_TRIES times in all. Asking only once made the
+    test stricter than real use, and those failed calls left the run too small to count."""
+    tries, why = 0, ""
+    while True:
+        generate._again.tries, generate._again.why = tries, why
+        try:
+            return call()
+        except GenerationError as err:
+            tries, why = tries + 1, str(err)
+            if tries >= generate.STEP_TRIES:
+                raise
+        finally:
+            generate._again.tries, generate._again.why = 0, ""
+
+
 def verdict_for(topic: MondayTopic, talk: dict, rag: bool, strict: bool):
     """(blocked, seconds, reason) using the same review and rules as the weekly pipeline."""
     start = time.monotonic()
-    verdict, _ = review(topic, talk, rag=rag)
+    verdict, _ = _asked_like_the_pipeline(lambda: review(topic, talk, rag=rag))
     must, _ = judge(topic, talk, verdict, strict)
     if strict and not must:
-        second, _ = review(topic, talk, second=True, rag=rag)
+        second, _ = _asked_like_the_pipeline(lambda: review(topic, talk, second=True, rag=rag))
         must, _ = judge(topic, talk, second, strict)
     return bool(must), time.monotonic() - start, (must[0] if must else "")
 

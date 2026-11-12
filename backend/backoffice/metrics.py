@@ -12,6 +12,7 @@ from invite.models import InviteClick
 from monday.gate import status as gate_status
 from monday.models import MondayComment, MondayFeedback, MondayMinute, MondayTopic
 from regs.models import RegChange
+from support.models import Ticket
 from talks.models import AppSignup, KbEntry, OtisFeedback, SigninSheet, SignupRemoval, TalkSuggestion, ToolboxTalk
 from usage import geo
 from usage.models import AppOpen, first_opens
@@ -163,6 +164,7 @@ def dashboard(days=30, today=None):
     flag(SignupRemoval.objects.filter(created_at__lt=timezone.now() - dt.timedelta(hours=1)).count(), "sign-up removals that haven't reached GoHighLevel",
          "/admin/talks/signupremoval/", one="sign-up removal that hasn't reached GoHighLevel")
     flag(TalkSuggestion.objects.filter(status="new").count(), "new talk suggestions", "/admin/talks/talksuggestion/?status__exact=new", one="new talk suggestion")
+    flag(Ticket.objects.filter(status=Ticket.NEW).count(), "support tickets waiting for you", "/admin/support/ticket/?status__exact=new", one="support ticket waiting for you")
 
     return {
         "days": days,

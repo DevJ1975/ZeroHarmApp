@@ -1,5 +1,7 @@
 from django.urls import path
 
+from support import console as support_console
+
 from . import console, views
 
 urlpatterns = [
@@ -36,4 +38,6 @@ urlpatterns = [
     path("console/suggestions/", console.suggestions),
     path("console/suggestions/<int:pk>/", console.suggestion),
     path("console/broadcast/", console.broadcast),
+    path("console/tickets/", support_console.tickets),
+    path("console/tickets/<int:pk>/", support_console.ticket),
 ]

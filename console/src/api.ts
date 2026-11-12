@@ -11,6 +11,15 @@ export type Jurisdiction = '' | 'federal' | 'nevada' | 'las_vegas';
 export type Audience = 'weekly_talk' | 'alerts' | 'zero_hour' | 'offers';
 export type SuggestionStatus = 'new' | 'planned' | 'used' | 'declined';
 export type UpcomingType = 'talk' | 'feed' | 'episode';
+/** "safety" entries feed OTIS's safety answers. "support" entries are app help, shown word for word. */
+export type KbKind = 'safety' | 'support';
+/** problem: a person reported it. crash: the app sent it on its own. answer: a person flagged an OTIS answer. */
+export type TicketKind = 'problem' | 'crash' | 'answer';
+export type TicketStatus = 'new' | 'in_progress' | 'fixed' | 'closed';
+export type TicketSource = 'otis' | 'form' | 'crash' | 'otis_answer';
+/** "open" means new and in progress together. */
+export type TicketStatusFilter = 'open' | TicketStatus | 'all';
+export type TicketKindFilter = TicketKind | 'all';
 
 export interface Counts {
   talks: number;
@@ -21,6 +30,8 @@ export interface Counts {
   kb_entries: number;
   suggestions_new: number;
   sheets_failed: number;
+  /** Tickets that are new or in progress. Missing while the web service is older than this console. */
+  tickets_open?: number;
 }
 
 export interface UpcomingItem {
@@ -199,6 +210,8 @@ export interface KbEntry {
   source: string;
   tags: string;
   published: boolean;
+  /** Missing from a web service older than this console; read that as "safety". */
+  kind?: KbKind;
   updated_at?: string;
 }
 
@@ -208,6 +221,7 @@ export interface KbInput {
   source?: string;
   tags?: string;
   published?: boolean;
+  kind?: KbKind;
 }
 
 export interface Suggestion {
@@ -227,6 +241,71 @@ export interface Suggestion {
 export interface SuggestionPatch {
   status?: SuggestionStatus;
   used_in_issue?: number | null;
+}
+
+/** One support ticket, as the console sees it. owner_note never leaves the server for a phone; reply does. */
+export interface Ticket {
+  id: number;
+  /** The reference the person was given, e.g. "ZH-123". */
+  number: string;
+  kind: TicketKind;
+  status: TicketStatus;
+  source: TicketSource;
+  title: string;
+  /** The person's words, or the crash message. */
+  text: string;
+  /** What the owner wrote back. Shown in the app's My reports for a problem report only; on a flagged answer or a crash nobody sees it. */
+  reply: string;
+  /** Private. Never sent to a phone. */
+  owner_note: string;
+  /** How many times a crash happened. 1 for everything else. */
+  count: number;
+  app_version: string;
+  platform: string;
+  os_version: string;
+  device: string;
+  screen: string;
+  lang: string;
+  name: string;
+  email: string;
+  may_contact: boolean;
+  created_at: string;
+  updated_at: string;
+  last_seen: string | null;
+  /** Only on a flagged OTIS answer: the one question and answer the person chose to send. */
+  question?: string;
+  answer?: string;
+  model_key?: string;
+}
+
+/** One crash report received for a crash ticket. No name, email or message from a person. */
+export interface CrashReport {
+  created_at: string;
+  fatal: boolean;
+  name: string;
+  message: string;
+  stack: string;
+  screen: string;
+  app_version: string;
+  platform: string;
+  os_version: string;
+  device: string;
+}
+
+export interface TicketDetail {
+  ticket: Ticket;
+  crashes: CrashReport[];
+}
+
+export interface TicketPatch {
+  status?: TicketStatus;
+  reply?: string;
+  owner_note?: string;
+}
+
+export interface TicketFilter {
+  status: TicketStatusFilter;
+  kind: TicketKindFilter;
 }
 
 /** A push the API handled. ok is false when OneSignal refused it; detail then says why. */
@@ -338,6 +417,13 @@ export const api = {
 
   suggestions: () => request<{ suggestions: Suggestion[] }>('GET', '/console/suggestions/').then((d) => d.suggestions),
   updateSuggestion: (id: number, patch: SuggestionPatch) => request<Suggestion>('PATCH', `/console/suggestions/${id}/`, patch),
+
+  // Both filters are always sent, so the list never depends on what the server does when one is left out.
+  tickets: (filter: Partial<TicketFilter> = {}) =>
+    request<{ tickets: Ticket[] }>('GET', `/console/tickets/?status=${enc(filter.status ?? 'open')}&kind=${enc(filter.kind ?? 'all')}`).then((d) => d.tickets),
+  ticket: (id: number) => request<TicketDetail>('GET', `/console/tickets/${enc(String(id))}/`),
+  updateTicket: (id: number, patch: TicketPatch) =>
+    request<{ ticket: Ticket }>('PATCH', `/console/tickets/${enc(String(id))}/`, patch).then((d) => d.ticket),
 
   broadcast: (input: BroadcastInput) => request<PushResult>('POST', '/console/broadcast/', input),
 };

@@ -249,3 +249,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .filters { max-width: 260px; margin-bottom: 12px; }
 .ideas { display: grid; gap: 12px; }
 .idea { margin: 0; }
+
+/* Tickets */
+.filters-two { max-width: 560px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.quote { border-left: 4px solid var(--rule); padding: 2px 0 2px 12px; margin: 0 0 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mono { font: 13px/1.45 ui-monospace, Menlo, monospace; overflow-wrap: anywhere; margin: 0; }
+.quote.mono { margin-bottom: 14px; }
+.quote-label { margin-bottom: 4px; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; padding-top: 12px; border-top: 1px solid var(--rule); }
+.facts dt { color: var(--muted); font-size: 14px; }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.crash { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.crash p { margin: 0; }
+.crash summary { cursor: pointer; font-size: 13px; font-weight: 600; width: fit-content; }
+.stack { font: 12px/1.45 ui-monospace, Menlo, monospace; white-space: pre; overflow: auto; max-height: 320px; background: var(--bg); border-radius: 6px; padding: 10px; margin: 6px 0 0; }
+/* The reply goes to a phone and the note does not. The two boxes must never look alike. */
+.goes-out, .stays-here { display: grid; gap: 8px; border-radius: 8px; padding: 12px; }
+.goes-out { border: 2px solid var(--text); }
+.stays-here { border: 1px dashed var(--muted); background: var(--bg); }
+.goes-label { margin: 0; }
+.detail > .result { margin: 0 0 12px; }

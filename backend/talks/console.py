@@ -281,6 +281,8 @@ def public_content_version(request):
 
 @console_view("GET")
 def overview(request):
+    from support.models import Ticket  # imported here: the open-tickets count below is all this file needs it for
+
     now = timezone.now()
     upcoming = [{"type": "talk", "id": t.issue, "title": t.title, "at": _iso(t.send_at), "push": t.push_sent_at is None and not t.needs_review}
                 for t in ToolboxTalk.objects.filter(published=True, send_at__gt=now).order_by("send_at")[:10]]
@@ -307,6 +309,7 @@ def overview(request):
             "kb_entries": KbEntry.objects.filter(published=True).count(),
             "suggestions_new": TalkSuggestion.objects.filter(status="new").count(),
             "sheets_failed": SigninSheet.objects.filter(status="failed").count(),
+            "tickets_open": Ticket.objects.filter(status__in=Ticket.OPEN).count(),
         },
         "upcoming": sorted(upcoming, key=lambda u: u["at"])[:10],
         "recent_pushes": [{**p, "at": _iso(p["at"])} for p in pushes],
@@ -535,11 +538,25 @@ def episode_push(request, number):
 
 # ---- OTIS knowledge base ---------------------------------------------------------------------------
 
-KB_CHECKS = {"title": text(200, required=True), "body": text(required=True), "source": text(200), "tags": text(200), "published": flag}
+# kind: "safety" (OTIS answers safety questions from it) or "support" (app help, shown word for word on the phone).
+KB_CHECKS = {"title": text(200, required=True), "body": text(required=True), "source": text(200), "tags": text(200),
+             "kind": choice([k for k, _ in KbEntry.KINDS]), "published": flag}
 
 
 def kb_admin(e):
-    return {"id": e.pk, "title": e.title, "body": e.body, "source": e.source, "tags": e.tags, "published": e.published, "updated_at": _iso(e.updated_at)}
+    return {"id": e.pk, "title": e.title, "body": e.body, "source": e.source, "tags": e.tags, "kind": e.kind,
+            "published": e.published, "updated_at": _iso(e.updated_at)}
+
+
+def _kb_save(entry):
+    """Saves after the entry's own check (app help can't name an OSHA section number), with its message as the 400."""
+    from django.core.exceptions import ValidationError  # here, not at the top: only the knowledge base needs it
+
+    try:
+        entry.clean()
+    except ValidationError as err:
+        raise Bad(err.messages[0])
+    entry.save()
 
 
 def _kb_entry(pk):
@@ -555,7 +572,7 @@ def kb(request):
         data = _body(request)
         entry = KbEntry()
         _apply(entry, {"title": data.get("title"), "body": data.get("body"), **data}, KB_CHECKS)  # title and body always checked
-        entry.save()
+        _kb_save(entry)
         _done("created KB entry", entry.pk)
         return JsonResponse(kb_admin(entry), status=201)
     return JsonResponse({"entries": [kb_admin(e) for e in KbEntry.objects.all()]})
@@ -566,7 +583,7 @@ def kb_entry(request, pk):
     entry = _kb_entry(pk)
     if request.method == "PATCH":
         changed = _apply(entry, _body(request), KB_CHECKS)
-        entry.save()
+        _kb_save(entry)
         _done("edited KB entry", entry.pk, fields=changed)
     elif request.method == "DELETE":
         entry.published = False

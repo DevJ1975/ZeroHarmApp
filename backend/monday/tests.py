@@ -547,6 +547,39 @@ class SafetyEvalTests(TestCase):
         self.assertIn("Planted mistakes caught: 4/14", summary)
         self.assertIn("Good talks wrongly blocked: 0/2 (0%)", summary)
 
+    def test_an_unreadable_review_is_asked_again_like_the_pipeline(self):
+        """One bad answer is asked again with the retry note (as the weekly pipeline does), so it is not an error.
+        Two bad answers in a row still count as one failed call."""
+        from . import generate as g
+        from . import safety_eval as ev
+        from .ai import GenerationError
+
+        topics = list(MondayTopic.objects.filter(slug="loto-six-steps"))
+        grounded = {"verdict": "pass", "findings": [], "confidence": "high",
+                    "grounding": [{"point": i, "brief_key_point": i} for i in range(4)]}
+        seen = []
+
+        def flaky(topic, talk_, second=False, rag=None, call=None):
+            seen.append(g._asked_before())
+            if len(seen) % 2 == 1:
+                raise GenerationError("Local model returned invalid JSON: cut off")
+            return grounded, "m"
+
+        with patch.object(ev, "review", flaky):
+            r = ev.run(topics, rag=True, strict=True)
+        self.assertEqual(r["errors"], 0)
+        self.assertEqual(r["good"]["n"], 1)
+        self.assertEqual(seen[:2], [0, 1])  # the second ask knows it is a retry, so it gets the note and its own seed
+        self.assertEqual(g._asked_before(), 0)  # nothing left behind for the next call
+
+        def broken(*a, **k):
+            raise GenerationError("Local model returned invalid JSON: cut off")
+
+        with patch.object(ev, "review", broken):
+            r = ev.run(topics, rag=True, strict=True)
+        self.assertEqual(r["good"]["n"], 0)
+        self.assertEqual(r["errors"], 1 + len(ev.PLANTS))
+
     def test_runner_saves_results(self):
         from . import safety_eval as ev
         from .eval_runner import run_eval

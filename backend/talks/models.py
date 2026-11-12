@@ -337,12 +337,23 @@ class SigninSheet(models.Model):
 
 
 class KbEntry(models.Model):
-    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically."""
+    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically.
+
+    Two kinds. A safety entry is what OTIS answers safety questions from. An app help entry (kind "support") is a fix
+    for a problem with the app itself: the phone shows it word for word, never through the on-device model, and never
+    mixes it into a safety answer."""
+
+    SAFETY, SUPPORT = "safety", "support"
+    KINDS = [(SAFETY, "Safety"), (SUPPORT, "App help")]
 
     title = models.CharField(max_length=200)
     body = models.TextField(help_text="Plain sentences. OTIS answers only from text like this, so keep it accurate and reviewed.")
     source = models.CharField(max_length=200, blank=True, help_text="What OTIS cites, e.g. 'OSHA 1910.147' or 'Zero Harm app help'")
     tags = models.CharField(max_length=200, blank=True, help_text="Extra search words, comma separated")
+    # db_default as well as default: during a deploy the old container keeps inserting rows and does not know this column.
+    kind = models.CharField(max_length=10, choices=KINDS, default=SAFETY, db_default=SAFETY,
+                            help_text="Safety: OTIS answers safety questions from it. App help: a fix for a problem with the app, "
+                                      "shown word for word and never mixed into safety answers. No OSHA section numbers in app help.")
     published = models.BooleanField(default=True)
     paused_reason = models.CharField(max_length=200, blank=True, help_text="Why this entry was taken out of OTIS, e.g. OSHA changed a rule it cites")
     updated_at = models.DateTimeField(auto_now=True)
@@ -354,6 +365,17 @@ class KbEntry(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        """The weekly OSHA sync reads every entry for section numbers and takes an entry out of OTIS when its rule
+        changes. An app help entry depends on no rule, so a number shaped like one is refused here, in the admin and
+        in the console, before it can get a help answer switched off."""
+        from django.core.exceptions import ValidationError
+
+        from regs.retrieve import cited
+
+        if self.kind == self.SUPPORT and cited(f"{self.source} {self.body}"):
+            raise ValidationError("App help can't name an OSHA section number (like 1910.147). Take the number out, or make this a safety entry.")
 
 
 class TalkSuggestion(models.Model):
