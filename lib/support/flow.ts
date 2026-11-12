@@ -254,7 +254,10 @@ const STILL_BROKEN = new RegExp(
     'doesn ?t work|does not work|won ?t (?:open|load|work)|the same(?: thing| problem)?|happening|does it|does that)|' +
     'didn ?t (?:work|help|fix it)|did not (?:work|help|fix it)|doesn ?t work|does not work|not fixed|same (?:thing|problem)|' +
     'sigue igual (?:no (?:sirve|funciona|abre|carga|jala))|sigue (?:igual|fallando|sin (?:funcionar|servir|abrir|arreglarse)|cerrandose|trabandose|congelandose|pasando|trabada|congelada|lo mismo)|' +
-    'todavia (?:no (?:funciona|sirve|abre|carga)|falla|se (?:cierra|traba|congela))|no (?:funciono|sirvio|se arreglo)|igual)$',
+    'todavia (?:no (?:funciona|sirve|abre|carga)|falla|se (?:cierra|traba|congela))|no (?:funciono|sirvio|se arreglo)|igual)' +
+    // "nope still frozen on the loading screen", "still crashing when i open the talk": where in the app it happens
+    '(?:\\s+(?:on|at|in)\\s+(?:the\\s+|my\\s+)?(?:loading|splash|sign in|login|home|start|first|white|black|blank|same)?\\s*(?:screen|page|logo)|' +
+    '\\s+(?:when|whenever|every time)\\s+i\\s+(?:open|tap|start|sign in|log in)(?:\\s+(?:it|the app|otis|a talk|the talk))?|\\s+again|\\s+for me|\\s+on my phone)?$',
 );
 const CANCEL = /^(?:cancel|cancel it|never ?mind|cancelar|olvidalo)$/;
 /** What a mistyped email looks like: one word with an "@" ("maria@gmail", "maria@@gmail.com"), or "maria at gmail dot com". */
@@ -400,7 +403,8 @@ export function stepFlow(flow: Flow, input: FlowInput, about: { device: DeviceIn
       // a question for OTIS, not a typo: "wet floor", "snake", "me caí", "mike is not moving", "wet floor @ dock 2",
       // "slipped at the dot yard". Only a near-miss email is met with "Check the email address".
       if (!NEAR_EMAIL.test(said)) return hold();
-      return { ...arrive(flow, about), lines: [LINES.badEmail[lang]], prefill: undefined };
+      // A near-miss email was still typed in place of a question, so it carries the 911 line too.
+      return { ...arrive(flow, about), lines: [LINES.badEmail[lang]], prefill: undefined, notice: CALL_911_FIRST[lang] };
     }
   }
 

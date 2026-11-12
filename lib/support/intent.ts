@@ -452,6 +452,8 @@ const DETS = '(?:(?:my|the|this|your|a|an|his|her|our|that|every|each|any|all|al
  * more; each is taken only inside one of these fixed app phrases, which are cut before the app phrases below.
  */
 const JOINERS: readonly RegExp[] = [
+  // Round 6: "get" only before what the app sends ("i didnt get the sign in email", "never got the code")
+  /\b(?:get|got|getting|gotten|receive|received|receiving)(?= (?:the |a |my |an |any |no )?(?:sign in |signin |login |log in |magic |verification |confirmation |new )?(?:email|emails|link|links|code|codes|text|texts|notification|notifications|notifs?|reminder|reminders|update|updates)\b)/g,
   // "on my phone", "stuck on the loading screen", "tap on", "turn on notifications". Never "on me", "on it", "still on".
   new RegExp(`\\bon(?= ${DETS}${APP_NOUN}\\b)`, 'g'),
   /\b(?:tap|tapped|tapping|taps|click|clicked|clicking|clicks|log|logged|logging|logs|keep|keeps|kept) on\b|\b(?:on and off|off and on)\b/g,
@@ -592,6 +594,14 @@ const APP_PHRASES: readonly RegExp[] = [
   /\b(?:talks?|episodes?|videos?|charlas?|platicas?|content) (?:is |are |esta |estan |sigue |siguen |still |says |shows )*(?:locked|bloquead[ao]s?)\b|\blocked (?:talks?|episodes?|videos?)\b|\blocked out of (?:the |my )?(?:app|account|otis)\b/g,
   // Data, only the phone's ("uses too much data", "borrar mis datos"), never a safety data sheet
   /\b(?:my|your|mobile|cell|cellular|phone) data\b|\bdata (?:plan|usage)\b|\b(?:uses?|using|eating|eats|ate|drains?|draining|burns?|burning) (?:up )?(?:all |too much |a lot of )?(?:of )?(?:my )?data\b/g,
+  // Round 6: a box to type in, and flagging an answer, name nothing but the app: "cant type in the chat box", "how do i
+  // flag that answer"
+  /\b(?:text|search|message|chat|input|typing|comment) ?box(?:es)?\b|\bflag (?:that |the |this |an |a |otis |its |his )?(?:wrong |bad )?(?:answer|reply|response)s?\b/g,
+  // "dark mode", "error 503", "error code 12", "talk 3", "step 3 of 5", "the text is too small", "make the font bigger",
+  // "the screen is zoomed in". A machine's error code or a procedure's step comes with the machine's own words.
+  /\b(?:dark|light|night) mode\b|\b(?:error|err) (?:code )?\d+\b|\berror codes?\b|\bcodigo de error\b|\b(?:step|page|talk|episode|question|video|chapter|paso|pagina|charla|episodio|pregunta|platica) \d+(?: (?:of|out of|de) \d+)?\b/g,
+  /\b(?:the |my |this )?(?:text|letters|words|writing|letra|letras)(?= (?:is |are |looks |seems |es |esta |estan |se ve )?(?:too |so |really |super |muy |bien |tan )?(?:small|tiny|big|large|blurry|pequena|pequenas|chiquita|chiquitas|grande|grandes)\b)|\bmake (?:the )?(?:text|font|letters|words|writing) (?:bigger|smaller|larger)\b/g,
+  /\b(?:the |my |this )?screens?(?= (?:is |are |looks |got |keeps |getting |all |stays |stuck )*(?:zoomed|zooming|sideways|upside down|rotated|flipped)\b)/g,
   /\b(?:mis|sus|tus|los) datos\b|\bdarme de baja\b|\bdar(?:me)? de baja (?:de|del) (?:la app|la aplicacion|otis|las notificaciones|los avisos|los correos|notificaciones|avisos|correos)\b/g,
 ];
 
@@ -623,8 +633,11 @@ const SMALL_PHRASES: readonly RegExp[] = [
   /\b(?:set|sets|setting|pop|pops|popped|popping|show|shows|showed|showing|come|comes|came|coming|start|starts|started|starting|boot|boots|booted|booting|load|loads|loaded|open|opens|opened|opening|back|backed|backing|speed|sped|clear|cleared|free|freed|freeing|clean|cleaned|look|looked|mess|messed|messing|act|acts|acted|acting|fill|fills|filled|wake|wakes|woke|scroll|scrolled|scrolling|swipe|swiped|bring|brings|brought|turn|turned|sync|synced|use|uses|using|used|log|logs|logged|link|linked|showin|comin|poppin|loadin) up\b/g,
   // Numbers only as the app's: a percent, a size, an error or version number, "stuck at 40". A bare number is a person
   // ("otis 1 is down", "2 of mine"), a reading ("its 108 today") or a count of anything, so it is not an app word.
+  // "N of M" only as the app counts: "step 3 of 5", "downloading 2 of 4", "3 of 5 talks". Never on its own: "the sheet
+  // says 5 of 6" and "4 de 5" are a head count, and the one not counted may be a person still inside.
+  /\b(?:step|page|talk|episode|part|question|video|chapter|downloading|downloaded|loading|updating|paso|pagina|charla|episodio|parte|pregunta|descargando) \d+ (?:of|out of|de) \d+\b|\b\d+ (?:of|out of|de) \d+ (?:talks|episodes|videos|pages|steps|questions|mb|gb|charlas|episodios|paginas|pasos|preguntas)\b/g,
   /\b\d+ (?:percent|mb|gb|kb|megs?|gigs?|min|mins|minutes|seconds|secs|times)\b|\b(?:error|code|version|step|page|ios|android|iphone|galaxy|pixel|v|episode|talk|week|level|option|chapter|part|codigo|pagina|paso|version|episodio|charla) \d+(?: \d+)*\b/g,
-  /\b(?:stuck|frozen|paused|stopped|sitting|loading|downloading|updating|stays|stay|staying) at \d+(?: percent)?\b|\b(?:se queda|se quedo|sigue|va|at|en|al) (?:en )?\d+ percent\b|\b\d+ (?:of|out of|de) \d+\b/g,
+  /\b(?:stuck|frozen|paused|stopped|sitting|loading|downloading|updating|stays|stay|staying) at \d+(?: percent)?\b|\b(?:se queda|se quedo|sigue|va|at|en|al) (?:en )?\d+ percent\b/g,
   // A connection, only the phone's: "no connection", "lost connection", "connection error". Never "lost connection with 2"
   /\b(?:no|bad|poor|weak|slow|internet|wifi|wi fi|data|network|cell|lost|lose|losing|loses|lost the|lost my|my|the|a|any|good|check|without|keeps losing|keep losing) connection\b(?! with\b)|\bconnection (?:error|issue|problem|lost|failed|timed out|is bad|keeps)\b/g,
   // Data, asked about the app: "how much data does the app use"
@@ -633,6 +646,20 @@ const SMALL_PHRASES: readonly RegExp[] = [
   /\b(?:not|isnt|arent|aint) there yet\b/g,
   // Spanish phone talk: "donde le cambio el idioma", "le pico al boton", "no se reproduce", "ni madres"
   /\ble (?:cambio|pico|pique|doy|di|muevo|movi)\b|\b(?:no )?se reproduce\b|\bni madres\b/g,
+  // Round 5, for reach. Each holds a word with a floor meaning, so it is taken only in the phrase: "hit save" (never "got
+  // hit"), "eats my battery", "for good", "without wifi", "the text box", "the play store", "at 3am"
+  /\bhit (?:save|send|submit|share|done|next|enter|print|refresh|the (?:save|send|share|submit|done|next) button)\b|\b(?:eats?|eating|ate|kills?|killing) (?:up )?(?:all )?(?:of )?(?:my |the )?(?:battery|data|storage)\b/g,
+  /\bfor good\b|\bwithout (?:wifi|wi fi|internet|signal|data|service|a connection|connection|an account|email|signing in|logging in)\b|\b(?:text|search|check|message|chat|input|typing|comment) ?box(?:es)?\b|\b(?:play|app|google play|apple app) store\b|\b\d{1,2} ?(?:am|pm)\b/g,
+  /\bkeyboard (?:covers|blocks|hides|is covering|is blocking)\b|\b(?:volume|sound|audio|brightness) (?:is |is too |is so |is really |too |so )?low\b|\blow (?:volume|brightness)\b/g,
+  // Round 6, for reach, each with a word that has a floor meaning: "get rid of my account", "vanishing off the crew
+  // sheet", "notifs aint comin thru", "wont take the photo", "make it bigger", "hard to read", "every couple days",
+  // "zoomed in". Never "came off", "take it off", "hard to see" or "hard to breathe".
+  /\bget rid of\b|\b(?:vanish\w*|disappear\w*|gone|missing|deleted|removed|wiped|erased) off\b|\b(?:comin|coming|come|came) (?:thru|through)\b/g,
+  /\btake (?:the |a |my |our |any )?(?:group )?(?:photo|photos|picture|pictures|pic|pics|selfie|foto|fotos)\b|\bmake (?:it|this|the (?:text|font|letters|words|writing|screen)) (?:bigger|smaller|larger|easier to read)\b|\bhard to read\b/g,
+  /\bevery (?:couple|few|other|two|2|3|three|couple of|few) ?(?:days|weeks)\b|\bzoomed (?:in|out)\b|\bzoom (?:in|out)\b/g,
+  /\b(?:crash\w*|freez\w*|froze|frozen|clos\w*|quit\w*|dies|died|dying|lag\w*|glitch\w*|acting up|logs? out|logging out|kicks? out) on (?:me|us|my phone)\b|\bhow much (?:storage )?space\b|\btakes? (?:up )?(?:on|in) (?:my|the) phone\b/g,
+  /\b(?:wont|doesnt|didnt|will not|does not|did not) let (?:me |us |the app |otis |it )?(?:update|download|install|sign|log|open|save|share|send|change|type)\b|\bswitch (?:to|the language|languages|it to|back to|over to|accounts?)\b/g,
+  /\bplease wait\b|\bnot (?:on |in )?(?:the |a |my |any )?crew\b|\bjoin (?:the |a |my )?crew\b|\b(?:wont|doesnt|didnt|will not|does not|did not) let me\b(?! (?:go|out|leave|loose|free|stop|move|breathe|get|pull|through|off|down|up)\b)|\bvolume (?:is )?(?:all the way |turned |)up\b|\bturn(?:ed)? (?:the )?volume up\b|\bshare (?:it |the talk |this |the sheet |the video )?(?:with|to) (?:my |the )?crew\b/g,
 ];
 
 const wordSet = (list: string) => new Set(list.split(/\s+/).filter(Boolean));
@@ -656,7 +683,7 @@ const APP_THINGS = wordSet(
     'download downloads storage wifi internet dl ' +
     'language english spanish espanol ingles idioma ' +
     'pagina enlace configuracion recordatorio charla charlas platica platicas episodio ' +
-    'foto fotos almacenamiento sesion imprimir compartir historial',
+    'foto fotos almacenamiento sesion imprimir compartir historial server servers servidor',
 );
 
 /**
@@ -675,6 +702,11 @@ const APP_SMALL_WORDS = wordSet(
     'replies response chat question questions message messages feature option options list history past search results look looks size ' +
     'text install installed installing reinstall uninstall ' +
     'trash trippin mad wtf af smh rn idk thru showin saying todays put colors colours telling mid ' +
+    // round 5, for reach: words with no floor meaning
+    'type typing typed audio volume quiet loud sideways landscape portrait zoomed expired expire expires asking sentence reason couple ' +
+    'fine mode makes anywhere ' +
+    // round 6, for reach: more words with no floor meaning
+    'empty days weeks morning mornings fr cuadrilla toda todo todos todas le les pongo traban trabaron gives giving like session sessions invalid intente intento intentado intentar ' +
     'lenta lento rara raro diferente mal pegada pegado blanco blanca negra negro jala sirve truena trono responde contesta aparece aparecen funsiona mucho pa solita ratito ' +
     'llega llegan muestra cuelga colgo colgada apaga apago apagar reinicia termina terminar memoria senal respuesta pregunta mensaje ' +
     'cierra cerro cerrar cerrando cerrandose traba trabo trabada trabado trabando trabandose problema problemas error errores falla fallas fallo ' +
@@ -707,7 +739,7 @@ const APP_THING_STEMS: readonly RegExp[] = [
   // "notifs", "notifications", never "notify" (lockout requires that you notify people)
   /^notif(?:s|ication|ications|icacion|icaciones)$/, /^(?:re)?download\w*$/,
   // "descargar", "descargando", never "una descarga" (an electric shock)
-  /^descarg(?:ar|o|ue|ues|ada|ado|ados|adas|arla|arlo)$/, /^updat\w*$/, /^actualiz\w*$/, /^sync\w*$/,
+  /^descarg(?:ar|o|ue|ues|ada|ado|ados|adas|arla|arlo)$/, /^updat\w*$/, /^actualiz\w*$/, /^actualic\w*$/, /^sync\w*$/,
   /^reboot\w*$/, /^buffer\w*$/,
 ];
 
@@ -816,6 +848,8 @@ const STATE_HELPER =
   'no longer|stopped|quit|wont|doesnt|didnt|aint|cant|comes up|came up|come up|coming up|on my phone|on the phone|for me|today|on me|se|esta|estan|sigue|siguen|anda|ya|' +
   'me|nos|no|queda|quedo|bien|muy|super|toda|todo|siempre|nomas|de nuevo|otra vez|completamente|todavia|aun|(?:del|de la|de los|de las|de) [a-z]+))*';
 const STATE_OK: readonly RegExp[] = [
+  // Round 6: "otis se queda pensando y no contesta" (before the line below takes "se queda" on its own)
+  /\bse queda pensando y (?:no|nunca|ya no) (?:contesta|responde)\b/g,
   new RegExp(`\\b${STATE_SUBJECT}${STATE_HELPER} (?:${[...STATE_WORDS].join('|')})\\b`, 'g'),
   // Spanish puts the verb first: "no aparece la charla", "no me contesta otis", "salio una actualizacion"
   new RegExp(`\\b(?:no |ya no |todavia no |aun no |nunca )?(?:me |se |nos |le )?(?:aparecen?|salen?|salio|contestan?|queda)(?= (?:el |la |los |las |mi |mis |tu |su |una |un )?${STATE_SUBJECT}\\b)`, 'g'),
@@ -824,12 +858,19 @@ const STATE_OK: readonly RegExp[] = [
   new RegExp(`\\b(?:lost|missing|gone)(?= (?:my |the |a |some |all my |all the |all |our |his |her |every )?(?:${STATE_SUBJECT})\\b)`, 'g'),
   /\b(?:black|white|blank|gray|grey|dark)(?= (?:screen|screens|page|pantalla|mode|theme|text|background)\b)|\bgone from (?:my |the )?(?:phone|app|list|menu)\b/g,
   /\b(?:scroll|scrolled|scrolling|swipe|swiped|shut|shuts|shutting|slow|slows|slowed|slowing|drop|dropdown) down\b|\b(?:se |me )?qued[ao] (?=cargando|pensando|en blanco|trabada|congelada|colgada|descargando|pegada)|\bno queda espacio\b/g,
+  // Round 6: "page 2 of 5 is blank", "otis se queda pensando y no contesta"
+  new RegExp(`\\b(?:page|step|talk|episode|video|part|question|chapter|pagina|paso|charla|episodio) \\d+(?: (?:of|out of|de) \\d+)?${STATE_HELPER} (?:${[...STATE_WORDS].join('|')})\\b`, 'g'),
   /\b(?:me |nos |le )?sale (?=(?:un |una |el |la )?(?:error|mensaje|aviso|en ingles|en blanco|que|otra vez)\b)|\b(?:aparece|sale) (?=en (?:ingles|blanco)\b)|\bmal (?=(?:con|en) (?:la app|la aplicacion|otis|el celular|el telefono|mi celular)\b)/g,
 ];
 
-/** The words of the message that are STATE_WORDS with no part of the app as their subject. */
-function strayState(all: string): string[] {
-  const left = STATE_OK.reduce((text, rule) => text.replace(rule, ' '), all);
+/**
+ * The words of the message that are STATE_WORDS with no part of the app as their subject. A comma, a stop, "!", "?"
+ * or ";" is kept as a break, so a state word is never taken for the state of a subject in another clause: in "no
+ * signal, lost, phone at 4 percent" it is the person who is lost, not the signal.
+ */
+function strayState(text: string): string[] {
+  const broken = plain(text).replace(/[,;!?]|\.(?=\s|$)/g, ' qqbreak ');
+  const left = STATE_OK.reduce((line, rule) => line.replace(rule, ' '), words(broken));
   return left.split(' ').filter((word) => STATE_WORDS.has(word));
 }
 
@@ -855,13 +896,27 @@ function callingOtis(all: string): boolean {
   if (first !== 'otis' || !next) return false;
   if (/^\d/.test(next)) return true;
   if (OTIS_AUX.has(next)) return ASKS_OTIS.has(after) || /^\d/.test(after);
+  // "otis so slow today", "otis super laggy": OTIS is the subject
+  if (/^(?:so|super|really|too|real|hella|mad)$/.test(next) && /^(?:slow|laggy|buggy|glitchy|broken|useless|trash)$/.test(after)) return false;
   return !(OTIS_DOES.has(next) || /^(?:crash|freez|frez|froze|glitch|lag|fail|hang|hung|stuck|frozen|shut|clos|load|spin|bug)/.test(next));
 }
 
-/** The words of the message, without a leading "otis" that only calls OTIS by name. */
+/**
+ * Words before a last "otis" that make it part of what is said ("i cant open otis", "no tengo espacio para otis").
+ * After any other word a last "otis" only calls OTIS by name: "what is happening to me otis", "is it ok now otis".
+ */
+const TAKES_OTIS = new Set(
+  ('is about use using open update install download of for to with in on from called the my delete uninstall reinstall fix reset ' +
+    'restart get does did can cant wont turn off para de del con en a al sin y o la el').split(' '),
+);
+
+/** The words of the message, without a leading or a last "otis" that only calls OTIS by name. */
 const withoutCalling = (text: string) => {
-  const all = words(text);
-  return callingOtis(all) ? all.slice(5) : text;
+  let all = words(text);
+  if (callingOtis(all)) all = all.slice(5);
+  const each = all.split(' ');
+  if (each.length > 1 && each[each.length - 1] === 'otis' && !TAKES_OTIS.has(each[each.length - 2])) all = each.slice(0, -1).join(' ');
+  return all;
 };
 
 /**
@@ -870,6 +925,37 @@ const withoutCalling = (text: string) => {
  */
 const PERSON_STATE =
   /\b(?:(?:im|i am|i m|i got|i get|i was|i been|i keep getting|ive been|i have been|we are|were|we got|we were|we been)\s+(?:so |really |very |still |just |all |kind of |getting |gotten )?(?:stuck|frozen|freezing|froze|dead|dying|down|lost|gone|hanging|hung|broke|broken|done|blank|black|dark|slow|weird|unresponsive)|i (?:froze|freeze|stuck))\b/;
+
+/** Round 6: the pieces of the "and i did too" rule below. */
+const R6_JOIN = '(?:and|y|n|but|pero|then|so|now|plus|as|while|tho|though)';
+const R6_ME = '(?:i|im|i m|ive|me|myself|we|were|us)';
+const R6_HELPER =
+  '(?:am|m|is|are|was|were|be|been|being|have|has|had|ve|did|do|does|keep|keeps|kept|just|also|now|then|still|really|totally|all|getting|got|gotten|' +
+  'started|start|feel|feeling|felt|acting|act|going|gonna|kinda|kind of|super|so|probably|think|literally|pretty|completely|seem|seems|look|looks|went|go|too)';
+const R6_END =
+  '(?:froze|frozen|freez\\w*|crash\\w*|stuck|down|spin\\w*|hang\\w*|hung|broke\\w*|dead|dying|died|lost|gone|weird|funny|different|odd|off|blank|black|dark|slow|' +
+  'done|did|do|does|have|has|had|am|was|is|are|were|been|the same(?: way| thing)?|same(?: way)?|just the same|glitch\\w*|lag\\w*|still|too|to|also|as well|aswell|' +
+  'not|not ok|not okay|not good|not fine|no good|messed up|locked up|froze up|frozen up|out|quit|stopped|shut down|went down|go down|went black|went dark|' +
+  'blacked out|passed out|with it|tambien|igual|tampoco|mal|pegad[oa]s?|trabad[oa]s?)';
+const R6_TAIL =
+  '(?:too|to|also|as well|aswell|now|again|up|out|lol|here|rn|right now|since [a-z0-9]+|for \\d+ ?[a-z]*|for a while|for a bit|with it|today|tambien|igual|ya|ahora)';
+/** Round 6: what makes a saying ("the app says ...") app talk, not a go-ahead. */
+const R6_APP_TALK = [
+  'updat\\w*', 'upgrad\\w*', 'actuali\\w*', 'version', 'download\\w*', 'descarg\\w*', '(?:re|un)?install\\w*', 'instal\\w*', 'locked', 'lock out',
+  'bloquead\\w*', 'storage', 'space', 'espacio', 'memory', 'memoria', 'error\\w*', 'errores', '\\d{3}', 'code', 'codigo', 'went wrong',
+  'something (?:is |went )?wrong', 'wrong (?:password|code|email|answer|answers|info|thing|things|language|number|account|link)', 'no tiene',
+  'doesnt have', 'does not have', 'dont have', 'do not have', 'knowledge', 'on a break', 'break', 'descanso', 'sign ?in', 'signed in', 'sign ?out',
+  'log ?in', 'logged', 'log ?out', 'login', 'logout', 'sesion', 'password', 'contrasena', 'email', 'correo', 'link', 'enlace', 'type', 'offline',
+  'online', 'internet', 'wifi', 'wi fi', 'connection', 'conexion', 'signal', 'senal', 'service', 'loading', 'cargando', 'try again', 'retry',
+  'expired', 'expir\\w*', 'venci\\w*', 'account', 'cuenta', 'not on (?:the |a |my )?crew', 'no crew', 'crew (?:sheet|sign ?in|list|code)',
+  'not available', 'unavailable', 'no disponible', 'not offered', 'spanish', 'english', 'espanol', 'ingles', 'language', 'idioma', 'settings',
+  'ajustes', 'configuracion', 'permission', 'permiso', 'notification\\w*', 'notificacion\\w*', 'camera', 'camara', 'microphone', 'blank',
+  'en blanco', 'cant answer', 'cannot answer', 'only answer', 'safety questions?', 'not found', 'server', 'servidor', 'session', 'wrong answer',
+  'bad answer', 'no talk', 'no talks', 'no hay charla', 'talks?', 'charlas?', 'videos?', 'episodes?', 'sheets?', 'hojas?', 'photos?', 'fotos?',
+  'connect\\w*', 'please wait', 'espere', 'results?', 'resultados', 'supported', 'compatible', 'attempts', 'intentos', 'invalid\\w*', 'no valid[oa]',
+  'not valid', 'access', 'acceso', 'denied', '(?:weird|strange|bad|wrong|incorrect|odd|dumb|same|old|different|random) (?:answer|answers|reply|replies|response|thing|things)',
+  'no (?:answer|answers|reply|response)', 'over and over', 'again and again', 'repeat\\w*', 'restart (?:the )?(?:app|otis|phone)', 'reopen', 'close (?:the )?app', 'cerrar la app',
+].join('|');
 
 /**
  * Sayings made only of app words that are not about the app: a person, a machine, a rule or a right. Each is a whole
@@ -948,7 +1034,7 @@ const NOT_ABOUT_THE_APP: readonly RegExp[] = [
   // Someone not answering a phone: "no contesta el celular"
   /\bno contesta (?:el|su|mi) (?:celular|telefono|cel)\b|\b(?:isnt|is not|not|aint|wont|didnt|stopped) (?:answering|picking up) (?:his|her|their|the|my) (?:phone|cell|celular)\b/,
   // Round 4. Something coming down, up high, out of touch: "it all crashed down", "stuck up there", "lost contact with 2"
-  /\b(?:crash\w*|came|coming|come|falling|fell|caving|caved) (?:down|in)\b|\bstuck up (?:there|top|here|high)\b|\blost (?:contact|track|sight)\b|\blost (?:connection|signal) (?:with|of) (?!(?:the )?(?:app|server|internet|wifi)\b)/,
+  /(?<!\b(?:notifications?|notifs?|reminders?|emails?|messages?|texts?|updates?|alerts?|talks?|videos?) (?:only |all |just |still |always |keep |keeps )?)\b(?:crash\w*|came|coming|come|falling|fell|caving|caved) (?:down|in)\b(?! (?:the |a )?(?:middle|background|landscape|portrait|dark mode|light mode)\b)|\bstuck up (?:there|top|here|high)\b|\blost (?:contact|track|sight)\b|\blost (?:connection|signal) (?:with|of) (?!(?:the )?(?:app|server|internet|wifi)\b)/,
   /\bno (?:lo|la|los|las|le) (?:veo|vemos|encuentro|oigo|escucho)\b/,
   // Using the phone at work is a rule, not the app: "can i be on my phone at all", "otis puedo ver el celular"
   /\b(?:can|may|should|could) (?:i|we) (?:be on|use|look at|check|have|bring|carry|get on|text on) (?:my |the |a |our )?(?:phone|phones|cell|celular|cellphone)\b(?! (?:to|for) (?:the |a )?(?:app|otis|talk|sheet|crew sheet)\b)|\b(?:puedo|podemos|se puede) (?:ver|usar|traer|sacar|checar|revisar) (?:el|mi|su) (?:celular|telefono|cel)\b/,
@@ -962,19 +1048,111 @@ const NOT_ABOUT_THE_APP: readonly RegExp[] = [
   /\bi give up\b|\bi (?:cant|cannot|can not) (?:do|take|handle) (?:this|it) (?:anymore|no more)\b|\bno (?:puedo|aguanto) mas\b|\bya no (?:puedo|aguanto)\W*$|\bya no aguanto\b|\by (?:ya )?no puedo(?: mas)?\W*$/,
   /\bentro\b.{0,25}\bno (?:ha )?(?:sal(?:e|ido|io)|contesta|responde|se oye|se escucha|regresa|vuelve)\b|\bya no (?:sale|aparece)\W*$/,
   // Rights and lockout, in app words: "can i run it now", "do i have to give my name", "its 108 today", "puedo entrar"
-  /\b(?:can|should|do|could|may|must|shall) (?:i|we) (?:have to |need to |still )?(?:run|open|fix|use|change|say no|say|go|answer|tell|ask|work|put|give|show|send|take)\b(?! (?:the |my |this |a |an |in the |on the |to the |into the )?(?:new |different |another |other )?(?:app|otis|talk|talks|toolbox talks?|crew sign in|sign in|video|sheet|crew sheet|settings|account|email|language|spanish|english|photo|picture|data|password|notifications?|reminders?|group photo|name in the app|it in spanish|it in english|offline|without (?:signal|wifi|internet|data))\b)/,
+  /(?<!\bhow )\b(?:can|should|do|could|may|must|shall) (?:i|we) (?:have to |need to |still )?(?:run|open|fix|use|change|say no|say|go|answer|tell|ask|work|put|give|show|send|take)\b(?! (?:the |my |this |a |an |in the |on the |to the |into the )?(?:new |different |another |other )?(?:app|otis|talk|talks|toolbox talks?|crew sign in|sign in|video|sheet|crew sheet|settings|account|email|language|spanish|english|photo|picture|data|password|notifications?|reminders?|group photo|name in the app|it in spanish|it in english|offline|without (?:signal|wifi|internet|data))\b)/,
   /\b(?:put|give|show|tell) (?:them |him |her |you |the boss )?(?:my |your )?(?:name|id|info|information|number|badge)\b(?! (?:in|on|into) (?:the |my )?(?:app|otis|account|profile|sheet|crew sheet)\b)|\b(?:photo|picture|pic|video|foto) (?:of|de) (?:it|this|that|him|her|eso|esto|el|ella)\b/,
   /\b(?:its|it is|is it|hay|esta en|estamos a|it says|says its|says it is|card says|it reads|reads|shows|marca) \d+\b(?! (?:percent|mb|gb|kb)\b)/,
   /(?<!\bno )\b(?:puedo|podemos|se puede|hay que|tengo que|tenemos que|debo|ya puedo|cuando puedo|lo puedo) (?:entrar|abrir|apagar|prender|meterme|meter)\b(?! (?:a |en |de )?(?:la app|la aplicacion|otis|mi cuenta|sesion|la cuenta)\b)|\blo (?:apago|abro|prendo|puedo abrir|apagamos)\b/,
   /\bwho (?:should|can|do|would|could) (?:i|we) (?:ask|tell|call|talk to|go to)\b|\bwhile (?:it is|its|it s|it was|its still) (?:running|on|going|moving|hot|live)\b|\b(?:it|this|that) (?:wont|will not|doesnt|does not|cant|didnt|did not) (?:shut|turn|power) (?:down|off)\b/,
   /\bbefore (?:i|we|you|he|she|they) (?:go|leave|head out)\W*$/,
+  // Round 5. The person joined to the app's state, said in small words: "the app froze and i am too", "and me too",
+  // "same with me", "y yo igual", "me and my phone are stuck", "el celular y yo estamos pegados". Any first-person
+  // subject (i, im, me, yo, we) with "too", "igual" or "as well" after it, or "also" or "tambien" at the end, is how
+  // the person is, not the app.
+  /(?<!\b(?:on|to|for|with|at|by|from|para|a|con) )\b(?:i|im|i m|me|myself|yo|we|us|nosotros)(?: (?:am|is|are|was|were|m|be|been|feel|feeling|getting|got|going|gonna|kinda|so|really|just|all|now|still|probably|estoy|estamos|ando|andamos|me|se|quede|quedo|stuck|frozen|froze|down|lost|gone|hanging|dead|done|spinning|blank|black|dark|broke|broken|pegad[oa]s?|trabad[oa]s?|atorad[oa]s?|perdid[oa]s?|mal|also|tambien))* (?:too|igual|as well|aswell|tmb|tb)\b|\b(?:i|im|i m|me|yo|we|us|nosotros)(?: (?:am|is|are|was|were|m|estoy|estamos|ando))? (?:also|tambien)(?: (?:stuck|frozen|down|lost|gone|hanging|dead|pegad[oa]s?|trabad[oa]s?|atorad[oa]s?|perdid[oa]s?|mal))?$/,
+  /\bsame (?:with|for|goes for|thing with|thing for|thing happening to|happening to|as) (?:me|us)\b|\bsame here\b|\b(?:igual|lo mismo) (?:que yo|conmigo|para mi|a mi)\b|\b(?:a mi|conmigo) (?:tambien|igual|lo mismo)\b|\b(?:and|y|n|but|pero|plus) (?:so )?(?:i am|im|i m|we are|were|yo|nosotros)(?: (?:am|is|are|estoy|estamos|ando))?$/,
+  /\b(?:me|i|yo|we|us|myself)(?: and| y| n| plus| with| con) (?:my|the|mi|el|la|this|este|esta) (?:phone|cell|cellphone|iphone|android|tablet|ipad|app|otis|celular|cel|telefono|movil|aplicacion)\b|\b(?:phone|cell|cellphone|iphone|android|tablet|ipad|app|otis|celular|cel|telefono|movil|aplicacion) (?:and|y|n|plus) (?:me|i|yo|we|us|myself)(?: (?:both|are|were|r|estamos|seguimos|quedamos|nos|andamos|got|get|keep|kept|just|stuck|frozen|down|lost))\b/,
+  // No answer for a time or a count, or on someone's phone: "no answer on my phone for 40 minutes", "tried the phone 5
+  // times no answer", "no answer on the phone". Not "otis gives no answer for 2 minutes": that is OTIS not answering.
+  /^(?!.*\b(?:otis|app|chat|chatbot|aplicacion)\b(?: \w+){0,3} no (?:answer|reply|response)\b)(?=.*\bno (?:answer|reply|response|one answers|one answered|one picks up)\b).*\b(?:\d+|a few|few|several|many|like \d+) (?:min|mins|minutes|hours?|hrs?|times|tries|calls)\b/,
+  /\bno (?:answer|reply|response|one answer\w*) (?:on|from|at) (?:the|his|her|their) (?:phone|cell|celular|line|radio)\b|\b(?:tried|called|calling|call|try|trying|keep calling|kept calling|been calling|rang|ringing) (?:the|his|her|their|your) (?:phone|cell|celular|cellphone|radio)\b/,
+  // Something crashing into a person, not finding the way, a swollen battery, a broken bone, messages telling you to quit
+  /\bcrash\w* (?:into|in to|inta|against) (?:me|him|her|us|them|my|his|their|someone|somebody)\b/,
+  /\b(?:cant|cannot|can not|couldnt|could not|dont|do not|didnt)(?: even)? (?:find|know|see|remember|tell) (?:the|my|our|which|a) way\b(?! to (?:the |my )?(?:settings|menu|page|change|delete|turn|sign|log|switch|update|save|share|find|get to (?:the |my )?(?:settings|menu|page)))|\blost (?:the|my|our) way\b|\bthe way (?:out|back|home)\b/,
+  /\b(?:battery|bateria)\b.{0,25}\b(?:big|bigger|biggr|huge|swell\w*|swole|swollen|puff\w*|bulg\w*|fat|fatter|thick|thicker|expand\w*|grow\w*|hinchad\w*|inflad\w*|grande|gorda)\b|\b(?:phone|cell|celular|telefono|screen|back|case)\b.{0,20}\b(?:swell\w*|swollen|bulg\w*|puff\w*|popping off|lifting|hinchad\w*|inflad\w*)\b/,
+  /\b(?:i|he|she|we|they)(?: think i| think he| think she)? (?:broke|busted|cracked|snapped|tore|fractured|twisted|dislocated|popped) (?:something|somethin|smth|sumthin|a bone|my (?!phone|screen|cell|app|iphone|ipad|tablet|charger|case)\w+|his \w+|her \w+)\b|\bsomething (?:is |got |just )?(?:broke|broken|snapped|cracked|popped)\b(?! (?:in|on|with) (?:the |my )?(?:app|otis|phone)\b)/,
+  /\b(?:telling|told|tells|tell|texting|messaging|sending|keep sending|keeps sending) me (?:to )?(?:quit|leave|go away|die|kill|hurt|watch out|watch my back|shut up|stop|im dead|i am dead|they will|ill be)\b|\b(?:messages|texts|calls) (?:telling|saying|that say|that tell) me\b/,
+  // OTIS or the app giving the go-ahead, in "i can" order: "otis says i can go in now", "the app said i can use it now",
+  // "otis says it is ok if i do it now", "otis dice que lo puedo cambiar ahora". "Says" followed by a go-ahead never
+  // counts as the app: it is a question about doing the work.
+  /\b(?:says?|said|saying|sayin|tells? me|told me|telling me|tellin me|keeps telling me|dice|dijo|decia|me dice|me dijo|me esta diciendo)\b(?: (?:that|que|its|it|yes|yeah|yep|si|ok|okay|so|then|ya|lo|la|me|i|we|yo|you|all|now|ahora))*? (?:(?:i|we|yo|you) (?:can|could|may|am allowed to|are allowed to|get to|dont have to|do not have to|dont need to|do not need to|no longer have to|dont gotta|(?:dont|do not|no longer) need (?:it|them|that|this|one|a|an|any))|(?:yo )?(?:puedo|podemos|ya puedo|lo puedo|la puedo|se puede|no tengo que|no hay que|no necesito|entro|entre|entrar|meterme|empiezo|arranco)|(?:its|it is|is|im|i am|we are|were|todo esta|esta) (?:ok|okay|fine|safe|good|alright|clear|cleared|bien)(?: (?:to|if|so|now)\b|$)|to (?:go|start|enter|run|proceed|continue|go ahead|begin)(?: (?:in|inside|ahead|now|it|again|back)\b|$)|(?:good|ok|okay|safe|clear) to (?:go|enter|start|run|use|touch|open|remove|work))\b(?!(?: \w+){0,2} (?:the |my |el |la |mi |los |las |a |an )?(?:app|otis|language|languages|idioma|email|correo|password|contrasena|settings|ajustes|font|notifications?|notificaciones|account|cuenta|profile|perfil|talks?|charlas?|videos?|sheets?|hojas?|crew sign in|sign in|photos?|fotos?|offline|without (?:wifi|internet|signal|data))\b)/,
+  /\b(?:i|we) (?:can|could|may|am allowed to|are allowed to|get to) (?:go|run|fix|open|use|start|remove|change|do|enter|turn|take|touch|skip|leave|work|keep going|keep working|cut|lift|move|restart|climb|unlock|pull|put|go ahead|proceed|continue)(?: (?:it|this|that|them|in|inside|up|down|back|out|ahead|on|off|again|without))*(?:(?: (?:now|again|yet|already|today|right now|ahora|ya))?$| (?:now|right now)\b)|\b(?:good|ok|okay|safe|clear) to go\b/,
+  // A head count: "the other is still in", "no veo al otro", "the rest of them". Not "the other talk", "the other day".
+  /\b(?:the|el|al|la|los|las|a los|a las|that|this) (?:other|otro|otra|otros|otras|others|rest|demas)\b(?! (?:talks?|pages?|tabs?|apps?|phones?|charlas?|days?|options?|languages?|idioma|videos?|episodes?|screens?|buttons?|sheets?|accounts?|emails?|menus?|settings|features?|versions?|weeks?|dia|semana|pagina|opcion|boton|pantalla|cuenta|of the (?:app|talks?|options?|settings))\b)/,
+  // Who to send a photo of it to is a reporting question: "who do i send the photo to"
+  /\bwho (?:do|should|can|would) (?:i|we) (?:send|give|show) (?:it|this|that|the (?:photo|picture|pic|video|pics|photos))(?: of it)? to\b/,
+  // Distress: "ya no quiero nada", "ya no quiero seguir", "i dont want anything anymore". The safety answer, never support.
+  /\bya no quiero (?:nada|hacer nada|seguir|vivir|estar aqui|estar aca|seguir aqui|seguir asi|saber nada|intentar|luchar|existir)\b|\bno quiero (?:vivir|seguir viviendo|seguir vivo|seguir viva|existir)\b|\b(?:i|we) (?:dont|do not|dont even) want (?:anything|nothing|to do anything|to do nothing|to go on|to keep going|to try|to be here|to live)(?: any ?more| no more)?\b/,
+];
+
+/**
+ * Round 6: a second look, for sayings in app words that the lines above miss, each built as a rule rather than one
+ * phrase: the person after a join ("and i did too", "y yo tampoco"), what OTIS or the app said with no app talk in it
+ * (a go-ahead), not knowing where you are, someone else as "another" or "otro", no answer for a time in Spanish, a
+ * swollen battery, a threat, signing for someone else, and lockout questions in Spanish. Taken only when nothing above
+ * has already kept the message from the app, so the reasons given for a message stay the first ones found.
+ */
+const SECOND_LOOK: readonly RegExp[] = [
+  // Round 6. The person after a join, in any form: "and i did too", "and im the same", "and me also now", "and i keep
+  // spinning", "and so i did", "then i did", "and me to", "and i have been since 3am", "and me with it", "but im not".
+  // A join (and, but, then, so, now, as, while) and a first-person subject that ends the message with a state word, a
+  // helper ("did", "have", "am") or "too", "to", "also", "as well" is how the person is, not the app.
+  new RegExp(
+    `\\b${R6_JOIN}(?: (?:then|now|so|also|yeah|like))* ${R6_ME}(?: ${R6_HELPER})*(?: ${R6_END})(?: ${R6_TAIL})*$`,
+  ),
+  // The person first and the app after: "i just froze and so did the app", "i keep crashing and the app does too"
+  new RegExp(
+    `^(?:otis )?(?:i|im|i m|we|me)(?: (?:just|keep|keeps|kept|am|m|was|also|really|totally|got|get|went|started|been|have been))* (?:froze|frozen|freez\\w*|crash\\w*|stuck|spin\\w*|hang\\w*|hung|broke\\w*|blank|black|dark|glitch\\w*|down|dead|lost)\\b.*\\b(?:so (?:did|does|is|was|has|have|do)|(?:did|does|is|was|has|have|do) (?:too|to|also|as well))\\b`,
+  ),
+  /\bas (?:am|is|are|did|do|does|was|were|have|has) (?:i|me|we)\b/,
+  // Spanish: "y yo tampoco", "y yo sigo igual", "y yo tambien estoy", "y yo no puedo ya", "pero yo no"
+  /\b(?:y|pero|e|ni) (?:yo|nosotros)(?: (?:ya|no|tambien|tampoco|igual|sigo|seguimos|sigue|estoy|estamos|ando|andamos|me|nos|quede|quedo|quedamos|siento|puedo|podemos|pegad[oa]s?|trabad[oa]s?|atorad[oa]s?|perdid[oa]s?|mal|lo mismo|asi|mas|nada|todavia|aun|peor))+$/,
+  // Someone else named only as "another" or "otro": "and another too", "y otro igual". Not "y otra vez", "another talk"
+  /\b(?:and|y|n|but|pero|plus) (?:another|otro|otra)(?: (?:one|uno|una|guy|worker|person|mas))?\b(?! (?:vez|veces|time|times|thing|things|talk|talks|charla|charlas|page|pages|pagina|video|videos|error|errors|problem|problema|issue|question|pregunta|day|dia|app|aplicacion|phone|celular|account|cuenta|screen|pantalla|message|mensaje|update|download|option|opcion|link|enlace|sheet|hoja|tab|photo|foto|episode|episodio|notification|reminder)s?\b)/,
+  // Not knowing where you are, said other ways, and a person in small words: "not sure where i am", "i dont know
+  // where", "what is happening to me", "something happened to me", "que me esta pasando", "its just me left"
+  /\b(?:not sure|no idea|unsure|dunno|idk|cant tell|cannot tell|dont know|do not know)(?: of)? where (?:i|im|we|he|she|they)(?: (?:am|are|is|went|at))?\b|\b(?:dont|do not|cant|cannot|didnt) know where\W*$|\bno se (?:donde|adonde) (?:esta|estoy|estamos|anda|quedo|se metio|se fue)\W*$/,
+  /\b(?:what|whats|what is)(?: is)? (?:happening|going on|wrong|up) (?:with|to) me\b|\bsomething (?:is |just |has |)?(?:happened|happening|going on|off) (?:with|to) me\b|\bque me (?:esta |estoy |)?pas(?:a|ando|o)\b|\bi (?:dont|do not) know what to do\b|\b(?:just|only) me (?:left|here)\b|\bme left\W*$/,
+  // Spanish distress and a person not talking: "ya no puedo hacer nada", "no puedo ya", "y yo no puedo", "no se ve
+  // nada", "ya se fue", "y no habla". Not "la pantalla no se ve" or "otis no habla espanol".
+  /\bya no puedo hacer nada\b(?! (?:en|con) (?:la app|la aplicacion|otis)\b)|\bno puedo ya\W*$|^(?:otis )?ya se (?:fue|murio|desmayo|cayo)\W*$|(?<!\b(?:pantalla|app|aplicacion|charla|video|foto|pagina|hoja)\b.{0,20})\bno se ve nada\b|\bno habla\b(?! (?:en )?(?:espanol|ingles|spanish|english)\b)/,
+  // "Fine, but I'm not": "my phone is fine but i am not", "la app esta bien pero yo no"
+  /\b(?:but|pero|tho|though) (?:i|im|i am|i m|yo|we|we are|were)(?: (?:am|m|are|estoy|estamos))? (?:not|no|aint)(?: (?:ok|okay|fine|good|alright|bien))?$/,
+  // A leading "otis" and a stuck state for a time is a person ("otis stuck since 3am"); "otis is stuck for 40 min" is OTIS
+  /^otis (?:stuck|hung|hanging|frozen|froze|down|lost|gone|dead)\b(?: (?:since|for|at|from|like|about|over|almost|around))+ (?:\d|an? (?:hour|while)|hours|minutes)/,
+  // No answer since a clock time, nothing on the phone for a time, no answer in Spanish with a time or a count, and
+  // his or her phone: "no contesta desde las 3pm", "20 minutes and still nothing on the phone", "mi celular 30 min sin
+  // respuesta", "su celular sigue sin respuesta", "mi celular 5 min y nada"
+  /\b(?:no (?:contesta|responde)|sin respuesta|no answer|not answering|hasnt answered|no reply)\b.{0,30}\b(?:desde las|since|from) \d{1,2} ?(?:am|pm)?\b|(?=.*\b\d+ ?(?:min|mins|minutes|minutos|hours?|hrs?|horas?)\b).*\b(?:nothing|nada) (?:on|from|en) (?:the|his|her|their|my|el|su|mi) (?:phone|cell|radio|celular|telefono)\b/,
+  /^(?!.*\b(?:otis|app|chat|chatbot|aplicacion)\b(?: \w+){0,3} (?:sin respuesta|no contesta|no responde)\b)(?=.*\b(?:sin respuesta|no contesta|no responde|y nada)\b).*\b(?:\d+|unos|varios|muchas|como \d+) ?(?:min|mins|minutos|minutes|horas?|hrs?|veces|times|llamadas)\b/,
+  /\bsu (?:celular|telefono|cel|radio)\b.{0,30}\b(?:no contesta|no responde|sin respuesta|sin contestar|se apago|nada|no suena|buzon)\b|\b\d+ ?(?:min|mins|minutos|minutes)\b.{0,10}\by nada\b/,
+  // "No signal, lost": the signal is not what is lost ("no signal lost phone at 4 percent")
+  /\bno (?:signal|service|bars|battery|wifi|senal)\b(?: \w+){0,3}? (?:lost|gone|perdid[oa])\b(?! (?:my |the |all |mi |la )?(?:signal|service|connection|data|sign|signatures?|sigs|links?|talks?|photos?|sheets?|info|account|progress|download|charlas?|hojas?))/,
+  // What OTIS or the app said counts as the app only when it holds app talk: "the app says error 503", "otis says it
+  // needs an update", "it says no internet". "Otis says go", "otis said run it", "otis says i will be fine", "the app
+  // keeps asking me to start it", "otis dijo dale", "otis dice que esta bien entrar" are a go-ahead for the work.
+  new RegExp(`\\b(?:says?|said|saying|sayin|tells? me|told me|telling me|tellin me|asking me|asks me|asked me|gave|gave me|gives|gives me|giving|giving me|dice|dijo|decia|me dice|me dijo|me esta diciendo|pide|me pide|me pidio)\\b(?!.*\\b(?:${R6_APP_TALK})\\b)`),
+  // A swollen battery said without "battery": "my phone looks bigger than before", "my phone is so much bigger now"
+  /\b(?:phone|cell|celular|telefono|iphone|android|tablet|ipad|case|funda)\b(?: (?!(?:text|font|letters?|letra|letras|words?|icons?|keyboard|buttons?|zoom\w*|videos?|photos?|pictures?|images?|pages?|display|screen|pantalla)\b)\w+){0,4} (?:big|bigger|biggr|huge|fat|fatter|thick|thicker|swole|grande|gorda|gordo|inflad\w*|hinchad\w*)\b/,
+  /\bback of (?:my |the |his |her )?(?:phone|cell|celular|telefono|iphone)\b.{0,20}\b(?:popping|lifting|separating|coming (?:off|apart)|pushing|bulg\w*|swell\w*)\b|\bscreen (?:is |keeps )?(?:lifting|separating|popping off|pushing up|coming off)\b/,
+  // A threat said with "should", "saying" or "next": "keeps telling me i should quit", "keeps saying i am next"
+  /\b(?:telling|told|tells|tell|saying|says|said|texting|messaging) me(?: that)?(?: (?:i|you|u))? (?:(?:should|need to|have to|must|better|gotta|gonna|will|are|is|am) )?(?:quit|leave|go away|die|be next|next|dead|watch out|watch my back|regret)\b|\b(?:i am|im|you are|youre|ur|i will be|ill be|you will be|youll be) next\b/,
+  // Out there with no phone or radio: "the app froze and i dont have my phone"
+  /\b(?:i|we) (?:dont|do not|didnt|did not) (?:have|got|bring|carry) (?:my|a|the|our) (?:phone|cell|celular|radio)\b(?!.*\b(?:new|other|another|different|sign in|log in|account|switch|email)\b)/,
+  // Signing for someone else, and a record that is not true: "can you put my name on the crew sheet", "can i sign
+  // without watching the talk", "puedo firmar sin ver la charla", "mi nombre esta en la hoja y yo no"
+  /\b(?:can|could|will|would|pls|please) (?:you|someone|somebody|he|she|they|u) (?:put|write|add|sign|mark) (?:me|my|his|her|their|our) (?:name |initials |signature )?(?:in|on|down|as|for)\b/,
+  /\bsign\w*\b.{0,40}\bwithout (?:watching|seeing|being|going|attending|listening|doing|hearing|reading|taking)\b|\bfirm\w*\b.{0,40}\bsin (?:ver|estar|ir|asistir|haber|escuchar|oir|tomar)\b|\bmi nombre\b.{0,40}\b(?:y|pero) (?:yo )?no\b/,
+  // A lockout or restart question to OTIS in Spanish: "otis ya lo puedo cambiar", "otis se puede iniciar ahora"
+  /(?<!\bno )\b(?:puedo|podemos|se puede|ya puedo|lo puedo|la puedo|ya lo puedo|ya la puedo|ya se puede|ya podemos)(?: ya| ahora)? (?:iniciar|cambiar|cerrar|poner|quitar|mover|seguir|arrancar|empezar|tocar|prender|apagar|abrir|entrar|meter|meterme|usar|correr|echar|trabajar|subir|bajar|jalar|cortar|limpiar|reparar|arreglar)\b(?! (?:a |en |de |el |la |mi |las |los |mis )?(?:la app|app|la aplicacion|aplicacion|otis|cuenta|sesion|idioma|correo|contrasena|nombre|foto|fotos|charla|charlas|notificaciones|lenguaje|espanol|ingles|hoja|perfil|configuracion|ajustes|video|videos)\b)/,
 ];
 
 /** The words that keep a message from being only about the app ("mike", "moving"). Empty for "the app keeps crashing". */
 export function wordsNotOfTheApp(text: string): string[] {
   const all = words(text);
   const sayings = NOT_ABOUT_THE_APP.map((rule) => rule.exec(all)?.[0]).filter((said): said is string => Boolean(said));
-  return [...sayings, ...strayState(all), ...appSplit(text).left.filter((word) => !appWord(word))];
+  const found = [...sayings, ...strayState(text), ...appSplit(text).left.filter((word) => !appWord(word))];
+  if (found.length > 0) return found;
+  return SECOND_LOOK.map((rule) => rule.exec(all)?.[0]).filter((said): said is string => Boolean(said));
 }
 
 /**
@@ -1039,6 +1217,7 @@ export const TESTED_PATTERNS: readonly RegExp[] = [
   A_NUMBER_IS_SOMEONE,
   SOFTWARE_FAILS,
   ...NOT_ABOUT_THE_APP,
+  ...SECOND_LOOK,
   ...APP_THING_STEMS,
   ...APP_SMALL_STEMS,
 ];
