@@ -1,15 +1,37 @@
 """Current conditions and active alerts from the US National Weather Service (free, public domain, US only)."""
 import json
+import time
 import urllib.request
 
 from django.core.cache import cache
 
 UA = {"User-Agent": "ZeroHarmApp/1.0 (https://trainovate.ai)", "Accept": "application/geo+json"}
+# One lookup is three requests to the weather service, one after the other, while the phone waits (it gives up after
+# 10 seconds) and one of the server's 8 threads is held. Each used to get 10 seconds, 30 in all.
+CALL_SECONDS = 4     # the most one request may wait
+LOOKUP_SECONDS = 9   # the most the three may wait together
+FRESH_SECONDS = 600  # how long an answer is served from the cache
+FAILED_SECONDS = 120  # how long a point whose lookup failed is not tried again
 
 
-def _get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=10) as res:
+def _get(url, timeout=CALL_SECONDS):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as res:
         return json.loads(res.read())
+
+
+def _key(lat, lon):
+    return f"wx:{lat:.2f},{lon:.2f}"
+
+
+def cached(lat, lon):
+    """The answer for this point if it was looked up in the last 10 minutes, else None. Costs nothing."""
+    return cache.get(_key(lat, lon)) or None
+
+
+def failed_lately(lat, lon):
+    """True when a lookup of this point failed in the last two minutes. The caller then answers "unavailable" without
+    asking again, so an outage of the weather service (or a point it has no forecast for) is not hammered."""
+    return bool(cache.get("wx-failed:" + _key(lat, lon)))
 
 
 def heat_index_f(t, rh):
@@ -27,19 +49,38 @@ def heat_index_f(t, rh):
 
 
 def conditions(lat, lon):
-    """lat/lon already rounded to 2 decimals (about 1 km) by the app. Cached 10 minutes per point; nothing is stored."""
-    key = f"wx:{lat:.2f},{lon:.2f}"
-    hit = cache.get(key)
+    """lat/lon already rounded to 2 decimals (about 1 km) by the app. Cached 10 minutes per point; nothing is stored.
+    A lookup that fails raises, and the point is remembered as failed for two minutes (see failed_lately)."""
+    hit = cached(lat, lon)
     if hit:
         return hit
-    point = _get(f"https://api.weather.gov/points/{lat:.4f},{lon:.4f}")["properties"]
+    try:
+        data = _look_up(lat, lon)
+    except Exception:
+        cache.set("wx-failed:" + _key(lat, lon), True, FAILED_SECONDS)
+        raise
+    cache.set(_key(lat, lon), data, FRESH_SECONDS)
+    return data
+
+
+def _look_up(lat, lon):
+    """The three requests to the weather service. Together they wait at most LOOKUP_SECONDS."""
+    deadline = time.monotonic() + LOOKUP_SECONDS
+
+    def get(url):
+        left = deadline - time.monotonic()
+        if left < 0.5:
+            raise TimeoutError("the weather service took too long")
+        return _get(url, timeout=min(CALL_SECONDS, left))
+
+    point = get(f"https://api.weather.gov/points/{lat:.4f},{lon:.4f}")["properties"]
     place = point.get("relativeLocation", {}).get("properties", {})
-    hourly = _get(point["forecastHourly"])["properties"]["periods"][0]
+    hourly = get(point["forecastHourly"])["properties"]["periods"][0]
     temp = hourly["temperature"] if hourly.get("temperatureUnit") == "F" else round(hourly["temperature"] * 9 / 5 + 32)
     rh = (hourly.get("relativeHumidity") or {}).get("value")
     hi = heat_index_f(temp, rh) if rh is not None and temp >= 80 else None
-    alerts = _get(f"https://api.weather.gov/alerts/active?point={lat:.4f},{lon:.4f}").get("features", [])
-    data = {
+    alerts = get(f"https://api.weather.gov/alerts/active?point={lat:.4f},{lon:.4f}").get("features", [])
+    return {
         "place": ", ".join(p for p in (place.get("city"), place.get("state")) if p),
         "temp_f": temp,
         "summary": hourly.get("shortForecast", ""),
@@ -50,5 +91,3 @@ def conditions(lat, lon):
         "alerts": [{"event": a["properties"].get("event"), "severity": a["properties"].get("severity"),
                     "headline": a["properties"].get("headline")} for a in alerts[:3]],
     }
-    cache.set(key, data, 600)
-    return data

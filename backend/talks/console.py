@@ -14,12 +14,15 @@ import uuid
 
 from django.conf import settings
 from django.core.cache import caches
+from django.core.exceptions import RequestDataTooBig
 from django.db.models import Count, Max
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
+
+from zeroharm.net import client_ip, network_key
 
 from . import translate
 from .integrations import send_broadcast, send_episode_push, send_feed_push, send_talk_push
@@ -28,8 +31,9 @@ from .views import _when
 
 log = logging.getLogger(__name__)
 WHO = "console"
-MAX_FAILURES = 10  # wrong keys per IP per hour before we stop answering
-FAIL_WINDOW = 3600
+MAX_FAILURES = 10  # wrong keys per network before wrong keys stop being looked at
+FAIL_WINDOW = 3600  # seconds the count is kept after the latest wrong key: the "hour" in the 429 message
+MAX_WHOLE_NUMBER = 2147483647  # the largest number the database's integer columns hold
 MIN_KEY_LENGTH = 32  # a short key could be guessed; the console stays off until it is long enough
 UPSTREAM_FAILED = 424  # Claude said no. A 4xx, so the console doesn't mistake it for a lost connection.
 limits = caches["shared"]  # one count for every worker, not one per process
@@ -50,17 +54,26 @@ def _err(message, status):
 # ---- Auth ------------------------------------------------------------------------------------------
 
 def _real_ip(request):
-    """The caller's address as Railway's edge saw it. The edge appends it as the LAST X-Forwarded-For entry,
-    so a caller can't pick it (anything they send themselves comes earlier in the list)."""
-    forwarded = [p.strip() for p in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if p.strip()]
-    return forwarded[-1] if forwarded else request.META.get("REMOTE_ADDR", "")
+    """The caller's address, worked out in the one place that knows how (zeroharm/net.py), or "" when unknown."""
+    return client_ip(request)
+
+
+def _fail_key(request):
+    """Where this caller's wrong keys are counted. Per network, not per address: an IPv6 caller owns a whole /64 and
+    could otherwise use a new address for every try. Hashed, so no readable address sits in the cache table."""
+    network = hashlib.sha256(f"{settings.SECRET_KEY}:console-fail:{network_key(request)}".encode()).hexdigest()[:32]
+    return f"console-fail:{network}"
 
 
 def _count_failure(fail_key):
-    """Adds one wrong key to this address's count. Atomic, and shared by every gunicorn worker (database cache)."""
+    """Adds one wrong key to this network's count and keeps the count for an hour from now.
+    Shared by every gunicorn worker (database cache)."""
     if not limits.add(fail_key, 1, FAIL_WINDOW):
         try:
             limits.incr(fail_key)
+            # incr() saves the count again with the cache's default lifetime (5 minutes), which used to end the
+            # "hour" early. Put the hour back.
+            limits.touch(fail_key, FAIL_WINDOW)
         except ValueError:  # the entry expired between add and incr
             limits.add(fail_key, 1, FAIL_WINDOW)
 
@@ -73,17 +86,19 @@ def _check_key(request):
     if len(key) < MIN_KEY_LENGTH:
         log.error("Console: CONSOLE_KEY is shorter than %s characters, so the console stays off", MIN_KEY_LENGTH)
         return _err(f"The content console is off. CONSOLE_KEY must be at least {MIN_KEY_LENGTH} characters (try openssl rand -hex 32).", 503)
-    ip = _real_ip(request)
-    fail_key = f"console-fail:{ip}"
-    if limits.get(fail_key, 0) >= MAX_FAILURES:
-        return _err("Too many wrong keys from this network. Try again in an hour.", 429)
     header = request.headers.get("Authorization", "")
     sent = header[7:] if header.startswith("Bearer ") else ""
-    if not hmac.compare_digest(sent.encode(), key.encode()):
-        _count_failure(fail_key)
-        log.warning("Console: wrong key from %s", ip)
-        return _err("Not authorized.", 401)
-    return None
+    # The key is checked first, so the right key always gets in. Otherwise anyone counted as the same network
+    # (or anyone at all, when the address can't be read) could lock you out of your own console with ten wrong keys.
+    # The key is at least 32 characters, so letting it through costs nothing: it can't be found by guessing.
+    if hmac.compare_digest(sent.encode(), key.encode()):
+        return None
+    fail_key = _fail_key(request)
+    if limits.get(fail_key, 0) >= MAX_FAILURES:
+        return _err("Too many wrong keys from this network. Wrong keys get this answer for an hour; the right key still works.", 429)
+    _count_failure(fail_key)
+    log.warning("Console: wrong key from %s", _real_ip(request) or "an unknown address")
+    return _err("Not authorized.", 401)
 
 
 def console_view(*methods):
@@ -110,8 +125,12 @@ def console_view(*methods):
 
 def _body(request):
     try:
-        data = json.loads(request.body or b"{}")
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        raw = request.body
+    except RequestDataTooBig:
+        raise Bad("That is too large to send.", 413)
+    try:
+        data = json.loads(raw or b"{}")
+    except (ValueError, RecursionError):  # not JSON, not UTF-8, a number too long to read, or nested too deep
         raise Bad("Send JSON.")
     if not isinstance(data, dict):
         raise Bad("Send a JSON object.")
@@ -129,13 +148,24 @@ def _iso(value):
 # ---- Field checks ----------------------------------------------------------------------------------
 # Each check takes (field name, value) and returns the value to save, or raises Bad.
 
+# A NUL character, or half of an emoji (JSON can carry half of a surrogate pair). PostgreSQL refuses the first in
+# any text column, and the second can't be written as UTF-8 at all, so both are turned away here by name.
+_CANT_STORE = re.compile(r"[\x00\ud800-\udfff]")
+
+
+def _storable(name, v):
+    if _CANT_STORE.search(v):
+        raise Bad(f"{name} has a character that can't be saved (a NUL or a broken emoji). Delete it and type that part again.")
+    return v
+
+
 def text(limit=None, required=False):
     def check(name, v):
         if v is None:
             v = ""
         if not isinstance(v, str):
             raise Bad(f"{name} must be text.")
-        v = v.strip()
+        v = _storable(name, v).strip()
         if required and not v:
             raise Bad(f"{name} can't be blank.")
         if limit and len(v) > limit:
@@ -180,7 +210,7 @@ def when(required=True):
             raise Bad(f"{name} must be a date-time like 2027-01-03T11:59.")
         try:
             return _when(v)
-        except ValueError:
+        except (ValueError, OverflowError):  # OverflowError: year 1 or 9999, pushed out of range by its time zone
             raise Bad(f"Can't read {name} '{v}'. Use a date-time like 2027-01-03T11:59.")
     return check
 
@@ -200,7 +230,7 @@ def day(name, v):
 def lines(name, v):
     if not isinstance(v, list) or not all(isinstance(i, str) for i in v):
         raise Bad(f"{name} must be a list of text.")
-    return [i.strip() for i in v if i.strip()]
+    return [_storable(name, i).strip() for i in v if i.strip()]
 
 
 def whole_number(name, v):
@@ -208,6 +238,8 @@ def whole_number(name, v):
         return None
     if isinstance(v, bool) or not isinstance(v, int) or v < 1:
         raise Bad(f"{name} must be a whole number.")
+    if v > MAX_WHOLE_NUMBER:
+        raise Bad(f"{name} is too large (max {MAX_WHOLE_NUMBER}).")
     return v
 
 
@@ -225,9 +257,13 @@ def _apply(obj, data, checks):
 
 def content_version():
     """A short hash that changes whenever anything the app shows changes: an edit, a release, an unpublish.
-    The ids of what's live are part of it, so one alert ending as another starts still counts as a change."""
+    The ids of what's live are part of it, so one alert ending as another starts still counts as a change.
+    Talks go in twice. available() is what the app lists: released talks plus the next few opened early, so a
+    correction to an early talk reaches open phones. released() stays because a talk reaching its send time changes
+    what phones show (last week's answer appears, the "early" mark goes) while the same talks stay listed."""
     parts = []
-    for qs in (ToolboxTalk.objects.released(), FeedItem.objects.released(), Episode.objects.released(), KbEntry.objects.filter(published=True)):
+    for qs in (ToolboxTalk.objects.available(), ToolboxTalk.objects.released(), FeedItem.objects.released(),
+               Episode.objects.released(), KbEntry.objects.filter(published=True)):
         agg = qs.order_by().aggregate(n=Count("pk"), latest=Max("updated_at"))
         ids = ",".join(str(pk) for pk in qs.order_by("pk").values_list("pk", flat=True))
         parts.append(f"{agg['n']}:{_iso(agg['latest'])}:{ids}")
@@ -294,7 +330,7 @@ def _wants_force(data):
 
 TALK_CHECKS = {
     "title": text(200, required=True), "story_title": text(200), "crew_question": text(), "body_md": text(),
-    "month_theme": text(80), "hero_url": url(), "pdf_url": url(), "send_at": when(), "published": flag, "needs_review": flag,
+    "month_theme": text(80), "hero_url": url(500), "pdf_url": url(500), "send_at": when(), "published": flag, "needs_review": flag,
     "title_es": text(200), "story_title_es": text(200), "crew_question_es": text(), "body_md_es": text(),
     "spanish_status": choice([ToolboxTalk.ES_NONE, ToolboxTalk.ES_DRAFT, ToolboxTalk.ES_APPROVED]),
 }
@@ -307,6 +343,9 @@ def talk_released(t):
 def talk_admin(t):
     return {
         **t.as_api(),
+        # The stored text, not the shortened text phones get before send time (as_api drops "Last week's answer"
+        # until then). The editor sends back what it loaded, so the shortened text would overwrite the real one.
+        "body_md": t.body_md or None,
         "send_at": _iso(t.send_at), "published": t.published, "needs_review": t.needs_review, "review_flags": t.review_flags,
         "spanish_status": t.spanish_status, "title_es": t.title_es, "story_title_es": t.story_title_es,
         "crew_question_es": t.crew_question_es, "body_md_es": t.body_md_es, "push_sent_at": _iso(t.push_sent_at),
@@ -368,7 +407,7 @@ def talk_spanish_draft(request, issue):
 
 FEED_CHECKS = {
     "kind": choice([k for k, _ in FeedItem.KINDS]), "title": text(200, required=True), "summary": text(2000),
-    "body_md": text(20000), "link_url": url(), "image_url": url(), "jurisdiction": choice([j for j, _ in FeedItem.JURISDICTIONS]),
+    "body_md": text(20000), "link_url": url(500), "image_url": url(500), "jurisdiction": choice([j for j, _ in FeedItem.JURISDICTIONS]),
     "effective_date": day, "publish_at": when(), "expires_at": when(required=False),
     "send_push": flag, "featured": flag, "published": flag,
 }
@@ -569,7 +608,7 @@ def suggestion(request, pk):
 # One push to everyone who switched on ONE topic. Never to all devices. Promotional messages use "offers" only (Apple 4.5.4).
 
 AUDIENCES = ("weekly_talk", "alerts", "zero_hour", "offers")
-ROUTE = re.compile(r"^/(talk|alert|zero-hour|monday)/\d+$|^/(learn|otis|archive)$")
+ROUTE = re.compile(r"^/(talk|alert|zero-hour|monday)/[0-9]+$|^/(learn|otis|archive)$")  # [0-9]: \d also matches digits from other scripts
 
 
 @console_view("POST")

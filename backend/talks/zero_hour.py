@@ -29,11 +29,12 @@ def _stream_url(f):
     return f.get("url", "")
 
 
-def list_media(query):
+def list_media(query, timeout=30):
     files, offset = [], 0
     while True:
         data = ghl.request("GET", "/medias/files", {"altType": "location", "altId": settings.GHL_LOCATION_ID, "type": "file",
-                                                     "query": query, "limit": 100, "offset": offset, "sortBy": "createdAt", "sortOrder": "desc"})
+                                                     "query": query, "limit": 100, "offset": offset, "sortBy": "createdAt", "sortOrder": "desc"},
+                           timeout=timeout)
         batch = data.get("files") or []
         files.extend(batch)
         if len(batch) < 100:
@@ -41,13 +42,14 @@ def list_media(query):
         offset += 100
 
 
-def sync_episodes(files=None):
+def sync_episodes(files=None, timeout=30):
     """Links each episode to its newest video and huddle card. A new episode number is created on hold
-    (needs details) until its huddle card text is filled in, then it releases on the next Thursday at 5 AM Pacific."""
+    (needs details) until its huddle card text is filled in, then it releases on the next Thursday at 5 AM Pacific.
+    `timeout` is the seconds each listing call to GoHighLevel may take."""
     if files is None:
         if not ghl.configured():
             return ["GoHighLevel is not configured."]
-        files = list_media("ZH_E")
+        files = list_media("ZH_E", timeout=timeout)
     videos, cards = {}, {}
     for f in files:
         name = f.get("name", "")

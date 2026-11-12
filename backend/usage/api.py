@@ -4,8 +4,6 @@ What is kept: one row per phone per day, with the phone known only by the same s
 platform and app version, and an approximate city, state and country. What is never kept or logged: the network
 address (it is used for the place lookup and the rate limit, then dropped), names, emails and coordinates.
 """
-import hashlib
-import ipaddress
 import re
 import unicodedata
 from typing import Literal
@@ -14,11 +12,10 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.utils import timezone
 from ninja import Router, Schema
-from ninja.throttling import AnonRateThrottle
 from pydantic import Field, field_validator
 
 from monday.api import _hash  # one salt for install ids across the whole backend
-from talks.views import _client_ip
+from zeroharm.net import ScopedThrottle, client_ip
 
 from . import geo
 from .models import AppOpen
@@ -106,29 +103,17 @@ def _place(request: HttpRequest, sent: PlaceIn | None) -> dict:
     from_phone = _phone_place(sent)
     if from_phone:
         return from_phone
-    found = geo.lookup(_client_ip(request))  # the address goes no further than this call
+    found = geo.lookup(client_ip(request))  # the address goes no further than this call
     return {**found, "source": AppOpen.NETWORK if any(found.values()) else ""}
 
 
 # Why a limit per network: a phone sends this once a day, so one connection (a plant's Wi-Fi, a phone carrier's shared
 # address) has no reason to send more than a few dozen an hour. Without the limit, one connection could invent phone
 # ids and flood the table with rows. 60 an hour keeps real crews counted and caps what a script can add.
-class NetworkThrottle(AnonRateThrottle):
-    """Counts per network, not per exact address: a home or mobile IPv6 connection owns a whole /64 and could
-    otherwise switch addresses to dodge the limit. The key is a salted hash, so no readable address sits in the cache."""
-
-    def get_cache_key(self, request):
-        ident = _client_ip(request)
-        try:
-            address = ipaddress.ip_address(ident)
-            if address.version == 6:
-                ident = str(ipaddress.ip_network(f"{address}/64", strict=False).network_address)
-        except ValueError:
-            pass
-        return "throttle_usage_" + hashlib.sha256(f"{settings.SECRET_KEY}:usage-throttle:{ident}".encode()).hexdigest()
-
-
-@router.post("/open", response=Ok, throttle=[NetworkThrottle("60/h")], summary="Anonymous once-a-day usage count")
+# ScopedThrottle (zeroharm/net.py) counts per network, not per exact address: a home or mobile IPv6 connection owns a
+# whole /64 and could otherwise switch addresses to dodge the limit. Its key is a salted hash, so no readable address
+# sits in the cache, and the scope gives this endpoint a counter of its own.
+@router.post("/open", response=Ok, throttle=[ScopedThrottle("60/h", scope="app-open")], summary="Anonymous once-a-day usage count")
 def app_open(request: HttpRequest, body: OpenIn):
     """The app sends this at most once a day, and only while the person has "Anonymous usage count" switched on."""
     if not settings.USAGE_ENABLED:

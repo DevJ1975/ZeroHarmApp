@@ -1,4 +1,5 @@
 """Small GoHighLevel API client (standard library only). Uses the private-integration token in GHL_PRIVATE_TOKEN."""
+import http.client
 import json
 import logging
 import urllib.error
@@ -21,6 +22,10 @@ class GhlError(Exception):
         self.status, self.body = status, body
 
 
+class NotConfigured(GhlError):
+    """GHL_PRIVATE_TOKEN or GHL_LOCATION_ID is missing, so nothing was sent or read."""
+
+
 def configured():
     return bool(settings.GHL_PRIVATE_TOKEN and settings.GHL_LOCATION_ID)
 
@@ -37,6 +42,22 @@ def _headers(extra=None):
     }
 
 
+# Everything that can go wrong between sending a request and having a usable answer, besides an HTTP error status.
+# urllib only wraps failures to CONNECT in URLError. A connection dropped or reset while the answer is being read
+# (ConnectionError, ssl.SSLError: both OSError, like URLError and a timeout), an answer cut short or garbled
+# (http.client.HTTPException) and a 200 that is not JSON, such as a Cloudflare page (ValueError), come through raw.
+# Uncaught, any of them is an HTTP 500 for the phone and the end of that cron run.
+TRANSPORT_ERRORS = (OSError, http.client.HTTPException, ValueError)
+
+
+def error_text(err, limit=300):
+    """The body of an HTTP error answer, or a note when even that could not be read."""
+    try:
+        return err.read().decode(errors="replace")[:limit]
+    except TRANSPORT_ERRORS as inner:
+        return f"(the error answer could not be read: {type(inner).__name__})"
+
+
 def request(method, path, query=None, body=None, raw=None, content_type="application/json", timeout=30):
     url = BASE + path + (("?" + urllib.parse.urlencode(query)) if query else "")
     data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
@@ -45,12 +66,15 @@ def request(method, path, query=None, body=None, raw=None, content_type="applica
     try:
         with urllib.request.urlopen(req, timeout=timeout) as res:
             text = res.read()
-            return json.loads(text) if text else {}
+            answer = json.loads(text) if text else {}
     except urllib.error.HTTPError as err:
-        text = err.read().decode(errors="replace")[:300]
+        text = error_text(err)
         raise GhlError(f"{method} {path} -> {err.code}: {text}", status=err.code, body=text) from err
-    except (urllib.error.URLError, TimeoutError) as err:
-        raise GhlError(f"{method} {path} -> {err}") from err
+    except TRANSPORT_ERRORS as err:
+        raise GhlError(f"{method} {path} -> {type(err).__name__}: {err}") from err
+    if not isinstance(answer, dict):  # every caller reads the answer as an object
+        raise GhlError(f"{method} {path} -> answered with JSON that is not an object: {str(answer)[:100]}")
+    return answer
 
 
 def fetch_text(url, timeout=30):
@@ -132,6 +156,13 @@ def remove_tags(contact_id, tags, timeout=30):
 
 def add_note(contact_id, text, timeout=30):
     request("POST", f"/contacts/{contact_id}/notes", body={"body": text}, timeout=timeout)
+
+
+def has_note(contact_id, mark, timeout=30):
+    """True when one of the contact's notes contains `mark`. Adding a note is the one GoHighLevel call here that is
+    not safe to repeat (a second call makes a second note), so a retry looks first."""
+    notes = request("GET", f"/contacts/{contact_id}/notes", timeout=timeout).get("notes")
+    return any(isinstance(n, dict) and mark in str(n.get("body") or "") for n in (notes if isinstance(notes, list) else []))
 
 
 def send_email(contact_id, subject, html, timeout=30):

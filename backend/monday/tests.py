@@ -49,7 +49,10 @@ class ScheduleTests(TestCase):
     def test_next_week_and_write_window(self):
         tue = dt.datetime(2026, 11, 10, 18, 0, tzinfo=UTC)
         self.assertEqual(g.next_week(tue), dt.date(2026, 11, 16))
-        self.assertIsNone(g.due_week(tue))  # window opens Wednesday
+        # Next Monday's window opens Wednesday. Until then this week's talk is still owed if it was never written.
+        self.assertEqual(g.due_week(tue), dt.date(2026, 11, 9))
+        MondayMinute.objects.create(week=dt.date(2026, 11, 9), publish_at=g.publish_time(dt.date(2026, 11, 9)), topic=topic("written"), status=MondayMinute.READY)
+        self.assertIsNone(g.due_week(tue))
         wed = dt.datetime(2026, 11, 11, 14, 0, tzinfo=UTC)
         topic()
         self.assertEqual(g.due_week(wed), dt.date(2026, 11, 16))
@@ -716,8 +719,11 @@ class GateTests(TestCase):
         from django.contrib.admin.sites import site
         from django.test import RequestFactory
         from .admin import MondayMinuteAdmin
-        m = self.minute(g.next_week(), status=MondayMinute.PULLED)
-        MondayMinuteAdmin(MondayMinute, site).restore(RequestFactory().post("/"), MondayMinute.objects.all())
+        # Restore only takes back a talk that has its text and a passed check on record (a blocked draft has neither).
+        m = self.minute(g.next_week(), status=MondayMinute.PULLED, intro="Intro.", points=["One."], check_log="Attempt 1: passed the CSP review.")
+        admin = MondayMinuteAdmin(MondayMinute, site)
+        with patch.object(admin, "message_user"):
+            admin.restore(RequestFactory().post("/"), MondayMinute.objects.all())
         self.assertEqual(self.gate.hold_unpublished(), 0)
         m.refresh_from_db()
         self.assertEqual((m.status, m.approved_by_person), (MondayMinute.READY, True))

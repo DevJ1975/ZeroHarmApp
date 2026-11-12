@@ -1,7 +1,52 @@
 from django.contrib import admin, messages
+from django.template import engines
+from django.template.response import TemplateResponse
 
 from .integrations import send_talk_push, sync_signup_to_ghl
 from .models import AppSignup, SignupPhone, ToolboxTalk
+
+# The page that asks before a push goes out. Kept here so the three "send the push now" actions share one page.
+_CONFIRM_PUSH_PAGE = """{% extends "admin/base_site.html" %}
+{% block content %}
+<p>{{ question }}</p>
+{% if warning %}<p class="errornote">{{ warning }}</p>{% endif %}
+<form method="post">{% csrf_token %}
+<input type="hidden" name="action" value="{{ action }}">
+<input type="hidden" name="_selected_action" value="{{ pk }}">
+<input type="hidden" name="confirm_push" value="yes">
+<input type="submit" value="Yes, send it now">
+<a href="{{ back }}" class="button cancel-link">No, take me back</a>
+</form>
+{% endblock %}"""
+
+
+def _push_now(modeladmin, request, queryset, *, action, send, label, audience):
+    """Shared by the "send the push now" actions for talks, feed items and episodes. A push goes to every phone
+    with that notification switched on and cannot be taken back, so: one item per click, only once it is live in the
+    app (the same rule as the console; an early push opens an empty screen and used to cancel the scheduled one),
+    and only after a "Yes" on a page that says who gets it."""
+    rows = list(queryset[:2])
+    if len(rows) != 1:
+        modeladmin.message_user(request, "Select one row. Each push goes to every phone that has that notification switched on, "
+                                         "so they are sent one at a time. Nothing was sent.", messages.ERROR)
+        return None
+    row = rows[0]
+    name, audience = label(row), audience(row)
+    if not type(row).objects.released().filter(pk=row.pk).exists():
+        modeladmin.message_user(request, f"{name} isn't live in the app yet, so the push would open an empty screen. Nothing was sent "
+                                         "and nothing was marked as sent: a scheduled push still goes out when it goes live.", messages.ERROR)
+        return None
+    if request.POST.get("confirm_push") != "yes":
+        sent = row.push_sent_at and _tz.localtime(row.push_sent_at)
+        context = {
+            **modeladmin.admin_site.each_context(request), "title": "Are you sure?", "action": action, "pk": row.pk, "back": request.get_full_path(),
+            "question": f"Send the push for {name} ({row}) now? It goes to every phone with {audience} switched on and cannot be taken back.",
+            "warning": f"Its push already went out on {sent:%b %-d, %Y}. Yes sends a second one." if sent else "",
+        }
+        return TemplateResponse(request, engines["django"].from_string(_CONFIRM_PUSH_PAGE), context)
+    ok, detail = send(row)
+    modeladmin.message_user(request, f"{name}: {'sent' if ok else detail}", messages.SUCCESS if ok else messages.ERROR)
+    return None
 
 
 @admin.register(ToolboxTalk)
@@ -23,10 +68,8 @@ class ToolboxTalkAdmin(admin.ModelAdmin):
 
     @admin.action(description="Send the push for selected talks now")
     def send_push_now(self, request, queryset):
-        for talk in queryset:
-            ok, detail = send_talk_push(talk)
-            level = messages.SUCCESS if ok else messages.ERROR
-            self.message_user(request, f"Issue {talk.issue}: {'sent' if ok else detail}", level)
+        return _push_now(self, request, queryset, action="send_push_now", send=send_talk_push,
+                         label=lambda t: f"Issue {t.issue}", audience=lambda t: "weekly talk notifications")
 
 
 class SignupPhoneInline(admin.TabularInline):
@@ -42,12 +85,22 @@ class SignupPhoneInline(admin.TabularInline):
 
 @admin.register(AppSignup)
 class AppSignupAdmin(admin.ModelAdmin):
-    list_display = ("email", "first_name", "last_name", "company", "source", "wants_offers", "created_at", "ghl_synced_at")
-    list_filter = ("source", "wants_offers")
+    list_display = ("email", "first_name", "last_name", "company", "source", "wants_offers", "removal_asked", "created_at", "ghl_synced_at")
+    list_filter = ("source", "wants_offers", ("removal_requested_at", admin.EmptyFieldListFilter))
     search_fields = ("email", "first_name", "last_name", "company")
     readonly_fields = ("consent_text", "consent_at", "owner_alerted_at", "ghl_contact_id", "ghl_had_tags", "ghl_synced_at", "created_at")
     inlines = (SignupPhoneInline,)
-    actions = ("sync_to_ghl",)
+    actions = ("sync_to_ghl", "clear_removal_request")
+
+    @admin.display(description="Removal asked", ordering="removal_requested_at")
+    def removal_asked(self, obj):
+        """A phone other than the one that made the sign-up asked to remove it. Nothing was deleted: the owner decides."""
+        return obj.removal_requested_at
+
+    @admin.action(description="Keep these sign-ups: clear the removal request")
+    def clear_removal_request(self, request, queryset):
+        cleared = queryset.exclude(removal_requested_at=None).update(removal_requested_at=None)
+        self.message_user(request, f"Cleared the removal request on {cleared} sign-up(s). To remove a person instead, delete the sign-up.")
 
     @admin.action(description="Sync selected sign-ups to GoHighLevel")
     def sync_to_ghl(self, request, queryset):
@@ -104,9 +157,9 @@ class FeedItemAdmin(admin.ModelAdmin):
 
     @admin.action(description="Send the push for selected items now")
     def push_now(self, request, queryset):
-        for item in queryset:
-            ok, detail = send_feed_push(item)
-            self.message_user(request, f"{item.title}: {'sent' if ok else detail}", messages.SUCCESS if ok else messages.ERROR)
+        return _push_now(self, request, queryset, action="push_now", send=send_feed_push,
+                         label=lambda i: i.title,
+                         audience=lambda i: "Regulatory alerts" if i.kind == i.ALERT else "News and offers")
 
 
 @admin.register(GhlSync)
@@ -119,10 +172,16 @@ class GhlSyncAdmin(admin.ModelAdmin):
     @admin.action(description="Run the selected syncs now")
     def run_now(self, request, queryset):
         for job in queryset:
-            job.log = "\n".join(sync_year(job.year))
-            job.status, job.finished_at = "done", _tz.now()
+            try:
+                lines, error = sync_year(job.year), None
+            except Exception as err:  # GoHighLevel down or refusing the token: keep the error on the job, as the cron does
+                lines, error = [f"Failed: {err}"], err
+            job.status, job.log, job.finished_at = "failed" if error else "done", "\n".join(lines), _tz.now()
             job.save()
-            self.message_user(request, f"{job.year}: done. Open it to read the log.")
+            if error:
+                self.message_user(request, f"{job.year}: failed. {error}", messages.ERROR)
+            else:
+                self.message_user(request, f"{job.year}: done. Open it to read the log.")
 
 
 @admin.register(SigninSheet)
@@ -137,6 +196,9 @@ class SigninSheetAdmin(admin.ModelAdmin):
     def retry(self, request, queryset):
         n = sum(sync_sheet_to_ghl(s) for s in queryset.exclude(status="synced"))
         self.message_user(request, f"Saved {n} sheet(s) to GoHighLevel.")
+
+    def has_add_permission(self, request):
+        return False  # sheets come from the app; every field here is look-only, so an Add form could only fail
 
 
 from .models import KbEntry, TalkSuggestion
@@ -178,14 +240,18 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     @admin.action(description="Check GHL Media Storage for new Zero Hour files")
     def sync_from_ghl(self, request, queryset):
-        for line in sync_episodes():
+        try:
+            lines = sync_episodes()
+        except Exception as err:  # GoHighLevel down or refusing the token
+            self.message_user(request, f"Could not check GHL Media Storage: {err}", messages.ERROR)
+            return
+        for line in lines:
             self.message_user(request, line)
 
     @admin.action(description="Send the push for selected episodes now")
     def push_now(self, request, queryset):
-        for ep in queryset:
-            ok, detail = send_episode_push(ep)
-            self.message_user(request, f"EP {ep.number}: {'sent' if ok else detail}", messages.SUCCESS if ok else messages.ERROR)
+        return _push_now(self, request, queryset, action="push_now", send=send_episode_push,
+                         label=lambda e: f"EP {e.number}", audience=lambda e: "Zero Hour episode notifications")
 
 
 # ---- OTIS on-device AI ---------------------------------------------------------------------------
@@ -217,6 +283,9 @@ class OtisFeedbackAdmin(admin.ModelAdmin):
     @admin.display(description="Question")
     def short_question(self, obj):
         return (obj.question[:80] + "…") if len(obj.question) > 80 else (obj.question or "(not shared)")
+
+    def has_add_permission(self, request):
+        return False  # ratings come from the app
 
 
 # ---- Owner alerts --------------------------------------------------------------------------------

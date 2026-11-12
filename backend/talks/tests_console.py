@@ -41,7 +41,7 @@ class AuthTests(ConsoleCase):
         for _ in range(10):
             self.assertEqual(self.call("get", "talks/", key="guess").status_code, 401)
         self.assertEqual(self.call("get", "talks/", key="guess").status_code, 429)
-        self.assertEqual(self.call("get", "talks/").status_code, 429)  # even the right key, until the hour passes
+        self.assertEqual(self.call("get", "talks/").status_code, 200)  # the right key still works: other people's wrong keys can't lock you out
 
     def test_rate_limit_uses_the_address_the_edge_added(self):
         # The caller controls everything before the last X-Forwarded-For entry, so rotating it buys nothing.

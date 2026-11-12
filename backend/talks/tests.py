@@ -789,12 +789,15 @@ class WelcomeSignupTests(GhlTestCase):
 
     def test_a_crew_can_sign_in_together_on_one_network(self):
         with patch("talks.views.sync_signup_to_ghl", return_value=False):
-            for i in range(30):
+            for i in range(29):
                 self.assertEqual(self.signup(email=f"crew{i}@plant.com").status_code, 200)
             for _ in range(10):  # repeats of an email already here don't use up the limit
                 self.assertEqual(self.signup(email="crew0@plant.com").status_code, 200)
+            self.assertEqual(self.signup(email="crew29@plant.com").status_code, 200)  # the 30th new email
             self.assertEqual(self.signup(email="one-too-many@plant.com").status_code, 429)
-            self.assertEqual(self.signup(email="crew1@plant.com").status_code, 200)
+            # With the limit used up, an email already here gets the same answer, so the answer can't tell who is
+            # signed up. The app keeps a refused sign-up and sends it again later.
+            self.assertEqual(self.signup(email="crew1@plant.com").status_code, 429)
         self.assertEqual(AppSignup.objects.count(), 30)
 
 
@@ -897,37 +900,39 @@ OTHER = "9b1d7c2e-0f44-4c6a-8e1f-aa00bb11cc22"  # another phone
 
 @override_settings(**GHL_ON)
 class SignupPhoneTests(GhlTestCase):
-    """Every phone that signs up with an email is linked to it, and a phone can only remove itself."""
+    """Every phone that signs up with an email is linked to it. The first phone linked owns the sign-up: only it can
+    change it or remove it. Any other phone changes nothing, and its removal is a request the app's owner decides."""
 
     def test_a_repeat_from_another_phone_links_it_and_changes_nothing_else(self):
         self.signup(name="Jane Doe", install_id=INSTALL, consent=CONSENT)
         consent_at = AppSignup.objects.get().consent_at
         again = self.signup(name="Mallory Evil", company="Evil Co", wants_offers=True, consent="something else", install_id=OTHER)
-        self.assertEqual((again.status_code, again.json()), (200, {"ok": True}))
+        self.assertEqual((again.status_code, again.json()), (200, {"ok": True, "changed": False}))  # the app is told nothing was changed
         row = AppSignup.objects.get()
         self.assertEqual((row.first_name, row.last_name, row.consent_text, row.consent_at, row.wants_offers),
                          ("Jane", "Doe", CONSENT, consent_at, False))
-        self.assertEqual(row.company, "Evil Co")  # it was blank, so it is filled in
+        self.assertEqual(row.company, "")  # a blank is not filled in either
         self.assertEqual(row.phones.count(), 2)
-        self.signup(company="Other Co", install_id=OTHER)  # once linked, the second phone counts as theirs too
-        self.signup(name="Someone Else", company="Old App Co")  # an old app version that sends no phone id: blanks only
+        self.signup(company="Other Co", install_id=OTHER)  # linked now, but not the phone that signed up: still nothing
+        self.signup(name="Someone Else", company="Old App Co")  # an old app version that sends no phone id: nothing
         row = AppSignup.objects.get()
-        self.assertEqual((row.first_name, row.company, row.phones.count()), ("Jane", "Other Co", 2))
+        self.assertEqual((row.first_name, row.company, row.phones.count()), ("Jane", "", 2))
 
-    def test_another_phone_can_only_remove_itself(self):
+    def test_a_removal_from_another_phone_is_a_request_and_the_owner_phone_removes(self):
         self.signup(name="Jane Doe", install_id=INSTALL)
-        self.signup(name="Mallory", install_id=OTHER)
+        self.signup(name="Jane Doe", install_id=OTHER)  # her new phone, the same phone after a reinstall, or a stranger
         self.ghl.calls.clear()
-        res = self.remove(OTHER)
-        self.assertEqual((res.status_code, res.json()), (200, {"ok": True}))
-        row = AppSignup.objects.get()  # Jane is still signed up
-        self.assertEqual(row.phones.count(), 1)
-        self.assertEqual((self.ghl.calls, SignupRemoval.objects.count()), ([], 0))  # GoHighLevel untouched, no alert
-        self.assertEqual(self.remove(OTHER).json(), {"ok": True})  # again: nothing left for that phone
-        self.assertTrue(AppSignup.objects.exists())
+        with patch("talks.owner_alerts.notify", create=True, return_value=True) as notify:
+            res = self.remove(OTHER)
+        self.assertEqual((res.status_code, res.json()), (200, {"ok": True, "pending": True}))
+        row = AppSignup.objects.get()  # nothing is deleted: the app's owner is asked to look at it
+        self.assertIsNotNone(row.removal_requested_at)
+        self.assertEqual((row.phones.count(), SignupRemoval.objects.count(), self.ghl.calls), (1, 0, []))
+        self.assertEqual(notify.call_count, 1)
 
-        self.remove(INSTALL)  # her own (last) phone removes the sign-up
+        self.assertEqual(self.remove(INSTALL).json(), {"ok": True})  # the phone that signed up: removed, as before
         self.assertFalse(AppSignup.objects.exists())
+        self.assertEqual(SignupRemoval.objects.count(), 0)  # and it is finished: tags off, owner told
         self.assertEqual(len(self.ghl.to("/contacts/lead1/tags", "DELETE")), 1)
         self.assertEqual([m["subject"] for m in self.ghl.emails], ["Zero Harm removal request: jane@plant.com"])
 
@@ -976,7 +981,8 @@ class RemovalTagTests(GhlTestCase):
         tag_calls = [c for c in self.ghl.calls if c[1] == "/contacts/lead1/tags"]
         self.assertEqual([(c[0], c[2]["tags"][-1]) for c in tag_calls], [("POST", "zero-harm-app-signup"), ("DELETE", "zero-harm-removed")])
         self.assertIsNotNone(AppSignup.objects.get().ghl_synced_at)
-        self.signup(name="Jane Doe", install_id=INSTALL)  # only checked on the first sync
+        self.ghl.tags = []  # GoHighLevel took it off
+        self.signup(name="Jane Doe", install_id=INSTALL)  # checked on every sync (a half-failed first try must not leave it on): gone, so nothing to do
         self.assertEqual([c[2] for c in self.ghl.to("/contacts/lead1/tags", "DELETE")].count({"tags": ["zero-harm-removed"]}), 1)
 
 

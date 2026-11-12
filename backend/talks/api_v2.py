@@ -6,6 +6,7 @@ knowledge base changed, and takes opt-in "Was this helpful?" ratings. Schema and
 """
 import hashlib
 import json
+import unicodedata
 from decimal import Decimal
 from typing import Literal
 
@@ -14,8 +15,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from ninja import NinjaAPI, Schema
-from ninja.throttling import AnonRateThrottle
-from pydantic import Field
+from pydantic import Field, field_validator
+
+from zeroharm.net import ScopedThrottle
 
 from .models import OtisFeedback, OtisModelRelease, OtisRollout
 
@@ -40,6 +42,18 @@ Platform = Literal["ios", "android"]
 
 # ---- Schemas ----------------------------------------------------------------------------------------
 
+def _clean(value):
+    """Text from a phone, made safe to store and to look up with: control characters and broken halves of emoji are
+    dropped (line breaks and tabs stay). A NUL character makes PostgreSQL refuse the whole statement, which the phone
+    saw as a server error (HTTP 500), and half a surrogate pair cannot be written at all. Also cleans each text in a
+    list. Runs before the length checks."""
+    if isinstance(value, list):
+        return [_clean(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    return "".join(ch for ch in value if ch in "\n\t" or unicodedata.category(ch) not in ("Cc", "Cs"))
+
+
 class DeviceIn(Schema):
     platform: Platform
     memory_gb: float = Field(ge=0, le=64, description="Total device memory")
@@ -47,6 +61,8 @@ class DeviceIn(Schema):
     os_version: str = Field(default="", max_length=20)
     backends: list[str] = Field(default_factory=list, max_length=8, description="ExecuTorch backends this app build links, e.g. ['mlx', 'xnnpack']")
     kb_version: str = Field(default="", max_length=64, description="Knowledge base version already on the phone")
+
+    _tidy = field_validator("app_version", "os_version", "backends", "kb_version", mode="before")(_clean)
 
 
 class ModelFiles(Schema):
@@ -102,6 +118,8 @@ class FeedbackIn(Schema):
     app_version: str = Field(default="", max_length=20)
     lang: Literal["en", "es"] = "en"
 
+    _tidy = field_validator("source_ids", "question", "model_key", "app_version", mode="before")(_clean)
+
 
 class Ok(Schema):
     ok: bool
@@ -114,9 +132,11 @@ class Error(Schema):
 # ---- Helpers ----------------------------------------------------------------------------------------
 
 def _version_tuple(v: str):
+    """"1.12.0" -> (1, 12, 0). Only the digits 0 to 9 count: str.isdigit is also true for characters like "²", which
+    int() then refuses, so an app_version of "1.²" was a server error whenever a minimum version was set."""
     parts = []
     for p in v.split("."):
-        digits = "".join(ch for ch in p if ch.isdigit())
+        digits = "".join(ch for ch in p if ch in "0123456789")
         parts.append(int(digits or 0))
     return tuple(parts)
 
@@ -139,7 +159,10 @@ def current_kb():
 def pick_model(device: DeviceIn) -> ModelOut:
     """A pinned release this phone can run (platform, backend, memory), else the library's built-in model by memory."""
     backends = {b.lower() for b in device.backends} or {"xnnpack"}  # unknown build: XNNPACK runs everywhere
-    release = (
+    # Only names that exist go to the database: any other matches no release anyway, and the phone's own text has
+    # no business in a query.
+    backends &= {name for name, _ in OtisModelRelease.BACKENDS}
+    release = backends and (
         OtisModelRelease.objects.filter(active=True, platform=device.platform, backend__in=backends,
                                         min_memory_gb__lte=Decimal(str(device.memory_gb)))
         .order_by("-min_memory_gb", "-updated_at")
@@ -198,7 +221,7 @@ def kb(request: HttpRequest):
 
 
 @api.post("/otis/feedback", response={201: Ok, 403: Error}, tags=["OTIS"], summary="Opt-in 'Was this helpful?' rating",
-          throttle=[AnonRateThrottle("30/h")])
+          throttle=[ScopedThrottle("30/h", scope="otis-feedback")])  # its own counter: Monday Minute thumbs used to use it up
 def feedback(request: HttpRequest, body: FeedbackIn):
     if not OtisRollout.current().feedback_enabled:
         return 403, {"error": "Feedback is turned off."}

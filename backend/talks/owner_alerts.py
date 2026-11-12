@@ -1,17 +1,19 @@
-"""Emails to the app's owner: one the minute someone signs up, one when someone removes their sign-up, and one
-summary a day of new phones ("downloads"). They go out through GoHighLevel with the same private token as the rest of
-the sync, to the address in OWNER_ALERT_EMAIL. Leave that setting blank and nothing is sent.
+"""Emails to the app's owner: one the minute someone signs up, one when someone removes their sign-up, one
+summary a day of new phones ("downloads"), and one-off notices from other parts of the server (notify). They go out
+through GoHighLevel with the same private token as the rest of the sync, to the address in OWNER_ALERT_EMAIL. Leave
+that setting blank and nothing is sent.
 
 Nothing here may break the app for the person using it: every send answers True or False, never raises, and whatever
 did not go out is picked up again by the cron."""
 import datetime as dt
+import hashlib
 import logging
 from collections import Counter
 from html import escape
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.db.models import F
 from django.db import transaction
 from django.utils import timezone
@@ -89,8 +91,22 @@ def signup_email(signup):
     return f"New Zero Harm sign-up: {signup.full_name or signup.email}", _page("New Zero Harm sign-up", rows, footer)
 
 
-# At most this many instant sign-up emails an hour; the rest go in the daily summary.
+# At most this many instant emails an hour (sign-up alerts and notices together); sign-ups past it go in the daily summary.
 ALERTS_PER_HOUR = 20
+
+
+def _over_hourly_cap():
+    """Counts one more instant email in this clock hour and says whether that is past ALERTS_PER_HOUR. The count sits
+    in the cache kept for limits only, so weather and other cached content can never push it out and start it again
+    at zero. That cache is in the memory of one process: the web server has one count, and each cron run its own."""
+    limits = caches["limits"]
+    key = f"owner-alerts:{timezone.now():%Y%m%d%H}"
+    limits.add(key, 0, 3600)
+    try:
+        return limits.incr(key) > ALERTS_PER_HOUR
+    except ValueError:  # the count ran out in the instant between the two lines above: this email is the hour's first
+        limits.set(key, 1, 3600)
+        return False
 
 
 def alert_signup(signup, timeout=30):
@@ -99,9 +115,7 @@ def alert_signup(signup, timeout=30):
         return True
     # A burst of sign-ups (a script, or a whole site at once) must not bury the owner's inbox. Past the hourly cap the
     # sign-up is only in the daily summary.
-    key = f"owner-alerts:{timezone.now():%Y%m%d%H}"
-    cache.add(key, 0, 3600)
-    if cache.incr(key) > ALERTS_PER_HOUR:
+    if _over_hourly_cap():
         AppSignup.objects.filter(pk=signup.pk).update(owner_alerted_at=timezone.now())
         return True
     if not send(*signup_email(signup), timeout=timeout):
@@ -120,6 +134,55 @@ def retry_signup_alerts(now=None):
     waiting = AppSignup.objects.filter(owner_alerted_at__isnull=True, created_at__gte=now - dt.timedelta(days=2),
                                        created_at__lte=now - dt.timedelta(minutes=2)).order_by("created_at")[:50]
     return sum(alert_signup(s) for s in waiting)
+
+
+# ---- One-off notices from other parts of the server ----------------------------------------------------
+
+NOTIFY_KEEP_DAYS = 14  # how long a notice's key is remembered, so the same thing is not emailed twice
+
+
+def _notice_key(key):
+    return "owner-notice:" + hashlib.sha256(str(key).encode()).hexdigest()[:32]
+
+
+def notify(subject, lines, key, timeout=QUICK):
+    """Emails the owner one plain notice: `subject`, then each of `lines` as a paragraph. True when it went out now.
+    Each GoHighLevel call gets `timeout` seconds. The default is the short limit used while a phone waits, because
+    notices are also sent from inside the app's own requests; a notice that was too slow to go out is not lost, see below.
+
+    `key` names the event (for example "monday-missed:2026-11-09") and makes the notice once-only: a second call with
+    the same key in the next 14 days sends nothing and answers False. The key is remembered in the shared database
+    cache, so the web server and every cron run see the same memory. It is claimed before the email is sent, so two
+    callers at the same moment cannot both send, and given back when the email did not go out, so the caller can
+    simply call again later (the cron does, every 15 minutes) until it has.
+
+    Never raises. Answers False, and sends nothing, when owner alerts are off (OWNER_ALERT_EMAIL blank or GoHighLevel
+    not set up), when the hourly cap on instant emails is used up, when GoHighLevel did not take the email, and when
+    the key cannot be remembered at all (better no email than the same one every 15 minutes)."""
+    try:
+        if not enabled():
+            return False
+        shared, note = caches["shared"], _notice_key(key)
+        if not shared.add(note, 1, NOTIFY_KEEP_DAYS * 24 * 3600):
+            return False  # already sent, or being sent right now
+        sent = False
+        try:
+            if _over_hourly_cap():
+                log.warning("Owner notice '%s' not sent: more than %s owner emails this hour.", str(subject)[:60], ALERTS_PER_HOUR)
+            else:
+                if isinstance(lines, str):
+                    lines = [lines]
+                body = "".join(f"<p style=\"margin:0 0 8px\">{escape(str(line))}</p>" for line in lines)
+                html = (f"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1a1a1a\"><h2 style=\"margin:0 0 12px\">"
+                        f"{escape(str(subject))}</h2>{body}</div>")
+                sent = send(str(subject), html, timeout=timeout)
+        finally:
+            if not sent:
+                shared.delete(note)  # not sent: the next call with this key may try again
+        return sent
+    except Exception as err:
+        log.error("Owner notice '%s' failed: %s", str(subject)[:60], err)
+        return False
 
 
 # ---- Sign-up removed from the app --------------------------------------------------------------------

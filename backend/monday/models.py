@@ -4,11 +4,26 @@ Every week the generator picks one topic from the CSP-reviewed topic bank, write
 checks it (hard rules plus an AI safety review in the CSP role) and publishes it Monday at 5:00 AM Pacific. Crews rate
 each talk and discuss it in comments; reports from crews can pull a talk and pause its topic automatically.
 """
+import logging
+import threading
+import uuid
+from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
 
+log = logging.getLogger(__name__)
+
 PULL_AT_UNSAFE_REPORTS = 3     # "isn't safe or isn't right" reports, from different networks, that pull a talk and pause its topic
 HIDE_AT_COMMENT_REPORTS = 2    # reports that hide a comment until someone looks
+
+# The write lock (MondayLock). A run that holds it says "still here" every LOCK_BEAT_SECONDS; a lock nobody has
+# refreshed for LOCK_TTL belongs to a run that was killed (a deploy stops the container mid-write) and is taken over.
+LOCK_TTL = timedelta(minutes=5)
+LOCK_BEAT_SECONDS = 60
+LOCK_MAX_HOLD = timedelta(hours=4)  # a run that is alive but stuck stops refreshing after this, so it cannot hold the lock for ever
+# One lock is meant to outlast LOCK_MAX_HOLD: the safety test's ("eval"). eval_runner refreshes that row itself, by
+# name, for as long as the test works, because a full test on CPU can take longer than four hours.
 
 
 class MondayTopic(models.Model):
@@ -42,17 +57,31 @@ class MondayTopic(models.Model):
 
 
 class MondayMinuteQuerySet(models.QuerySet):
+    def due(self, now=None):
+        """Ready and past its publish time. Not the same as out: see released()."""
+        return self.filter(status=MondayMinute.READY, publish_at__lte=now or timezone.now())
+
     def released(self):
-        return self.filter(status=MondayMinute.READY, publish_at__lte=timezone.now())
+        """Talks that are out in the app. A talk the safety gate let through when it was written (gate_pending) is
+        not out until the gate has been checked once more at its publish time (gate.release_due), unless a person
+        approved it."""
+        return self.due().filter(models.Q(gate_pending=False) | models.Q(approved_by_person=True))
 
     def with_counts(self):
-        """Thumbs and comment counts in the same query, so a list of talks doesn't run three more queries per talk."""
-        from django.db.models import Count, Q
+        """Thumbs and comment counts in the same query, so a list of talks doesn't run three more queries per talk.
+        Each count is its own small subquery. Joining ratings and comments to the talk and counting distinct ids made
+        the database build ratings x comments rows for every talk first: seconds per request at a few thousand ratings."""
+        from django.db.models import Count, IntegerField, OuterRef, Subquery
+        from django.db.models.functions import Coalesce
+
+        def count(rows):
+            per_talk = rows.filter(minute=OuterRef("pk")).order_by().values("minute").annotate(n=Count("pk")).values("n")
+            return Coalesce(Subquery(per_talk, output_field=IntegerField()), 0)
 
         return self.annotate(
-            _up=Count("feedback", filter=Q(feedback__helpful=True), distinct=True),
-            _down=Count("feedback", filter=Q(feedback__helpful=False), distinct=True),
-            _comments=Count("comments", filter=Q(comments__status="visible"), distinct=True),
+            _up=count(MondayFeedback.objects.filter(helpful=True)),
+            _down=count(MondayFeedback.objects.filter(helpful=False)),
+            _comments=count(MondayComment.objects.filter(status=MondayComment.VISIBLE)),
         )
 
 
@@ -77,6 +106,7 @@ class MondayMinute(models.Model):
     model = models.CharField(max_length=60, blank=True)
     push_sent_at = models.DateTimeField(null=True, blank=True)
     approved_by_person = models.BooleanField(default=False, help_text="A person approved or restored this talk in the admin, so the safety gate leaves it alone")
+    gate_pending = models.BooleanField(default=False, db_default=False, help_text="The safety gate let this talk through when it was written. It is checked once more at the moment the talk goes out, and the talk is not shown until then")
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = MondayMinuteQuerySet.as_manager()
@@ -85,6 +115,9 @@ class MondayMinute(models.Model):
         ordering = ["-week"]
         verbose_name = "Monday Minute"
         indexes = [models.Index(fields=["status", "publish_at"], name="mm_released")]
+        # One talk a week, whoever writes it: two writers finishing together used to give two talks and two pushes.
+        # Drafts the safety checks blocked don't count (a week may have two of those, one per topic tried).
+        constraints = [models.UniqueConstraint(fields=["week"], condition=~models.Q(status="blocked"), name="one_talk_per_week")]
 
     def __str__(self):
         return f"{self.week:%Y-%m-%d} · {self.title or self.topic.title} ({self.status})"
@@ -140,6 +173,7 @@ class MondayComment(models.Model):
     status = models.CharField(max_length=10, choices=STATUSES, default=PENDING)
     moderation = models.CharField(max_length=300, blank=True, help_text="Why moderation hid it, if it did")
     report_count = models.PositiveSmallIntegerField(default=0)
+    screen_failures = models.PositiveSmallIntegerField(default=0, db_default=0, help_text="Times the AI check could not give an answer for this comment. After a few it is hidden for a person to look at")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -162,30 +196,77 @@ class MondayCommentReport(models.Model):
 
 
 class MondayLock(models.Model):
-    """Keeps two cron runs from writing the same week at once. On CPU a talk can take longer than the cron interval."""
+    """Keeps two runs from writing the same week at once. On CPU a talk can take longer than the cron interval.
+
+    The lock has an owner and a heartbeat. acquire() starts a small background thread that refreshes locked_at every
+    LOCK_BEAT_SECONDS for as long as this process holds the lock. If the process is killed (every deploy stops the
+    container, and no `finally` runs then) the refreshing stops with it and the next run takes the lock over once it is
+    LOCK_TTL old: minutes, where a fixed 4-hour expiry used to block writing for the rest of the evening.
+    release() only frees a lock this process holds, so a run that finishes late can't free another run's lock."""
 
     name = models.CharField(max_length=40, primary_key=True)
-    locked_at = models.DateTimeField()
+    locked_at = models.DateTimeField(help_text="Last time the run holding the lock said it was still working")
+    owner = models.CharField(max_length=40, blank=True, db_default="", help_text="Random id of the run holding the lock")
+
+    _held = {}                      # lock name -> (owner id, stop signal) for the locks this process holds
+    _held_guard = threading.Lock()
 
     @classmethod
     def acquire(cls, name: str, ttl=None) -> bool:
-        from datetime import timedelta
-
         from django.db import transaction
 
-        ttl = ttl or timedelta(hours=4)  # a crashed run frees the lock after this
+        ttl = ttl or LOCK_TTL  # a killed run frees the lock after this
         now = timezone.now()
+        owner = uuid.uuid4().hex
         with transaction.atomic():
-            lock, created = cls.objects.select_for_update().get_or_create(name=name, defaults={"locked_at": now})
-            if not created and lock.locked_at > now - ttl:
-                return False
-            lock.locked_at = now
-            lock.save()
-            return True
+            lock, created = cls.objects.select_for_update().get_or_create(name=name, defaults={"locked_at": now, "owner": owner})
+            if not created:
+                if lock.locked_at > now - ttl:
+                    return False
+                lock.locked_at, lock.owner = now, owner
+                lock.save()
+        cls._start_heartbeat(name, owner)
+        return True
 
     @classmethod
     def release(cls, name: str):
-        cls.objects.filter(name=name).delete()
+        """Frees the lock if this process holds it. Does nothing otherwise: the row then belongs to another run."""
+        with cls._held_guard:
+            owner, stop = cls._held.pop(name, ("", None))
+        if stop:
+            stop.set()
+        if owner:
+            cls.objects.filter(name=name, owner=owner).delete()
+
+    @classmethod
+    def beat(cls, name: str, owner: str) -> bool:
+        """Says "still working". False when the lock is no longer ours (it went stale and another run took it)."""
+        return bool(cls.objects.filter(name=name, owner=owner).update(locked_at=timezone.now()))
+
+    @classmethod
+    def _start_heartbeat(cls, name: str, owner: str):
+        from django.db import connection
+
+        stop = threading.Event()
+        with cls._held_guard:
+            _, earlier = cls._held.get(name, ("", None))
+            if earlier:
+                earlier.set()  # this process lost that lock to the expiry and has now taken it again
+            cls._held[name] = (owner, stop)
+        give_up_at = timezone.now() + LOCK_MAX_HOLD
+
+        def run():
+            while not stop.wait(LOCK_BEAT_SECONDS) and timezone.now() < give_up_at:
+                try:
+                    if not cls.beat(name, owner):
+                        log.warning("Monday Minute lock %s: another run took it over while this one was still working", name)
+                        return
+                except Exception:  # a database blip must not end the heartbeat; the next beat tries again
+                    log.exception("Monday Minute lock %s: could not refresh it", name)
+                finally:
+                    connection.close()  # this thread's own connection: don't keep one open between beats
+
+        threading.Thread(target=run, name=f"monday-lock-{name}", daemon=True).start()
 
 
 class MondayEvalRun(models.Model):
