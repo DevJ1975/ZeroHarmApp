@@ -5,11 +5,18 @@ GenerationError, so the caller fails safe (a draft fails, a comment waits) inste
 
 Local runs on CPU (Railway has no GPUs), so it's slow: minutes per talk, seconds to a minute per comment. The talk
 pipeline runs from the cron and comments are screened in the background, so nobody waits on it.
+
+Two limits keep a slow or stuck AI server from holding everything else up. A comment check has its own short timeout
+(LOCAL_AI_FAST_TIMEOUT) instead of the long one a talk needs. And a caller can put a ceiling on everything it does
+with `with time_budget(seconds):` (the cron step does, see MONDAY_STEP_BUDGET): calls inside share one deadline.
 """
 import json
 import logging
+import threading
+import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 
 from django.conf import settings
 
@@ -24,6 +31,36 @@ class AIUnavailable(GenerationError):
     """The AI server or API can't be reached right now. Not the draft's fault: try again later, don't count it as a failed attempt."""
 
 
+_budget = threading.local()  # .deadline: when this thread's time for AI calls runs out (time.monotonic), if it has one
+
+
+@contextmanager
+def time_budget(seconds):
+    """Everything inside shares one deadline: each AI call may wait only for what is left of it, and once it has
+    passed, calls fail at once with AIUnavailable (so nothing is recorded and the next run tries again). One stuck
+    call used to cost its full timeout, 30 minutes with the local model, and a run made up to 18 of them, while
+    Railway skipped every other scheduled run. 0 or None means no limit."""
+    earlier = getattr(_budget, "deadline", None)
+    if seconds:
+        mine = time.monotonic() + seconds
+        _budget.deadline = mine if earlier is None else min(earlier, mine)
+    try:
+        yield
+    finally:
+        _budget.deadline = earlier
+
+
+def _time_for(timeout: float) -> float:
+    """How long one call may wait: its own timeout, or what is left of the time budget if that is less."""
+    deadline = getattr(_budget, "deadline", None)
+    if deadline is None:
+        return timeout
+    left = deadline - time.monotonic()
+    if left <= 0:
+        raise AIUnavailable("This run has used up its time for AI calls. The next run carries on.")
+    return min(timeout, left)
+
+
 def provider() -> str:
     return settings.AI_PROVIDER
 
@@ -34,7 +71,7 @@ def is_local() -> bool:
 
 def available() -> bool:
     """Whether the configured provider is set up at all (the server or the key)."""
-    return bool(settings.LOCAL_AI_URL) if is_local() else bool(settings.ANTHROPIC_API_KEY)
+    return bool((settings.LOCAL_AI_URL or "").strip()) if is_local() else bool(settings.ANTHROPIC_API_KEY)
 
 
 # What each job needs. Smaller context and output caps mean less memory and time on CPU; the reviewer gets the most
@@ -49,10 +86,11 @@ ROLES = {
 
 def ai_json(system: str, user: str, schema: dict, role: str = "review", think: bool = True, fast: bool = False, seed: int | None = None):
     """One structured call on the configured provider, tuned for its role (see ROLES).
-    `think` lets the local model reason first (slower, better). `fast` is for calls made while a person waits (comment
-    checks on Claude): short timeout, one retry. `seed` makes a second local review differ from the first."""
+    `think` lets the local model reason first (slower, better). `fast` is for comment checks, which are small and must
+    not tie anything up: a short timeout on either provider (and one retry on Claude). `seed` makes a second local
+    review differ from the first."""
     if is_local():
-        return ollama_json(system, user, schema, role=role, think=think, seed=seed)
+        return ollama_json(system, user, schema, role=role, think=think, seed=seed, fast=fast)
     return claude_json(system, user, schema, ROLES[role][3], fast=fast)
 
 
@@ -63,10 +101,31 @@ def local_model(role: str) -> str:
 
 # ---- Local: Ollama ----------------------------------------------------------------------------------
 
+NO_LOCAL_URL = "The AI server address is not set (LOCAL_AI_URL)."
+BAD_LOCAL_URL = ("The AI server address (LOCAL_AI_URL) is not a web address. It must start with http:// or https://, "
+                 "for example http://ollama.railway.internal:11434.")
+
+
+def local_url() -> str:
+    """Where the local AI server is. A blank or malformed address is said in one plain line (AIUnavailable, so nothing
+    is recorded against a draft or a comment) instead of urllib's "unknown url type: '/api/tags'", which named neither
+    the setting nor the fix and came with a traceback for every posted comment."""
+    url = (settings.LOCAL_AI_URL or "").strip().rstrip("/")
+    if not url:
+        raise AIUnavailable(NO_LOCAL_URL)
+    if not url.lower().startswith(("http://", "https://")):
+        raise AIUnavailable(BAD_LOCAL_URL)
+    return url
+
+
 def _ollama(path: str, payload: dict | None, timeout: float):
-    url = settings.LOCAL_AI_URL.rstrip("/") + path
+    url = local_url() + path
     data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST" if data else "GET")
+    try:
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST" if data else "GET")
+    except ValueError as err:  # an address urllib cannot read at all
+        raise AIUnavailable(BAD_LOCAL_URL) from err
+    timeout = _time_for(timeout)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as res:
             return json.loads(res.read().decode() or "{}")
@@ -87,8 +146,11 @@ def ensure_model() -> bool:
     return ready
 
 
-def ollama_json(system: str, user: str, schema: dict, role: str = "review", think: bool = True, seed: int | None = None):
+def ollama_json(system: str, user: str, schema: dict, role: str = "review", think: bool = True, seed: int | None = None, fast: bool = False):
     context, max_out, temperature, _ = ROLES[role]
+    # A comment check is a few hundred tokens: if it has no answer in a few minutes the server is busy or stuck, and
+    # waiting the 30 minutes a talk is allowed would hold a cron run (or the web worker) for nothing.
+    timeout = min(settings.LOCAL_AI_TIMEOUT, settings.LOCAL_AI_FAST_TIMEOUT) if fast else settings.LOCAL_AI_TIMEOUT
     options = {"temperature": temperature, "num_ctx": context, "num_predict": max_out + (2000 if think else 0)}
     if settings.LOCAL_AI_THREADS:
         options["num_thread"] = settings.LOCAL_AI_THREADS  # match the service's vCPU limit; Ollama otherwise counts the host's cores
@@ -103,7 +165,7 @@ def ollama_json(system: str, user: str, schema: dict, role: str = "review", thin
         "stream": False,
         "keep_alive": "10m",                    # unload after 10 idle minutes, so memory (and the bill) drops between runs
         "options": options,
-    }, timeout=settings.LOCAL_AI_TIMEOUT)
+    }, timeout=timeout)
     if res.get("done_reason") == "length":
         raise GenerationError("The local model ran out of room before finishing.")
     text = (res.get("message") or {}).get("content", "")
@@ -127,6 +189,8 @@ def claude_json(system: str, user: str, schema: dict, effort: str = "high", fast
     client = _client()
     if fast:
         client = client.with_options(timeout=20.0, max_retries=1)
+    if getattr(_budget, "deadline", None) is not None:  # inside a time budget: no call may wait past what is left of it
+        client = client.with_options(timeout=_time_for(20.0 if fast else 180.0))
     kwargs = dict(
         model=settings.MONDAY_MODEL,
         max_tokens=1000 if effort == "low" else 16000,

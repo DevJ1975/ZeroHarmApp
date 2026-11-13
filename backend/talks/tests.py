@@ -37,8 +37,24 @@ class TalkReleaseTests(TestCase):
             call_command("send_talk_push", stdout=StringIO())
             call_command("send_talk_push", stdout=StringIO())  # second run must not resend
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(post.call_args[0][2]["data"], {"issue": 1})
+        self.assertEqual(post.call_args[0][2]["data"], {"issue": 1, "refresh": True})
         self.assertIsNotNone(ToolboxTalk.objects.get(issue=1).push_sent_at)
+
+    def test_push_waits_until_live_and_skips_held_talks(self):
+        send_at = ToolboxTalk.objects.get(issue=1).send_at
+        with patch("talks.integrations._post", return_value=(200, {"id": "abc"})) as post, \
+             self.settings(ONESIGNAL_APP_ID="app", ONESIGNAL_REST_API_KEY="key"):
+            with patch("django.utils.timezone.now", return_value=send_at - timedelta(seconds=30)):
+                call_command("send_talk_push", stdout=StringIO())  # not live yet: phones would refetch too early
+            self.assertEqual(post.call_count, 0)
+            ToolboxTalk.objects.filter(issue=1).update(needs_review=True)
+            with patch("django.utils.timezone.now", return_value=send_at + timedelta(minutes=1)):
+                call_command("send_talk_push", stdout=StringIO())  # held for review: the app wouldn't show it
+            self.assertEqual(post.call_count, 0)
+            ToolboxTalk.objects.filter(issue=1).update(needs_review=False)
+            with patch("django.utils.timezone.now", return_value=send_at + timedelta(minutes=16)):
+                call_command("send_talk_push", stdout=StringIO())
+            self.assertEqual(post.call_count, 1)
 
 
 class SignupTests(TestCase):
@@ -113,6 +129,15 @@ class GhlYearSyncTests(TestCase):
 
 
 class SpanishTests(TestCase):
+    def test_admin_approve_moves_updated_at(self):
+        from .admin import _approve_spanish
+
+        ToolboxTalk.objects.filter(issue=1).update(title_es="Compruebe", body_md_es="Texto", updated_at=datetime(2026, 1, 1, tzinfo=dt_tz.utc))
+        _approve_spanish(type("Admin", (), {"message_user": lambda *a, **k: None})(), None, ToolboxTalk.objects.filter(issue=1))
+        talk = ToolboxTalk.objects.get(issue=1)
+        self.assertEqual(talk.spanish_status, "approved")
+        self.assertGreater(talk.updated_at, datetime(2026, 1, 2, tzinfo=dt_tz.utc))  # so phones are told to refresh
+
     def test_spanish_only_when_approved(self):
         talk = ToolboxTalk.objects.get(issue=1)
         talk.title_es, talk.body_md_es, talk.spanish_status = "Compruebe que no hay energía", "Texto", "draft"
@@ -291,6 +316,16 @@ class ZeroHourTests(TestCase):
         self.assertEqual(ep.card_pdf_url, "https://x/card.pdf")
         self.assertIn("on hold", log[0])
         self.assertEqual(ep.release_at.astimezone(PACIFIC_TZ).weekday(), 3)
+
+    def test_sync_with_nothing_new_leaves_episodes_untouched(self):
+        files = [{"name": "ZH_E05_v1.mp4", "contentType": "video/mp4", "url": "https://x/v1.mp4", "encodedFormats": ["cts-a_720p.mp4"]},
+                 {"name": "ZH_E05_Huddle_Card.pdf", "contentType": "application/pdf", "url": "https://x/card.pdf"}]
+        sync_episodes(files)
+        first = Episode.objects.get(number=5).updated_at
+        sync_episodes(files)  # the hourly run with the same files
+        self.assertEqual(Episode.objects.get(number=5).updated_at, first)  # so the content version doesn't move every hour
+        sync_episodes(files[:1] + [{**files[1], "url": "https://x/card2.pdf"}])
+        self.assertGreater(Episode.objects.get(number=5).updated_at, first)
 
     def test_next_thursday(self):
         t = next_thursday_5am(datetime(2026, 11, 6, 20, tzinfo=dt_tz.utc))  # a Friday
@@ -754,12 +789,15 @@ class WelcomeSignupTests(GhlTestCase):
 
     def test_a_crew_can_sign_in_together_on_one_network(self):
         with patch("talks.views.sync_signup_to_ghl", return_value=False):
-            for i in range(30):
+            for i in range(29):
                 self.assertEqual(self.signup(email=f"crew{i}@plant.com").status_code, 200)
             for _ in range(10):  # repeats of an email already here don't use up the limit
                 self.assertEqual(self.signup(email="crew0@plant.com").status_code, 200)
+            self.assertEqual(self.signup(email="crew29@plant.com").status_code, 200)  # the 30th new email
             self.assertEqual(self.signup(email="one-too-many@plant.com").status_code, 429)
-            self.assertEqual(self.signup(email="crew1@plant.com").status_code, 200)
+            # With the limit used up, an email already here gets the same answer, so the answer can't tell who is
+            # signed up. The app keeps a refused sign-up and sends it again later.
+            self.assertEqual(self.signup(email="crew1@plant.com").status_code, 429)
         self.assertEqual(AppSignup.objects.count(), 30)
 
 
@@ -862,37 +900,39 @@ OTHER = "9b1d7c2e-0f44-4c6a-8e1f-aa00bb11cc22"  # another phone
 
 @override_settings(**GHL_ON)
 class SignupPhoneTests(GhlTestCase):
-    """Every phone that signs up with an email is linked to it, and a phone can only remove itself."""
+    """Every phone that signs up with an email is linked to it. The first phone linked owns the sign-up: only it can
+    change it or remove it. Any other phone changes nothing, and its removal is a request the app's owner decides."""
 
     def test_a_repeat_from_another_phone_links_it_and_changes_nothing_else(self):
         self.signup(name="Jane Doe", install_id=INSTALL, consent=CONSENT)
         consent_at = AppSignup.objects.get().consent_at
         again = self.signup(name="Mallory Evil", company="Evil Co", wants_offers=True, consent="something else", install_id=OTHER)
-        self.assertEqual((again.status_code, again.json()), (200, {"ok": True}))
+        self.assertEqual((again.status_code, again.json()), (200, {"ok": True, "changed": False}))  # the app is told nothing was changed
         row = AppSignup.objects.get()
         self.assertEqual((row.first_name, row.last_name, row.consent_text, row.consent_at, row.wants_offers),
                          ("Jane", "Doe", CONSENT, consent_at, False))
-        self.assertEqual(row.company, "Evil Co")  # it was blank, so it is filled in
+        self.assertEqual(row.company, "")  # a blank is not filled in either
         self.assertEqual(row.phones.count(), 2)
-        self.signup(company="Other Co", install_id=OTHER)  # once linked, the second phone counts as theirs too
-        self.signup(name="Someone Else", company="Old App Co")  # an old app version that sends no phone id: blanks only
+        self.signup(company="Other Co", install_id=OTHER)  # linked now, but not the phone that signed up: still nothing
+        self.signup(name="Someone Else", company="Old App Co")  # an old app version that sends no phone id: nothing
         row = AppSignup.objects.get()
-        self.assertEqual((row.first_name, row.company, row.phones.count()), ("Jane", "Other Co", 2))
+        self.assertEqual((row.first_name, row.company, row.phones.count()), ("Jane", "", 2))
 
-    def test_another_phone_can_only_remove_itself(self):
+    def test_a_removal_from_another_phone_is_a_request_and_the_owner_phone_removes(self):
         self.signup(name="Jane Doe", install_id=INSTALL)
-        self.signup(name="Mallory", install_id=OTHER)
+        self.signup(name="Jane Doe", install_id=OTHER)  # her new phone, the same phone after a reinstall, or a stranger
         self.ghl.calls.clear()
-        res = self.remove(OTHER)
-        self.assertEqual((res.status_code, res.json()), (200, {"ok": True}))
-        row = AppSignup.objects.get()  # Jane is still signed up
-        self.assertEqual(row.phones.count(), 1)
-        self.assertEqual((self.ghl.calls, SignupRemoval.objects.count()), ([], 0))  # GoHighLevel untouched, no alert
-        self.assertEqual(self.remove(OTHER).json(), {"ok": True})  # again: nothing left for that phone
-        self.assertTrue(AppSignup.objects.exists())
+        with patch("talks.owner_alerts.notify", create=True, return_value=True) as notify:
+            res = self.remove(OTHER)
+        self.assertEqual((res.status_code, res.json()), (200, {"ok": True, "pending": True}))
+        row = AppSignup.objects.get()  # nothing is deleted: the app's owner is asked to look at it
+        self.assertIsNotNone(row.removal_requested_at)
+        self.assertEqual((row.phones.count(), SignupRemoval.objects.count(), self.ghl.calls), (1, 0, []))
+        self.assertEqual(notify.call_count, 1)
 
-        self.remove(INSTALL)  # her own (last) phone removes the sign-up
+        self.assertEqual(self.remove(INSTALL).json(), {"ok": True})  # the phone that signed up: removed, as before
         self.assertFalse(AppSignup.objects.exists())
+        self.assertEqual(SignupRemoval.objects.count(), 0)  # and it is finished: tags off, owner told
         self.assertEqual(len(self.ghl.to("/contacts/lead1/tags", "DELETE")), 1)
         self.assertEqual([m["subject"] for m in self.ghl.emails], ["Zero Harm removal request: jane@plant.com"])
 
@@ -941,7 +981,8 @@ class RemovalTagTests(GhlTestCase):
         tag_calls = [c for c in self.ghl.calls if c[1] == "/contacts/lead1/tags"]
         self.assertEqual([(c[0], c[2]["tags"][-1]) for c in tag_calls], [("POST", "zero-harm-app-signup"), ("DELETE", "zero-harm-removed")])
         self.assertIsNotNone(AppSignup.objects.get().ghl_synced_at)
-        self.signup(name="Jane Doe", install_id=INSTALL)  # only checked on the first sync
+        self.ghl.tags = []  # GoHighLevel took it off
+        self.signup(name="Jane Doe", install_id=INSTALL)  # checked on every sync (a half-failed first try must not leave it on): gone, so nothing to do
         self.assertEqual([c[2] for c in self.ghl.to("/contacts/lead1/tags", "DELETE")].count({"tags": ["zero-harm-removed"]}), 1)
 
 
@@ -1165,3 +1206,79 @@ class ReviewRoundTwoTests(TestCase):
         with patch.object(owner_alerts, "_untag") as untag:
             self.assertTrue(owner_alerts.finish_removal(removal))
         untag.assert_not_called()
+
+
+class NamedClientTests(TestCase):
+    """GoHighLevel and OneSignal sit behind Cloudflare, which answers Python's default client name
+    ("Python-urllib/3.x") with a 403 (error 1010) before it looks at the token. Every call must name itself."""
+
+    class _Reply:
+        status = 200
+
+        def read(self):
+            return b"{}"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _sent_request(self, call):
+        with patch("urllib.request.urlopen", return_value=self._Reply()) as urlopen:
+            call()
+        return urlopen.call_args.args[0]
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_gohighlevel_calls_name_the_client(self):
+        from . import ghl
+
+        req = self._sent_request(lambda: ghl.find_contact("someone@example.com"))
+        self.assertEqual(req.get_header("User-agent"), ghl.USER_AGENT)
+        self.assertNotIn("urllib", req.get_header("User-agent").lower())
+        self.assertEqual(req.get_header("Authorization"), "Bearer pit-test")  # the token still rides along
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_gohighlevel_writes_name_the_client_and_keep_their_content_type(self):
+        from . import ghl
+
+        req = self._sent_request(lambda: ghl.add_tags("abc", ["zero-harm-app"]))
+        self.assertEqual(req.get_header("User-agent"), ghl.USER_AGENT)
+        self.assertEqual(req.get_header("Content-type"), "application/json")
+
+    def test_onesignal_calls_name_the_client(self):
+        from .integrations import _post
+
+        req = self._sent_request(lambda: _post("https://api.onesignal.com/notifications", {"Authorization": "Key k"}, {"a": 1}))
+        self.assertNotIn("urllib", (req.get_header("User-agent") or "python-urllib").lower())
+        self.assertEqual(req.get_header("Authorization"), "Key k")
+
+
+class GhlTemplateListTests(TestCase):
+    """The year sync reads Zero Harm Weekly templates from GoHighLevel's /emails/builder list."""
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_lists_every_page_from_the_builder_address_and_carries_the_update_time(self):
+        from . import ghl
+
+        pages = [
+            {"builders": [{"id": "a", "name": "Zero Harm Weekly #01", "previewUrl": "https://x/a", "lastUpdated": "2026-11-01T00:00:00Z"},
+                          {"id": "b", "name": "Zero Harm Weekly #02", "previewUrl": "https://x/b", "lastUpdated": "2026-11-02T00:00:00Z"}], "total": 3},
+            {"builders": [{"id": "c", "name": "Zero Harm Weekly #03", "previewUrl": "https://x/c", "lastUpdated": "2026-11-03T00:00:00Z"}], "total": 3},
+        ]
+        with patch.object(ghl, "request", side_effect=pages) as request:
+            items = ghl.list_templates("Zero Harm Weekly", page_size=2)
+        self.assertEqual([i["id"] for i in items], ["a", "b", "c"])
+        self.assertEqual(items[0]["updatedAt"], "2026-11-01T00:00:00Z")  # what sync_year compares
+        self.assertEqual(items[2]["previewUrl"], "https://x/c")  # what sync_year fetches
+        first, second = request.call_args_list
+        self.assertEqual(first.args[:2], ("GET", "/emails/builder"))
+        self.assertEqual(first.args[2], {"locationId": "loc", "name": "Zero Harm Weekly", "limit": 2, "offset": 0})
+        self.assertEqual(second.args[2]["offset"], 2)
+
+    @override_settings(GHL_PRIVATE_TOKEN="pit-test", GHL_LOCATION_ID="loc")
+    def test_no_templates_is_an_empty_list(self):
+        from . import ghl
+
+        with patch.object(ghl, "request", return_value={"builders": [], "total": 0}):
+            self.assertEqual(ghl.list_templates("Zero Harm Weekly"), [])

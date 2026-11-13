@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("monday", "0007_approval_and_conclusive_runs"),
+        ("monday", "0009_one_talk_per_week"),
     ]
 
     operations = [

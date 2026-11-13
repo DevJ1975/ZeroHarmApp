@@ -24,12 +24,12 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | Monday Minute | A short AI outage used up the whole week's attempts | Outages are retried on the next run and nothing is recorded |
 | Monday Minute | The home screen showed the oldest talk, not this week's | List ordered explicitly, with a test |
 | Abuse | One connection with made-up phone ids could pull any talk | A pull needs reports from three different networks |
-| Abuse | Rate limits could be dodged with a forged header | Only the proxy's address is trusted |
+| Abuse | Rate limits could be dodged with a forged header | Changed again on Nov 11: the proxy's address turned out to be Railway's own edge, so strangers shared one count. The server now reads the caller from the `X-Real-IP` header (`CLIENT_IP_HEADER`), and counts IPv6 per /64. Not yet checked on the live server: see "After a deploy: check the caller address" in the README |
 | Safety | A pulled talk stayed in the phone's offline copy | The saved copy now matches the server |
 | OTIS | Long regulation passages could overflow the phone model's context | Sources are trimmed to the part that matches the question |
 | Weak signal | Screens waited up to 10 seconds on the network before showing saved data | Saved copy first, refresh in the background |
 | Weak signal | A vote made with no signal was lost | Votes queue and send later |
-| Sign-ups (E1, E3) | Duplicate rows per email; consent kept without its wording or time | One row per email; consent line and time stored; people can remove their sign-up in the app |
+| Sign-ups (E1, E3) | Duplicate rows per email; consent kept without its wording or time | One row per email; consent line and time stored; people can remove their sign-up in the app from the phone that signed up (from another phone it is a request the owner carries out) |
 | Alerts (A2, in part) | Nobody was told about new sign-ups or downloads | Email on each new sign-up and removal, and a daily summary of new phones |
 | GoHighLevel | Syncing a contact replaced every tag it already had, which could take people off the newsletter | Tags are now added in a separate call and never replaced |
 | Monday Minute (B1) | The AI published without having passed the safety test | Safety gate: talks wait for approval until the current AI setup passes the test |
@@ -45,19 +45,19 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 | # | Severity | Finding | Proposed fix |
 |---|---|---|---|
 | A1 | Blocker | The Railway web and cron services have no deployment. `DJANGO_SECRET_KEY` is not set, so Django refuses to start. `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `GHL_PRIVATE_TOKEN`, `INGEST_KEY` and `BACKOFFICE_KEY` are also missing, so pushes, GHL sync, publishing from GHL and the back office won't work. | Set the variables on web and cron, connect the services to the repo's main branch, deploy. |
-| A2 | High | No alerting. Failures only show in logs or the dashboard. **Partly done:** with `OWNER_ALERT_EMAIL` set, the owner gets an email on every new sign-up and removal, and a daily summary of new phones. Failure alerts are still open. | Send a notice (email through GHL, or a push to an admin tag) when: a week is blocked, a talk is pulled, an OSHA rule changes, a push fails, or the cron hasn't run for an hour. |
-| A3 | High | No error monitoring, uptime check or confirmed database backup. | Add an error tracker, an uptime monitor on `/api/health/`, and confirm Railway Postgres backups are on. |
+| A2 | High | No alerting. Failures only show in logs or the dashboard. **Partly done:** with `OWNER_ALERT_EMAIL` set, the owner gets an email on every new sign-up and removal, a daily summary of new phones, and one email each when no Monday Minute went out for a week, a talk is waiting for approval past its publish time, crews' reports pulled a talk, a sign-in sheet will not go to GoHighLevel, a person reports a problem with the app or flags an OTIS answer, and when crashes are new or growing. A failed cron step now shows as a failed run in Railway. Still open: an OSHA rule change, a failed push, a comment report, and the cron not running at all. | Send a notice (email through GHL, or a push to an admin tag) when: an OSHA rule changes, a push fails, a comment is reported, or the cron hasn't run for an hour. |
+| A3 | High | No uptime check or confirmed database backup, and no error tracker on the server. **Partly done:** the app now reports its own errors as crash tickets (JavaScript errors only, see "Support tickets and crash reports" in the README), and a server error is written to the web log with its traceback. | Add an error tracker for the server, an uptime monitor on `/api/health/`, and confirm Railway Postgres backups are on. |
 | A4 | Medium | One admin login, no second factor, and the admin is on the public internet. | Add two-factor login for the admin and one account per person. |
 | A5 | Medium | No staging environment. Every change goes straight to production. | A second Railway environment with its own database and Ollama server. |
 | A6 | Low | Rate limits and caches live in the web process and reset on every deploy. | Fine at this size. Move to a shared cache if you run more than one web process. |
-| A7 | Launch | App store items still open: OneSignal in `development` mode in `app.json`, no privacy policy link in the app, store screenshots. | See F1 for the privacy policy contents. |
+| A7 | Launch | App store items still open: the privacy policy, terms and support addresses are not set in EAS (the app shows its Privacy policy link once `EXPO_PUBLIC_PRIVACY_URL` is set), and store screenshots. OneSignal's mode is no longer open: `app.config.js` switches it to production for the store build. | See F1 for the privacy policy contents, and `docs/app-store-readiness.md` and `docs/google-play-readiness.md` for the rest. |
 
 ### B. Monday Minute
 
 | # | Severity | Finding | Proposed fix |
 |---|---|---|---|
 | B1 | High | The local model has not been qualified. The safety test is there, but a talk publishes whether or not the model can catch planted mistakes. | Add a gate: the weekly run only publishes if the current model has a passing safety test on record (for example 90% of planted mistakes caught). Until it passes, run on Claude or hold talks for approval. |
-| B2 | High | When both topic attempts fail, that week has no talk and nobody is told. | Keep a small bank of talks a person has approved in advance, and publish the next one when a week is blocked. Pair with A2. |
+| B2 | High | When both topic attempts fail, that week has no talk. **Partly done:** the cron keeps trying until Wednesday 5:00 AM Pacific, and then the owner gets one email. There is still no fallback talk. | Keep a small bank of talks a person has approved in advance, and publish the next one when a week is blocked. Pair with A2. |
 | B3 | Medium | Talks publish at 5:00 AM Pacific. That is 8:00 AM Eastern, after most first shifts have started, and Sunday night shifts get last week's talk. | Publish Sunday evening Pacific, or deliver by each phone's own time zone. |
 | B4 | Medium | Topic choice doesn't spread categories. Three chemical topics can run back to back. | Skip the category used in the last two weeks unless nothing else is in season. |
 | B5 | Medium | Comment moderation runs on the same small model, and its accuracy has never been measured. | Add comment cases to the safety test (names of injured people, insults, "skip the lockout" advice, normal shop talk). Hold the first comment from a new phone until checked. |
@@ -94,7 +94,7 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 
 | # | Finding | Who |
 |---|---|---|
-| F1 | The privacy policy must cover: email, push token, approximate location for weather, crew names, signatures and photos sent by a supervisor, comments, ratings, and the random install id. | Lawyer |
+| F1 | The privacy policy must cover: email, push token, approximate location for weather, crew names, signatures and photos sent by a supervisor, comments, ratings, the random install id, the anonymous usage count, crash reports, problem reports and flagged OTIS answers. The full checklist is in `docs/app-store-readiness.md`. | Lawyer |
 | F2 | Crew photos and signatures are collected by a supervisor about other people. Check consent wording and state rules on worker images. | Lawyer |
 | F3 | Public comments can describe an employer's conditions. Terms should cover user content and removal. | Lawyer |
 | F4 | AI-written safety content: the in-app note is there. Terms should say it adds to training and doesn't replace it. | Lawyer |
@@ -112,8 +112,8 @@ change pauses what depends on it, and everything works offline. The biggest gaps
 1. A1: set the Railway secrets and deploy web and cron.
 2. B1: run the safety test on the local model and add the publish gate. If the model fails, switch `AI_PROVIDER` to `anthropic` or add an approval step.
 3. C1: limit early unlock and hide "Last week's answer".
-4. A2: alerts for blocked weeks, pulled talks, rule changes and failed pushes. (Sign-up and download alerts are done.)
-5. A7 and F1: privacy policy, OneSignal production mode, store assets.
+4. A2: alerts for rule changes and failed pushes. (Sign-up and download alerts, blocked weeks and pulled talks are done.)
+5. A7 and F1: privacy policy and store assets. (OneSignal production mode is done.)
 
 **First month**
 6. D1, D3: talk text on signed sheets, one record per session.

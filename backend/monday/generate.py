@@ -10,7 +10,13 @@ Safety design, because no person approves each talk:
    model), a second independent review must also pass, and both must be highly confident. The writer gets the findings and tries again, up to 3 times per topic, 2 topics per week.
 4. If nothing passes, that week has no Monday Minute (the app keeps showing last week's). Nothing unchecked publishes.
    A talk that passes publishes on its own only if this AI setup has passed the safety test (gate.py); otherwise it
-   waits in the admin for a person to approve it.
+   waits in the admin for a person to approve it. The gate is looked at when the talk is written and once more at the
+   moment it goes out.
+   A week that could not be written by Monday 5:00 AM (the AI was down, a run was killed) is not dropped: it stays
+   owed until Wednesday 5:00 AM and goes out as soon as it is written, by the same rules.
+   The cron gives each run a limited time for AI calls, so a write can take several runs. Every answer is kept between
+   runs, and so is every failure: a step whose answer could not be used is asked once more, differently, and then
+   never again for that draft (see _Progress).
 5. After publishing, crews' "isn't safe or isn't right" reports pull the talk and pause its topic (see api.py).
 """
 import datetime as dt
@@ -18,9 +24,12 @@ import hashlib
 import json
 import logging
 import re
+import threading
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.core.cache import caches
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -35,6 +44,10 @@ WRITE_DAYS_AHEAD = 5          # start writing Wednesday for the next Monday
 ATTEMPTS_PER_TOPIC = 3
 TOPICS_PER_WEEK = 2
 NO_REPEAT_WEEKS = 104
+RESUME_HOURS = 12             # how long a cut-short write can still be picked up where it stopped
+STEP_TRIES = 2                # times one step (one draft, or one review of one draft) is asked before its attempt is given up
+TRIED_DAYS = 21               # how long "a write was started for this week" is remembered (see missed_week)
+NO_ANSWER = "no usable answer from the AI"  # how a given-up step reads in the check log; the cron step counts these
 
 
 # ---- Schedule ---------------------------------------------------------------------------------------
@@ -53,16 +66,63 @@ def next_week(now=None) -> dt.date:
     return monday
 
 
+def is_late(week: dt.date, now=None) -> bool:
+    """True for this week's talk once its Monday 5:00 AM has passed: written now, it goes out now."""
+    now = now or timezone.now()
+    return publish_time(week) <= now and week == next_week(now) - dt.timedelta(days=7)
+
+
 def due_week(now=None):
-    """The week to write now, or None when it's too early or that week is already done or given up on."""
+    """The week to write now, or None when it's too early or that week is already done or given up on.
+    From Wednesday 5:00 AM that is next Monday's talk. Before then (Monday 5:00 AM to Wednesday 5:00 AM) it is this
+    week's talk if it was never written: a week missed at its publish time used to be dropped for good without a
+    word; now it is written and goes out late."""
     now = now or timezone.now()
     week = next_week(now)
     if now < publish_time(week) - dt.timedelta(days=WRITE_DAYS_AHEAD):
-        return None
+        week -= dt.timedelta(days=7)  # too early for next Monday: is this week's still owed?
     rows = MondayMinute.objects.filter(week=week)
     if rows.exclude(status=MondayMinute.BLOCKED).exists() or rows.filter(status=MondayMinute.BLOCKED).count() >= TOPICS_PER_WEEK:
         return None
     return week
+
+
+def _tried_key(week: dt.date) -> str:
+    return f"monday-tried:{week}"
+
+
+def note_attempt(week: dt.date):
+    """Remembers that a write was started for `week`, so a week that then ends without a talk counts as missed even
+    when the AI never got far enough to leave a blocked draft (it was down, or every run ran out of time)."""
+    try:
+        caches["shared"].set(_tried_key(week), 1, TRIED_DAYS * 24 * 3600)  # the database cache: the web server and every cron run see it
+    except Exception as err:  # the note is only for the missed-week report; it must never stop a write
+        log.warning("Monday Minute %s: could not note that a write was started: %s", week, err)
+
+
+def missed_week(now=None):
+    """This week's Monday if a talk was due, none went out or is waiting for approval, and the time to write it late
+    is over (from Wednesday 5:00 AM), else None. The cron step says so once and emails the owner, so a week without a
+    talk is not silent.
+    A talk was due when Monday Minute had been running before (an earlier week has a talk) or a write was started
+    for this very week (a blocked draft, or note_attempt). A week that was never meant to have a talk is not a
+    missed one: an empty database, the week the feature was switched on, a server with no AI set up yet. Reporting
+    those was a false alarm on the first run after every fresh deploy."""
+    now = now or timezone.now()
+    week = next_week(now)
+    if now < publish_time(week) - dt.timedelta(days=WRITE_DAYS_AHEAD):
+        return None  # this week's talk can still be written late
+    week -= dt.timedelta(days=7)
+    drafts = MondayMinute.objects.filter(week=week)
+    if drafts.exclude(status=MondayMinute.BLOCKED).exists():
+        return None
+    try:
+        tried = bool(caches["shared"].get(_tried_key(week)))
+    except Exception:
+        tried = False
+    was_due = (tried or drafts.exists()
+               or MondayMinute.objects.filter(week__lt=week).exclude(status=MondayMinute.BLOCKED).exists())
+    return week if was_due else None
 
 
 # ---- Topic choice -----------------------------------------------------------------------------------
@@ -198,6 +258,23 @@ This is the second, independent review. Assume the draft contains at least one u
 and look for it line by line against the brief. Pass it only if, after checking every sentence, you find none."""
 
 
+_again = threading.local()  # .tries, .why: set by _Progress.step while it asks for a step again after an unusable answer
+
+
+def _asked_before() -> int:
+    """How many times the step being asked right now has already failed to give a usable answer (0 = first time)."""
+    return getattr(_again, "tries", 0)
+
+
+def _retry_note() -> str:
+    """Added to the request when a step is asked again. The same request gets the same unusable answer back (the
+    review runs at temperature 0), so the retry has to say what went wrong and ask for less."""
+    if not _asked_before():
+        return ""
+    return (f"\n\nYOUR LAST ANSWER TO THIS REQUEST COULD NOT BE USED: {getattr(_again, 'why', '')} Answer again, in full and as "
+            "valid JSON. Keep every field short (one or two plain sentences) so the answer is finished before the room runs out.")
+
+
 def write(topic: MondayTopic, findings: list[str], call=None):
     user = "TOPIC BRIEF (the only source you may use):\n" + json.dumps(topic.brief(), indent=2, ensure_ascii=False)
     notes = feedback_notes(topic)
@@ -205,6 +282,7 @@ def write(topic: MondayTopic, findings: list[str], call=None):
         user += "\n\nCREW FEEDBACK NOTES (style only):\n- " + "\n- ".join(notes)
     if findings:
         user += "\n\nYOUR LAST DRAFT FAILED THESE CHECKS. Fix every one:\n- " + "\n- ".join(findings)
+    user += _retry_note()
     if call:
         return call(WRITER_SYSTEM, user, TALK_SCHEMA, "high")
     return ai_json(WRITER_SYSTEM, user, TALK_SCHEMA, role="write", think=False)
@@ -255,10 +333,12 @@ def review(topic: MondayTopic, talk: dict, call=None, second=False, rag=None):
         context = review_context(topic, talk)
         if context:
             user += "\n\n" + context
+    user += _retry_note()
     system = REVIEWER_SYSTEM + (SECOND_REVIEW if second else "")
     if call:
         return call(system, user, REVIEW_SCHEMA, "high")
-    return ai_json(system, user, REVIEW_SCHEMA, role="review", think=True, seed=2 if second else 1)
+    # The seed keeps the second review independent of the first, and a review that is asked again gets one of its own.
+    return ai_json(system, user, REVIEW_SCHEMA, role="review", think=True, seed=(2 if second else 1) + 10 * _asked_before())
 
 
 def judge(topic: MondayTopic, talk: dict, verdict: dict, strict: bool) -> tuple[list[str], list[str]]:
@@ -318,27 +398,86 @@ def hard_checks(topic: MondayTopic, talk: dict) -> list[str]:
 
 # ---- Pipeline ---------------------------------------------------------------------------------------
 
-def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None):
+class _Progress:
+    """The AI's answers so far for one topic's draft, kept for RESUME_HOURS so a write that was cut short (the run's
+    time ran out, the AI server dropped, a deploy stopped the container) carries on from the step it had reached
+    instead of starting over. Without this a write that needs more than one run's time would never finish.
+    A saved answer is only ever used for the same week, topic brief, AI setup, attempt and, for a review, the very same
+    draft text. Everything is cleared as soon as the topic's talk (or blocked draft) is saved.
+
+    Failures are kept too. An answer that could not be used (cut off, refused, not valid JSON) used to be forgotten,
+    so every later run asked for it again, got the same unusable answer, and had no time left for the steps behind
+    it: the talk was never written. Now a step is asked at most STEP_TRIES times in all, the retry worded differently
+    (see _retry_note), whichever runs those tries fall in. After that it has failed for good: later runs are told so from
+    here at once, without asking the AI and without spending any of their time, and the write moves on to the next
+    attempt exactly as one long uninterrupted run would have. An outage or running out of time (AIUnavailable) is
+    not a failure of the step and is never counted."""
+
+    def __init__(self, week: dt.date, topic: MondayTopic):
+        setup = [settings.AI_PROVIDER, settings.LOCAL_AI_MODEL, settings.LOCAL_AI_REVIEW_MODEL, settings.MONDAY_MODEL, settings.MONDAY_RAG]
+        self.base = json.dumps([str(week), topic.slug, topic.brief(), setup], sort_keys=True, default=str)
+        self.keys = []
+        self.what = f"{week}, topic {topic.slug}"
+
+    def step(self, name: str, detail, call):
+        said = json.dumps([name, detail], sort_keys=True, default=str)
+        key = "monday-step:" + hashlib.sha256(f"{self.base}|{said}".encode()).hexdigest()
+        failed_key = key + ":failed"
+        self.keys += [key, failed_key]
+        shared = caches["shared"]  # the database cache: the next cron run is another process
+        answer = shared.get(key)
+        if answer is not None:
+            return answer
+        tries, why = shared.get(failed_key) or (0, "")
+        while tries < STEP_TRIES:
+            _again.tries, _again.why = tries, why
+            try:
+                answer = call()
+            except AIUnavailable:
+                raise  # the AI is down or this run is out of time: not this step's failure, the next run asks again
+            except GenerationError as err:
+                tries, why = tries + 1, str(err)
+                shared.set(failed_key, (tries, why), RESUME_HOURS * 3600)
+                if tries >= STEP_TRIES:  # said once, by the run that gave up; later runs only read the note
+                    log.warning("Monday Minute %s: %s for the %s in %s tries. It is not asked again for this draft. Last reason: %s",
+                                self.what, NO_ANSWER, name, STEP_TRIES, why)
+                continue
+            finally:
+                _again.tries, _again.why = 0, ""
+            shared.set(key, answer, RESUME_HOURS * 3600)
+            return answer
+        raise GenerationError(f"{NO_ANSWER} for the {name} in {STEP_TRIES} tries, so it was not asked again. Last reason: {why}")
+
+    def clear(self):
+        caches["shared"].delete_many(self.keys)
+
+
+
+def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None, late=False):
     """Writes the Monday Minute for `week`. Returns the saved MondayMinute (READY or BLOCKED) or None if nothing to do.
-    Strict mode (on by default with the local model) needs two independent reviews to pass with high confidence."""
+    Strict mode (on by default with the local model) needs two independent reviews to pass with high confidence.
+    `late` is for a week whose Monday 5:00 AM has already passed (see is_late): the talk goes out when it is saved,
+    not back-dated, so the cron still sends its push."""
     strict = is_local() if strict is None else strict
     if MondayMinute.objects.filter(week=week).exclude(status=MondayMinute.BLOCKED).exists():
         return None
+    note_attempt(week)
     result = None
     for topic in candidates(week)[: TOPICS_PER_WEEK - MondayMinute.objects.filter(week=week).count()]:
         lines, findings, model = [], [], ""
+        progress = _Progress(week, topic)
         for attempt in range(1, ATTEMPTS_PER_TOPIC + 1):
             try:
-                talk, model = write_fn(topic, findings)
+                talk, model = progress.step("write", [attempt, findings], lambda: write_fn(topic, findings))
                 problems = hard_checks(topic, talk)
                 if problems:
                     findings = problems
                     lines.append(f"Attempt {attempt}: hard checks failed:\n  " + "\n  ".join(problems))
                     continue
-                verdict, _ = review_fn(topic, talk)
+                verdict, _ = progress.step("review", [attempt, talk], lambda: review_fn(topic, talk))
                 must, should = judge(topic, talk, verdict, strict)
                 if strict and not must:
-                    second, _ = review_fn(topic, talk, second=True)
+                    second, _ = progress.step("second review", [attempt, talk], lambda: review_fn(topic, talk, second=True))
                     must2, should2 = judge(topic, talk, second, strict)
                     must, should = must2, should + should2
                     if must:
@@ -353,14 +492,25 @@ def generate_week(week: dt.date, write_fn=write, review_fn=review, strict=None):
                 lines.append(f"Attempt {attempt}: passed {'both independent CSP reviews' if strict else 'the CSP review'}." + (" Should fix (logged only): " + "; ".join(should) if should else ""))
                 qualified = gate_status()
                 lines.append(("Safety gate: publishes on its own, " if qualified.ok else "Safety gate: HELD for approval, ") + qualified.reason + ".")
-                return MondayMinute.objects.create(
-                    week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.READY if qualified.ok else MondayMinute.HELD, attempts=attempt,
-                    model=model, check_log="\n".join(lines), title=talk["title"][:120], intro=talk["intro"],
-                    points=talk["points"], story_title=talk["story_title"][:120], story=talk["story"],
-                    crew_question=talk["crew_question"], takeaway=talk["takeaway"],
-                )
+                progress.clear()
+                try:
+                    with transaction.atomic():
+                        # gate_pending: the gate was open now, and it is looked at once more when the talk goes out.
+                        return MondayMinute.objects.create(
+                            week=week, publish_at=timezone.now() if late else publish_time(week), topic=topic,
+                            status=MondayMinute.READY if qualified.ok else MondayMinute.HELD, gate_pending=qualified.ok, attempts=attempt,
+                            model=model, check_log="\n".join(lines), title=talk["title"][:120], intro=talk["intro"],
+                            points=talk["points"], story_title=talk["story_title"][:120], story=talk["story"],
+                            crew_question=talk["crew_question"], takeaway=talk["takeaway"],
+                        )
+                except IntegrityError:
+                    # Another writer saved this week's talk while this one was working (the one_talk_per_week rule
+                    # in the database refused the second). Theirs stands; this draft is dropped.
+                    log.warning("Monday Minute %s: another run saved this week's talk first; this draft was not saved", week)
+                    return None
             findings = must
             lines.append(f"Attempt {attempt}: CSP review failed:\n  " + "\n  ".join(findings))
+        progress.clear()
         result = MondayMinute.objects.create(
             week=week, publish_at=publish_time(week), topic=topic, status=MondayMinute.BLOCKED,
             attempts=ATTEMPTS_PER_TOPIC, model=model, check_log="\n".join(lines),

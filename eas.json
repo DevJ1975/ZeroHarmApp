@@ -5,10 +5,12 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "development"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -17,17 +19,23 @@
         "EXPO_PUBLIC_PRIVACY_URL": "https://zero-harm-api.up.railway.app/privacy/",
         "EXPO_PUBLIC_TERMS_URL": "https://zero-harm-api.up.railway.app/terms/",
         "EXPO_PUBLIC_SUPPORT_EMAIL": "jamil@trainovations.com"
-      }
+      },
+      "environment": "production"
     },
     "simulator": {
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
         "simulator": true
-      }
+      },
+      "environment": "development"
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

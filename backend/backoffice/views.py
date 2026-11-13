@@ -16,7 +16,9 @@ def _allowed(request) -> bool:
     if request.user.is_authenticated and request.user.is_staff:
         return True
     key = settings.BACKOFFICE_KEY
-    return bool(key) and hmac.compare_digest(request.GET.get("key", ""), key)
+    # Compared as bytes: compare_digest raises on text with letters outside ASCII, so such a key got a 500 instead of
+    # the 404 every other wrong key gets, which gave away that the page is here.
+    return bool(key) and hmac.compare_digest(request.GET.get("key", "").encode(), key.encode())
 
 
 @never_cache

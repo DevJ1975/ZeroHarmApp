@@ -5,6 +5,7 @@ waits in the admin for a person to approve it.
 "The AI setup" is the reviewer model plus whether RAG and the strict double review are on: change any of them and the
 setup has to pass the test again. The bar is in settings (MONDAY_GATE_*).
 """
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -13,6 +14,8 @@ from django.utils import timezone
 
 from .ai import is_local
 from .models import MondayEvalRun, MondayMinute
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -113,8 +116,35 @@ def hold_unpublished(now=None) -> int:
     now = now or timezone.now()
     held = 0
     for m in MondayMinute.objects.filter(status=MondayMinute.READY, publish_at__gt=now, approved_by_person=False):
-        m.status = MondayMinute.HELD
-        m.check_log = (m.check_log + "\n" if m.check_log else "") + f"Safety gate ({now:%b %-d}): moved back to waiting for approval, {gate.reason}."
-        m.save(update_fields=["status", "check_log"])
-        held += 1
+        held += _hold(m, now, gate)
     return held
+
+
+def _hold(m: MondayMinute, now, gate: Gate) -> int:
+    """Back to waiting for approval, with the reason in the check log. 1 if this call did it, 0 if something else
+    changed the talk first (two requests can get here together)."""
+    note = (m.check_log + "\n" if m.check_log else "") + f"Safety gate ({now:%b %-d}): moved back to waiting for approval, {gate.reason}."
+    # gate_pending is cleared because a person decides from here: once approved in the admin it goes out as it is.
+    return MondayMinute.objects.filter(pk=m.pk, status=MondayMinute.READY, approved_by_person=False).update(
+        status=MondayMinute.HELD, gate_pending=False, check_log=note)
+
+
+def release_due(now=None) -> tuple[int, int]:
+    """The gate's last word, at the moment a talk goes out. A talk the gate let through when it was written is not
+    shown (see MondayMinute.objects.released) until this has looked at the gate again at or after its publish time.
+    Gate still open: the talk is out from here on, and a later failed test does not take it back. Gate closed: it
+    waits for a person's approval instead. Runs from the cron step and from the API the first time anyone asks for
+    the talk, so it does not depend on the cron having run in between. Returns (went out, held)."""
+    now = now or timezone.now()
+    due = list(MondayMinute.objects.due(now).filter(gate_pending=True))
+    if not due:
+        return 0, 0
+    gate = status()
+    out = held = 0
+    for m in due:
+        if gate.ok or m.approved_by_person:
+            out += MondayMinute.objects.filter(pk=m.pk, gate_pending=True).update(gate_pending=False)
+        elif _hold(m, now, gate):
+            held += 1
+            log.warning("Monday Minute %s did not go out at its publish time and waits for approval: %s", m.week, gate.reason)
+    return out, held

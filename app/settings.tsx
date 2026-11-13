@@ -5,11 +5,27 @@ import { Alert, Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { checkSignIn, CONSENT_LINE, getAccount, removeMyInfo, signIn, SignInErrors } from '@/lib/account';
+import {
+  type AccountNotice,
+  checkSignIn,
+  CONSENT_LINE,
+  flushAccount,
+  getAccount,
+  notChangedLine,
+  REMOVAL_PENDING_LINE,
+  removalLine,
+  REMOVE_CONFIRM_TEXT,
+  removeMyInfo,
+  type RemoveOutcome,
+  signedInAs,
+  signIn,
+  SignInErrors,
+} from '@/lib/account';
 import { config } from '@/lib/config';
 import { FeedbackPrefs, getFeedbackPrefs, saveFeedbackPrefs } from '@/lib/otis/feedback';
 import { getProfile } from '@/lib/profile';
 import { getPrefs, PushPrefs, setPrefs } from '@/lib/push';
+import { CRASH_REPORT_HOLDS, crashReportsOn, setCrashReportsOn } from '@/lib/support/crash';
 import { getUsageOn, setUsageOn } from '@/lib/usage';
 
 export default function SettingsScreen() {
@@ -22,9 +38,15 @@ export default function SettingsScreen() {
   const [account, setAccount] = useState<'loading' | 'in' | 'out' | 'fix'>('loading');
   const [errors, setErrors] = useState<SignInErrors>({});
   const [busy, setBusy] = useState(false);
-  const [removed, setRemoved] = useState(false);
+  // What the server said about the sign-up that the person has to be told: see AccountNotice in lib/account.ts.
+  const [notice, setNotice] = useState<AccountNotice | undefined>(undefined);
+  // What "Remove my info" did just now. null until it is tapped.
+  const [removal, setRemoval] = useState<RemoveOutcome | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeFailed, setRemoveFailed] = useState(false);
   const [otis, setOtis] = useState<FeedbackPrefs>({ helpImprove: false, shareQuestion: false });
   const [usage, setUsage] = useState(true);
+  const [crash, setCrash] = useState(crashReportsOn);
 
   useEffect(() => {
     getPrefs().then(setLocal);
@@ -35,6 +57,7 @@ export default function SettingsScreen() {
       setName(a.state === 'out' ? p.name : a.name);
       setEmail(a.state === 'out' ? p.email : a.email);
       setCompany(p.company);
+      setNotice(a.notice);
       setAccount(a.state);
     });
   }, []);
@@ -71,8 +94,21 @@ export default function SettingsScreen() {
       await signIn({ name: checked.name, email: checked.email, company, source: 'settings', wantsOffers: prefs.offers });
       setName(checked.name);
       setEmail(checked.email);
-      setRemoved(false);
+      setRemoval(null);
+      setRemoveFailed(false);
+      setNotice(undefined);
       setAccount('in');
+      // Not waited on. When the server answers it may say this email was signed up from another phone, so the name
+      // typed here was not saved. Show what the phone holds then, never what was typed.
+      flushAccount()
+        .then(getAccount)
+        .then((a) => {
+          if (a.state !== 'in') return;
+          setName(a.name);
+          setEmail(a.email);
+          setNotice(a.notice);
+        })
+        .catch(() => {});
     } catch {
       setErrors({ email: 'That could not be saved on this phone. Tap Sign in again.' });
     } finally {
@@ -81,19 +117,30 @@ export default function SettingsScreen() {
   }
 
   function confirmRemove() {
-    Alert.alert('Remove my info?', 'This unlinks this phone from your sign-up and clears your name and email here. If no other phone of yours is signed in, your sign-up ends and the app stops adding you to Zero Harm Weekly. If you joined Zero Harm Weekly another way, use Unsubscribe in any of its emails.', [
+    Alert.alert('Remove my info?', REMOVE_CONFIRM_TEXT, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
         onPress: async () => {
-          await removeMyInfo();
-          setName('');
-          setEmail('');
-          setCompany('');
-          setErrors({});
-          setRemoved(true);
-          setAccount('out');
+          // This waits for the server (up to about ten seconds on a weak signal), because what the screen says next
+          // depends on the answer: removed, a person was asked to remove it, or saved to send later.
+          setRemoving(true);
+          setRemoveFailed(false);
+          try {
+            const outcome = await removeMyInfo();
+            setName('');
+            setEmail('');
+            setCompany('');
+            setErrors({});
+            setNotice(undefined);
+            setRemoval(outcome);
+            setAccount('out');
+          } catch {
+            setRemoveFailed(true);
+          } finally {
+            setRemoving(false);
+          }
         },
       },
     ]);
@@ -119,11 +166,22 @@ export default function SettingsScreen() {
       <Text style={[styles.section, { color: t.text, marginTop: 0 }]}>Your account</Text>
       {account === 'in' && (
         <>
-          <Body>
-            Signed in as {name}, {email}
-          </Body>
+          <Body>{signedInAs({ name, email })}</Body>
+          {notice === 'not_changed' && (
+            <View accessibilityRole="alert" style={{ gap: space.sm }}>
+              <Body>{notChangedLine(config.supportEmail)}</Body>
+              {config.supportEmail.trim() !== '' && (
+                <Button kind="secondary" label="Contact support about my sign-up" onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Change%20my%20Zero%20Harm%20sign-up`)} />
+              )}
+            </View>
+          )}
           <Body muted>Zero Harm is free. You get Zero Harm Weekly by email each week.</Body>
-          <Button kind="secondary" label="Remove my info" onPress={confirmRemove} />
+          {removeFailed && (
+            <View accessibilityRole="alert">
+              <Body>That did not work on this phone. Tap Remove my info again.</Body>
+            </View>
+          )}
+          <Button kind="secondary" label="Remove my info" onPress={confirmRemove} busy={removing} />
         </>
       )}
       {(account === 'out' || account === 'fix') && (
@@ -133,10 +191,17 @@ export default function SettingsScreen() {
               <Body>Check the email address and sign in again.</Body>
             </View>
           )}
-          {removed && (
+          {/* Says what really happened: removed, a person was asked to remove it, or waiting for a signal. */}
+          {removal !== null ? (
             <View accessibilityRole="alert">
-              <Body>Removed from this phone. If you also signed in on another phone, remove it there too, or use Delete my data.</Body>
+              <Body>{removalLine(removal)}</Body>
             </View>
+          ) : (
+            notice === 'removal_pending' && (
+              <View accessibilityRole="alert">
+                <Body>{REMOVAL_PENDING_LINE}</Body>
+              </View>
+            )
           )}
           <Body muted>Zero Harm is free. Signing in is optional, and everything in the app works without it.</Body>
           <Field label="Your name" value={name} onChangeText={setName} error={errors.name} autoComplete="name" autoCapitalize="words" maxLength={120} />
@@ -173,7 +238,7 @@ export default function SettingsScreen() {
       <Button kind="secondary" label="My sign-in sheets" onPress={() => router.push('/sheets')} />
 
       <Text style={[styles.section, { color: t.text }]}>OTIS</Text>
-      <Body muted>OTIS runs on this phone. Nothing you ask leaves it unless you turn this on.</Body>
+      <Body muted>OTIS runs on this phone. What you ask stays on it unless you turn this on, or you choose to report a problem or an answer.</Body>
       {otisRow(
         'Help improve OTIS',
         'Shows “Was this helpful?” under answers. A tap sends yes or no and which sources OTIS used. No name, email or phone id.',
@@ -187,6 +252,11 @@ export default function SettingsScreen() {
         (v) => toggleOtis({ ...otis, shareQuestion: v }),
         !otis.helpImprove,
       )}
+
+      <Text style={[styles.section, { color: t.text }]}>Problems with the app</Text>
+      <Body muted>Something not working? Tell us. A person at Trainovate reads every report.</Body>
+      <Button kind="secondary" label="Report a problem" onPress={() => router.push('/report')} />
+      <Button kind="secondary" label="My reports" onPress={() => router.push('/my-reports')} />
 
       <Text style={[styles.section, { color: t.text }]}>About and privacy</Text>
       <Body>Zero Harm is free.</Body>
@@ -205,6 +275,15 @@ export default function SettingsScreen() {
           setUsageOn(v);
         },
       )}
+      {otisRow(
+        'Crash reports',
+        `When the app hits an error, it sends ${CRASH_REPORT_HOLDS}. It is built to leave out what you typed, your name and your email. Turning it off also deletes any reports waiting on this phone.`,
+        crash,
+        (v) => {
+          setCrashReportsOn(v);
+          setCrash(crashReportsOn()); // read back, so the switch shows what the phone really kept
+        },
+      )}
       {config.privacyUrl !== '' && <Button kind="secondary" label="Privacy policy" onPress={() => WebBrowser.openBrowserAsync(config.privacyUrl)} />}
       {config.termsUrl !== '' && <Button kind="secondary" label="Terms of use" onPress={() => WebBrowser.openBrowserAsync(config.termsUrl)} />}
       {config.supportEmail !== '' && (
@@ -213,11 +292,12 @@ export default function SettingsScreen() {
           <Button
             kind="secondary"
             label="Delete my data"
-            onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%2C%20and%20comments%20and%20votes%20from%20my%20phone%20if%20it%20is%20still%20signed%20up.`)}
+            onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%2C%20comments%20and%20problem%20reports.`)}
           />
-          <Body muted>Remove my info, at the top, unlinks this phone from your sign-up. Delete my data opens an email to us, for anything not tied to this phone. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets and suggestions. Comments and votes are filed only under this phone’s scrambled id, so we can find them only while this phone is signed up. Send it before you tap Remove my info.</Body>
+          <Body muted>Remove my info, at the top, clears your details from this phone and removes your sign-up. From a phone that did not make the sign-up, it asks us to remove it. Delete my data opens an email to us for everything else. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions, comments and problem reports.</Body>
         </>
       )}
+      <Text style={[styles.credit, { color: t.muted }]}>Made with love ❤️ from Las Vegas, Trainovate</Text>
     </Screen>
   );
 }
@@ -226,4 +306,5 @@ const styles = StyleSheet.create({
   section: { fontFamily: fonts.displayMedium, fontSize: 24, marginTop: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderBottomWidth: 1 },
   rowLabel: { fontFamily: fonts.bodyBold, fontSize: 17 },
+  credit: { fontFamily: fonts.body, fontSize: 14, textAlign: 'center', marginTop: space.lg, marginBottom: space.md },
 });

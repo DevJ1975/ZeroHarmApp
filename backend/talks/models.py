@@ -59,8 +59,9 @@ class ToolboxTalk(models.Model):
     story_title = models.CharField(max_length=200)
     crew_question = models.TextField()
     body_md = models.TextField(blank=True, help_text="Full talk text. Blank lines separate paragraphs.")
-    hero_url = models.URLField(blank=True)
-    pdf_url = models.URLField(blank=True, help_text="Printable toolbox PDF")
+    # 500 characters, like every other address column here: signed and tracking links run well past 200.
+    hero_url = models.URLField(max_length=500, blank=True)
+    pdf_url = models.URLField(max_length=500, blank=True, help_text="Printable toolbox PDF")
     ghl_template_id = models.CharField(max_length=40, blank=True)
     number = models.PositiveIntegerField(null=True, blank=True, help_text="Issue number as printed (#01). Blank = same as issue.")
     needs_review = models.BooleanField(default=False, help_text="Held out of the app: the GHL template still has [bracketed] pre-send flags")
@@ -140,6 +141,8 @@ class AppSignup(models.Model):
     ghl_had_tags = models.JSONField(null=True, blank=True, help_text="Newsletter tags the GoHighLevel contact already had before "
                                     "the app tagged it. A removal leaves these on. Empty until the first sync.")
     ghl_synced_at = models.DateTimeField(null=True, blank=True)
+    removal_requested_at = models.DateTimeField(null=True, blank=True, help_text="A phone other than the one that made this sign-up "
+                                                "asked to remove it. Nothing was deleted: check it, then delete the sign-up or clear this.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -156,8 +159,12 @@ class AppSignup(models.Model):
 
 class SignupPhone(models.Model):
     """A phone that signed up with this email. Several phones can share one sign-up (a work phone and a home phone).
-    "Remove my info" on a phone only unlinks that phone; the sign-up itself goes when its last phone is removed. That
-    way someone who only knows an email address can't sign up with it on their own phone and then remove the owner."""
+
+    There is no password and no email check, so the rule is: the FIRST phone linked to a sign-up (the oldest row here)
+    owns it. Only that phone can change the name, company or offers choice, and only its "Remove my info" deletes the
+    sign-up. Any other phone is linked so the app works on it, but it changes nothing. Its "Remove my info" unlinks
+    that phone, sets removal_requested_at on the sign-up and emails the owner of the app, who decides. That way
+    someone who only knows an email address can neither rewrite that person's sign-up nor take them off the list."""
     signup = models.ForeignKey(AppSignup, on_delete=models.CASCADE, related_name="phones")
     install_hash = models.CharField(max_length=64, db_index=True, help_text="Hashed random id of the phone. Not a person.")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -233,8 +240,8 @@ class FeedItem(models.Model):
     title = models.CharField(max_length=200)
     summary = models.TextField(blank=True, help_text="One or two plain sentences shown on the card")
     body_md = models.TextField(blank=True, help_text="Optional detail. Blank lines separate paragraphs.")
-    link_url = models.URLField(blank=True, help_text="Where the button goes (course, tool, video, source rule)")
-    image_url = models.URLField(blank=True)
+    link_url = models.URLField(max_length=500, blank=True, help_text="Where the button goes (course, tool, video, source rule)")
+    image_url = models.URLField(max_length=500, blank=True)
     jurisdiction = models.CharField(max_length=20, choices=JURISDICTIONS, blank=True)
     effective_date = models.DateField(null=True, blank=True, help_text="Alerts: the date the rule takes effect")
     publish_at = models.DateTimeField(default=timezone.now)
@@ -315,6 +322,10 @@ class SigninSheet(models.Model):
     ghl_contact_id = models.CharField(max_length=40, blank=True)
     status = models.CharField(max_length=10, default="pending", choices=[("pending", "Pending"), ("synced", "Saved to GHL"), ("failed", "Failed")])
     error = models.TextField(blank=True)
+    # The PDF itself is emptied once GoHighLevel has it, so this is what is left to recognise the same sheet by when a
+    # phone sends it again. Blank on sheets taken before this column existed.
+    pdf_sha256 = models.CharField(max_length=64, blank=True, db_default="", db_index=True, editable=False, help_text="Fingerprint (SHA-256) of the PDF as it arrived")
+    attempts = models.PositiveIntegerField(default=0, db_default=0, help_text="Tries at sending it to GoHighLevel")
     created_at = models.DateTimeField(auto_now_add=True)
     synced_at = models.DateTimeField(null=True, blank=True)
 
@@ -326,12 +337,23 @@ class SigninSheet(models.Model):
 
 
 class KbEntry(models.Model):
-    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically."""
+    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically.
+
+    Two kinds. A safety entry is what OTIS answers safety questions from. An app help entry (kind "support") is a fix
+    for a problem with the app itself: the phone shows it word for word, never through the on-device model, and never
+    mixes it into a safety answer."""
+
+    SAFETY, SUPPORT = "safety", "support"
+    KINDS = [(SAFETY, "Safety"), (SUPPORT, "App help")]
 
     title = models.CharField(max_length=200)
     body = models.TextField(help_text="Plain sentences. OTIS answers only from text like this, so keep it accurate and reviewed.")
     source = models.CharField(max_length=200, blank=True, help_text="What OTIS cites, e.g. 'OSHA 1910.147' or 'Zero Harm app help'")
     tags = models.CharField(max_length=200, blank=True, help_text="Extra search words, comma separated")
+    # db_default as well as default: during a deploy the old container keeps inserting rows and does not know this column.
+    kind = models.CharField(max_length=10, choices=KINDS, default=SAFETY, db_default=SAFETY,
+                            help_text="Safety: OTIS answers safety questions from it. App help: a fix for a problem with the app, "
+                                      "shown word for word and never mixed into safety answers. No OSHA section numbers in app help.")
     published = models.BooleanField(default=True)
     paused_reason = models.CharField(max_length=200, blank=True, help_text="Why this entry was taken out of OTIS, e.g. OSHA changed a rule it cites")
     updated_at = models.DateTimeField(auto_now=True)
@@ -343,6 +365,17 @@ class KbEntry(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        """The weekly OSHA sync reads every entry for section numbers and takes an entry out of OTIS when its rule
+        changes. An app help entry depends on no rule, so a number shaped like one is refused here, in the admin and
+        in the console, before it can get a help answer switched off."""
+        from django.core.exceptions import ValidationError
+
+        from regs.retrieve import cited
+
+        if self.kind == self.SUPPORT and cited(f"{self.source} {self.body}"):
+            raise ValidationError("App help can't name an OSHA section number (like 1910.147). Take the number out, or make this a safety entry.")
 
 
 class TalkSuggestion(models.Model):

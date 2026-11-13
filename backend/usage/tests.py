@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -296,8 +296,10 @@ class ReviewFixTests(TestCase):
     @override_settings(NUM_PROXIES=1)
     def test_no_readable_address_is_kept_in_the_cache(self):
         self.post({"install_id": "zh-cache-0001", "platform": "ios"}, HTTP_X_FORWARDED_FOR="203.0.113.77")
-        keys = " ".join(str(k) for k in cache._cache.keys())
-        self.assertIn("throttle_usage_", keys)
+        # Counters have a cache of their own ("limits"), which weather and other content cannot fill up.
+        keys = " ".join(str(k) for k in caches["limits"]._cache.keys())
+        self.assertIn("throttle:app-open:", keys)  # the shared ScopedThrottle key: scope, then a salted hash
+        self.assertNotIn("throttle:", " ".join(str(k) for k in cache._cache.keys()))
         self.assertNotIn("203.0.113.77", keys)
 
 

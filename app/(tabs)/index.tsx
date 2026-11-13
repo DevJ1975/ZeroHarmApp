@@ -1,12 +1,14 @@
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
+import { AnimatedOtis } from '@/components/AnimatedOtis';
 import { HolidayBanner, HolidayTagline } from '@/components/Holiday';
 import { MondayMinuteLogo } from '@/components/MondayMinuteCard';
 import { MondayMinuteView } from '@/components/MondayMinuteView';
 import { Body, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
+import { useContentRefresh } from '@/lib/live';
 import { listMinutes, Minute } from '@/lib/monday';
 import { markStale } from '@/lib/saved-first';
 import { useHoliday } from '@/lib/season';
@@ -29,6 +31,7 @@ export default function MondayHome() {
     markStale('monday');
     return load();
   }, [load]);
+  useContentRefresh(refresh); // a Minute published or pulled while this screen is open
 
   if (m === undefined)
     return (
@@ -38,6 +41,7 @@ export default function MondayHome() {
     );
   if (m === null)
     return (
+      <View style={{ flex: 1 }}>
       <Screen onRefresh={refresh}>
         {festive ? (
           <HolidayBanner>
@@ -56,15 +60,33 @@ export default function MondayHome() {
           <Link href="/settings" style={[styles.link, { color: t.text }]}>Settings →</Link>
         </View>
       </Screen>
+      <AskOtis />
+      </View>
     );
   return (
     <View style={{ flex: 1 }}>
       <MondayMinuteView minute={m} onChange={setM} onRefresh={refresh} offline={offline} />
+      <AskOtis />
     </View>
+  );
+}
+
+/** OTIS floats in the corner of the Monday screen, smiling. A tap opens the safety assistant. */
+function AskOtis() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ask OTIS, the Zero Harm safety assistant"
+      onPress={() => router.push('/otis')}
+      hitSlop={8}
+      style={styles.otis}>
+      <AnimatedOtis size={68} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   links: { gap: space.md, marginTop: space.sm },
   link: { fontFamily: fonts.bodyBold, fontSize: 17 },
+  otis: { position: 'absolute', right: space.md, bottom: space.md, borderRadius: 34, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
 });

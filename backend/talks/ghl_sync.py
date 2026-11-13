@@ -25,10 +25,13 @@ def sync_year(year, fetch_html=ghl.fetch_text, templates=None):
     Matching is by issue date, so a new year never overwrites an old one. Text edits made in
     GHL carry over; a talk whose push already went out keeps its push record and is never re-sent.
     Any issue whose app-facing text still holds a [bracketed] pre-send flag is held for review.
+
+    Raises ghl.NotConfigured when the GoHighLevel settings are missing: nothing was read, so the caller must not
+    record the sync as done.
     """
     if templates is None:
         if not ghl.configured():
-            return ["GoHighLevel is not configured (GHL_PRIVATE_TOKEN / GHL_LOCATION_ID)."]
+            raise ghl.NotConfigured("GoHighLevel is not configured (GHL_PRIVATE_TOKEN / GHL_LOCATION_ID).")
         templates = ghl.list_templates("Zero Harm Weekly")
     picked = {}
     for t in templates:

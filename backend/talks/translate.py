@@ -40,4 +40,7 @@ def draft_spanish(talk):
     talk.crew_question_es = out["crew_question"]
     talk.body_md_es = out["body_md"]
     talk.spanish_status = talk.ES_DRAFT
-    talk.save()
+    # Save only what the draft wrote. The call above can take two minutes, and this copy of the talk was loaded
+    # before it: saving every field would undo whatever changed meanwhile, such as the "push sent" mark the cron
+    # sets (the Sunday push would then go out twice), a GoHighLevel sync or an edit in the console.
+    talk.save(update_fields=["title_es", "story_title_es", "crew_question_es", "body_md_es", "spanish_status", "updated_at"])

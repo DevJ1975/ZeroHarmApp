@@ -1,6 +1,7 @@
 import Storage from 'expo-sqlite/kv-store';
 
 import { api, isConfigured } from './config';
+import { noteStaleContent } from './live';
 import { savedFirst } from './saved-first';
 
 /** A Zero Hour episode and its huddle card. */
@@ -41,7 +42,8 @@ export async function listEpisodes(onFresh?: (list: Episode[]) => void): Promise
       await Storage.setItem(KEY, JSON.stringify(episodes));
       return episodes;
     },
-    { onFresh },
+    // A content change seen while this reload used the saved copy is retried on the next check.
+    { onFresh, onOffline: noteStaleContent },
   );
   return value ?? [];
 }

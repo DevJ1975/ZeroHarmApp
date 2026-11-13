@@ -9,17 +9,19 @@ import { Body, Button, Heading, Screen } from '@/components/ui';
 import { config } from '@/lib/config';
 import { Episode, listEpisodes } from '@/lib/episodes';
 import { FeedItem, listFeed, RESOURCE_KINDS } from '@/lib/feed';
+import { useContentRefresh } from '@/lib/live';
+import { markStale } from '@/lib/saved-first';
 
 /** Free courses, tools and videos, published from GoHighLevel. Featured items first. */
 export default function LearnScreen() {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [eps, setEps] = useState<Episode[]>([]);
-  useFocusEffect(
-    useCallback(() => {
-      listFeed(RESOURCE_KINDS, setItems).then(setItems);
-      listEpisodes(setEps).then(setEps);
-    }, []),
-  );
+  const load = useCallback(() => Promise.all([listFeed(RESOURCE_KINDS, setItems).then(setItems), listEpisodes(setEps).then(setEps)]), []);
+  useFocusEffect(useCallback(() => void load(), [load]));
+  useContentRefresh(() => {
+    [`feed-${[...RESOURCE_KINDS].sort().join(',')}`, 'episodes'].forEach(markStale); // something was published: fetch it now
+    return load();
+  });
   return (
     <Screen>
       <Heading>Learn</Heading>
