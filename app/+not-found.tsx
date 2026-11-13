@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
       <Screen>
         <Body>That page isn’t in the app.</Body>
         <Link href="/">
-          <Body>Go to Today</Body>
+          <Body>Go to the Monday Minute</Body>
         </Link>
       </Screen>
     </>

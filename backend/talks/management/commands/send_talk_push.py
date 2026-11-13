@@ -19,11 +19,13 @@ class Command(BaseCommand):
         if issue:
             talks = ToolboxTalk.objects.filter(issue=issue)
         else:
-            # 2-minute grace so a cron that fires a few seconds early still sends; skip anything over a day late.
+            # Only once the talk is live in the app (no early grace: the push makes phones refetch right away,
+            # so it must not land before the talk shows). Held talks wait; skip anything over a day late.
             talks = ToolboxTalk.objects.filter(
                 published=True,
+                needs_review=False,
                 push_sent_at__isnull=True,
-                send_at__lte=now + timedelta(minutes=2),
+                send_at__lte=now,
                 send_at__gte=now - timedelta(days=1),
             )
         if not talks:

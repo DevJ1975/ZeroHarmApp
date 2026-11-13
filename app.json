@@ -8,7 +8,7 @@
     "scheme": "zeroharm",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "ai.trainovate.zeroharm",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -17,6 +17,39 @@
         "light": "./assets/images/icon.png",
         "dark": "./assets/images/icon-dark.png",
         "tinted": "./assets/images/icon-tinted.png"
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1",
+              "0A2A.1",
+              "3B52.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1",
+              "85F4.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1",
+              "1C8F.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -27,7 +60,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "ai.trainovate.zeroharm"
+      "package": "ai.trainovate.zeroharm",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -36,6 +74,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-system-ui",
       "expo-sqlite",
       "expo-sharing",
       [
@@ -64,7 +103,12 @@
       [
         "onesignal-expo-plugin",
         {
-          "mode": "development"
+          "mode": "development",
+          "disableLocation": true,
+          "smallIcons": [
+            "./assets/images/ic_stat_onesignal_default.png"
+          ],
+          "smallIconAccentColor": "#F5C400"
         }
       ],
       [
@@ -80,23 +124,37 @@
         {
           "locationWhenInUsePermission": "Zero Harm uses your approximate location to show local weather, heat risk and weather alerts for your site.",
           "isAndroidBackgroundLocationEnabled": false,
-          "isIosBackgroundLocationEnabled": false
+          "isIosBackgroundLocationEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "locationFullAccuracyPermission": false,
+          "isIosReducedAccuracyByDefault": true
         }
       ],
-      "expo-build-properties",
       [
         "expo-build-properties",
         {
           "ios": {
             "deploymentTarget": "17.0"
+          },
+          "android": {
+            "extraProguardRules": "-keep class com.eko.RNBGDTaskConfig { *; }\n-keep class com.eko.RNBGDUploadTaskConfig { *; }\n-keep class com.eko.UploadPartResult { *; }\n-keep class com.eko.utils.StorageManager$PausedDownloadInfoData { *; }\n-keepattributes Signature\n-keep class com.google.gson.reflect.TypeToken { *; }\n-keep class * extends com.google.gson.reflect.TypeToken\n-keep class com.tencent.mmkv.** { *; }"
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      "@kesha-antonov/react-native-background-downloader"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "backgroundColor": "#F5C400"
+    "backgroundColor": "#F5C400",
+    "extra": {
+      "eas": {
+        "projectId": "6d1a5343-bb2d-4c05-860f-7df5386db3be"
+      }
+    },
+    "owner": "trainovations"
   }
 }

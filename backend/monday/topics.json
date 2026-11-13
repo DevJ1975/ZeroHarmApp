@@ -1,0 +1,4272 @@
+[
+ {
+  "slug": "loto-six-steps",
+  "title": "Lockout/tagout: the six steps",
+  "category": "Hazardous energy",
+  "months": [],
+  "hazard": "A machine that starts up or releases energy while someone is working on it can crush, cut, burn or shock that person.",
+  "key_points": [
+   "Know every energy source the machine has, and tell the people who run or work near it before you shut it down.",
+   "Shut the machine down the normal way, then operate every disconnect, valve or breaker that feeds it.",
+   "Lock out only if you are trained and authorized, and put your own lock and tag on each energy isolating device.",
+   "Release or block stored energy like springs, air, hydraulics and raised parts.",
+   "Make sure everyone is clear, then try the normal start controls to prove it will not run, and return them to off.",
+   "Follow your site's written lockout procedure for that specific machine."
+  ],
+  "must_say": [
+   "Never remove someone else's lock.",
+   "If it is not locked out, keep your hands and body out."
+  ],
+  "never_say": [
+   "Hitting the stop button is the same as locking out.",
+   "A quick job doesn't need a lock if you are fast.",
+   "It's fine to borrow a coworker's lock or put your lock on for someone else."
+  ],
+  "facts": [
+   {
+    "text": "Lockout steps must be done in order: prepare, shut down, isolate, apply locks or tags, control stored energy, then verify isolation.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "Each lock or tag must be removed by the employee who put it on, except under special employer procedures when that person is not available.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "Before work starts, the authorized employee must verify that the machine is isolated and de-energized.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A mechanic shut off a mixer at the panel but skipped the lock because the job was 'two minutes.' A coworker on the next shift saw the panel off, assumed it was a mistake, and reached for the switch before someone shouted.",
+  "crew_questions": [
+   "Which machine in our area has more than one energy source, and do we know where every disconnect is?",
+   "When was the last time a job here felt too quick to lock out, and what should we have done?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "loto-group-shift",
+  "title": "Group lockout and shift changes",
+  "category": "Hazardous energy",
+  "months": [],
+  "hazard": "When a crew works on one machine or a job runs across shifts, a person can be left unprotected if locks come off or change hands the wrong way.",
+  "key_points": [
+   "Put your own personal lock on the group lockbox or group device when you start work.",
+   "Take off only your own lock, and only when you stop working on that machine.",
+   "Know who the authorized person in charge of the group lockout is.",
+   "At shift change, follow your site's procedure so oncoming locks go on before off-going locks come off.",
+   "Never assume the machine is safe because other locks are already on it."
+  ],
+  "must_say": [
+   "Your own lock protects you. Put it on the group lockbox every time.",
+   "Never remove someone else's lock."
+  ],
+  "never_say": [
+   "One lock for the whole crew is enough.",
+   "The off-going shift can pull their locks first and the next shift locks on after.",
+   "A supervisor's lock covers everyone, so you don't need yours."
+  ],
+  "facts": [
+   {
+    "text": "Each authorized employee must put a personal lock or tag on the group lockout device or group lockbox when starting work, and remove it when they stop working on the machine.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "Group lockout gives one authorized employee primary responsibility for the employees working under the group lock.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "Specific procedures must be used during shift or personnel changes to keep lockout protection in place, including an orderly transfer between off-going and oncoming employees.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "During a long repair, an off-going tech pulled their lock from the group box before the oncoming crew put theirs on. An oncoming mechanic was about to reach into the open guard when a coworker saw the empty box and stopped them.",
+  "crew_questions": [
+   "How do we hand off a lockout here when a job runs past the end of a shift?",
+   "Who is in charge of the group lockbox on our big jobs, and how do we know everyone's lock is on?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "stored-energy",
+  "title": "Stored energy: springs, air, hydraulics",
+  "category": "Hazardous energy",
+  "months": [],
+  "hazard": "Energy can stay trapped in a machine after it is shut off and locked, and it can suddenly move parts, spray fluid or drop loads onto a worker.",
+  "key_points": [
+   "Look for stored energy after you lock out: springs, air and hydraulic lines, raised parts, flywheels, and capacitors.",
+   "Bleed down, block, or restrain stored energy the way your site's procedure says.",
+   "Block raised parts so they cannot fall, and never rely on hydraulics alone to hold them up.",
+   "Keep checking during the job if pressure or energy could build back up.",
+   "Stop and ask if you cannot tell whether all energy is gone."
+  ],
+  "must_say": [
+   "Locking the switch is not enough. Release or block the stored energy before you work."
+  ],
+  "never_say": [
+   "Once the power is locked off, the machine is safe.",
+   "A hydraulic cylinder will hold a raised part up after shutdown.",
+   "Gauges reading zero mean you never need to check again."
+  ],
+  "facts": [
+   {
+    "text": "After locks or tags are applied, all hazardous stored or residual energy must be relieved, disconnected, restrained, or otherwise made safe.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "If stored energy could build back up to a hazardous level, verification of isolation must continue until the work is done or the risk is gone.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "Examples of stored energy listed in the standard include capacitors, springs, raised machine parts, rotating flywheels, hydraulic systems, and air, gas, steam or water pressure.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A press was locked out at the disconnect, but nobody blocked the upper die. When a worker loosened a hydraulic fitting, the ram started to drift down and the worker pulled their hand back just in time.",
+  "crew_questions": [
+   "Which machines in our area keep energy after they are shut off?",
+   "What blocks, pins or bleed valves do we have, and does everyone know where they are?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "loto-try-out",
+  "title": "Prove it's dead: the try-out",
+  "category": "Hazardous energy",
+  "months": [],
+  "hazard": "A lock can be put on the wrong disconnect or a second energy source can be missed, so a machine that looks locked out can still start.",
+  "key_points": [
+   "Make sure everyone is clear of the machine before the try-out.",
+   "Press the normal start button or controls to prove the machine will not run.",
+   "Have a qualified person test for voltage where your site's procedure calls for it. Never test for voltage unless you are qualified.",
+   "Put the controls back to off or neutral after the try-out.",
+   "Stop and report it if anything moves, hums or lights up."
+  ],
+  "must_say": [
+   "Clear everyone, then try to start it before you touch it. If anything moves, stop and get help."
+  ],
+  "never_say": [
+   "If the lock is on, you can skip the try-out.",
+   "A dark control panel proves the machine has no energy.",
+   "Leave the start button in the on position after testing."
+  ],
+  "facts": [
+   {
+    "text": "Before starting work on a locked or tagged out machine, the authorized employee must verify that isolation and de-energization have been done.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "OSHA's sample procedure says to check that no one is exposed, then try the normal operating controls or test the equipment to make sure it will not operate, and then return the controls to off.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A maintenance tech locked a breaker labeled for a conveyor and pressed start as a check. The conveyor jumped, because the label was wrong and the lock was on the next conveyor's breaker.",
+  "crew_questions": [
+   "Do our machines have clear labels on every disconnect, and which ones are confusing?",
+   "What do we do if a try-out shows the machine still has power?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "machine-guarding",
+  "title": "Machine guards stay on",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Unguarded moving parts can grab, crush, cut or amputate fingers, hands and arms in an instant.",
+  "key_points": [
+   "Check that every guard is in place and secure before you start a machine.",
+   "Stop and report a missing, loose or damaged guard right away.",
+   "Lock out before removing any guard for cleaning, adjusting or repair.",
+   "Put guards back before the machine runs again.",
+   "Use push sticks or hand tools only as extra protection, never instead of a guard."
+  ],
+  "must_say": [
+   "If a guard is missing or damaged, do not run the machine. Tell your supervisor."
+  ],
+  "never_say": [
+   "Experienced operators can run a machine without the guard.",
+   "A push stick replaces a guard.",
+   "Taking a guard off for a minute is fine if you are careful."
+  ],
+  "facts": [
+   {
+    "text": "Machine guarding must protect the operator and others in the area from hazards like the point of operation, ingoing nip points, rotating parts, and flying chips and sparks.",
+    "cite": "1910.212"
+   },
+   {
+    "text": "Guards must be attached to the machine where possible, and the guard itself must not create a hazard.",
+    "cite": "1910.212"
+   },
+   {
+    "text": "Special hand tools for placing material cannot take the place of required guarding; they can only add to it.",
+    "cite": "1910.212"
+   }
+  ],
+  "story_seed": "An operator noticed a guard had been left off after a weekend repair. They almost started the machine to keep up with orders, but stopped and called maintenance first.",
+  "crew_questions": [
+   "Which guard in our area gets taken off most often, and why?",
+   "What should you do if you find a guard missing at the start of your shift?"
+  ],
+  "references": [
+   "1910.212"
+  ]
+ },
+ {
+  "slug": "guard-bypass",
+  "title": "Never bypass an interlock",
+  "category": "Machines",
+  "months": [],
+  "hazard": "A bypassed interlock lets a machine run while a door or guard is open, so a person can reach into moving parts.",
+  "key_points": [
+   "Never tape, tie, jumper or block an interlock switch or door sensor.",
+   "Report an interlock that is broken or keeps tripping instead of working around it.",
+   "Lock out the machine when you must go past a guard or safety device to clear, clean or fix it.",
+   "Tell your supervisor if you see a bypassed interlock, and stop the machine if it is safe to do so.",
+   "Follow your site's procedure for any approved service modes."
+  ],
+  "must_say": [
+   "Never bypass an interlock. If it is in your way, stop and get it fixed."
+  ],
+  "never_say": [
+   "It's OK to bypass an interlock if you're watching the machine.",
+   "Interlocks are just for new or untrained workers.",
+   "Using a spare key or magnet to cheat a door switch is a smart shortcut."
+  ],
+  "facts": [
+   {
+    "text": "Revolving drums, barrels and containers must be guarded by an enclosure that is interlocked with the drive so they cannot turn unless the guard is in place.",
+    "cite": "1910.212"
+   },
+   {
+    "text": "If a worker has to remove or bypass a guard or other safety device during servicing, the lockout/tagout standard applies.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "On a packaging line, someone wedged a zip tie into a door switch so the machine would keep running with the door open. A new worker reached in to fix a label and the arm cycled past their hand.",
+  "crew_questions": [
+   "Are there interlocks here that trip so often that people are tempted to bypass them?",
+   "How do we report a bypassed or broken safety device on our line?"
+  ],
+  "references": [
+   "1910.212",
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "pinch-points",
+  "title": "Pinch points and nip points",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Hands and fingers can be caught and crushed where two parts come together, like rollers, belts, chains, gears and closing doors.",
+  "key_points": [
+   "Spot the pinch points on your machine before you start work.",
+   "Keep hands, fingers and tools out of places where parts meet or close.",
+   "Keep guards in place over rollers, belts, chains and gears.",
+   "Lock out before reaching into a pinch point to clear or clean it.",
+   "Watch for pinch points when moving loads, closing doors or lowering parts."
+  ],
+  "must_say": [
+   "Never reach into a pinch point while the machine can move."
+  ],
+  "never_say": [
+   "You can pull your hand out in time if a roller grabs it.",
+   "Gloves protect your fingers in a nip point.",
+   "Pinch points are only on big machines."
+  ],
+  "facts": [
+   {
+    "text": "Machine guarding must protect workers from hazards such as ingoing nip points and rotating parts.",
+    "cite": "1910.212"
+   }
+  ],
+  "story_seed": "A worker reached in to straighten film feeding into two rollers. Their glove tip got caught, and they pulled free only because a coworker hit the stop.",
+  "crew_questions": [
+   "Where are the worst pinch points on our equipment?",
+   "What tasks tempt people to put a hand near moving rollers or chains?"
+  ],
+  "references": [
+   "1910.212"
+  ]
+ },
+ {
+  "slug": "rotating-entanglement",
+  "title": "Rotating parts: gloves, sleeves, hair, rings",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Spinning shafts, chucks, drills and rollers can catch gloves, loose sleeves, long hair or jewelry and pull a person in.",
+  "key_points": [
+   "Take off gloves before working near rotating parts.",
+   "Remove rings, watches, bracelets and necklaces before working near spinning parts.",
+   "Tie long hair back and tuck it under a cap, button or roll sleeves tight, and tuck in badge lanyards and loose strings.",
+   "Keep guards in place over shafts, couplings and spindles.",
+   "Never reach near a spinning part; stop the machine and wait until it stops turning before you brush chips, measure or adjust."
+  ],
+  "must_say": [
+   "Near spinning parts, take gloves and jewelry off and tie long hair back."
+  ],
+  "never_say": [
+   "A tighter or tougher glove makes it safe near a spinning shaft.",
+   "Wedding rings are fine because they are small.",
+   "A cap is not needed if your hair is only a little long."
+  ],
+  "facts": [
+   {
+    "text": "Machine guarding must protect workers from hazards such as rotating parts and ingoing nip points.",
+    "cite": "1910.212"
+   }
+  ],
+  "story_seed": "A worker leaned over a lathe to brush away chips while wearing a loose glove. The chuck snagged the fingertip of the glove and pulled it before they could let go and step back.",
+  "crew_questions": [
+   "Which machines here have spinning parts you can reach while they run?",
+   "What do we wear or carry that could get caught, and where do we store it during work?"
+  ],
+  "references": [
+   "1910.212"
+  ]
+ },
+ {
+  "slug": "bench-grinders",
+  "title": "Bench grinders",
+  "category": "Machines",
+  "months": [],
+  "hazard": "A grinder wheel can shatter and throw pieces, and a gap at the rest can pull work and fingers into the wheel.",
+  "key_points": [
+   "Check the work rest and tongue guard gaps before you grind, with the grinder off.",
+   "Adjust the work rest and tongue guard only when the wheel is stopped.",
+   "Wear eye and face protection, and stand to the side when you start the grinder.",
+   "Let only trained people mount wheels; they inspect and ring test each wheel first. Never use a cracked or chipped wheel.",
+   "Never use a wheel whose marked speed is lower than the grinder's speed; report it instead.",
+   "Never grind on the side of a wheel unless it is made for that."
+  ],
+  "must_say": [
+   "Adjust the rest and tongue only with the wheel stopped, and never use a cracked wheel."
+  ],
+  "never_say": [
+   "A small gap at the work rest doesn't matter.",
+   "You can adjust the work rest while the wheel spins down.",
+   "Gloves make grinding small parts safe."
+  ],
+  "facts": [
+   {
+    "text": "On bench and other offhand grinders, the work rest must be kept within one-eighth inch of the wheel and must not be adjusted with the wheel moving.",
+    "cite": "1910.215"
+   },
+   {
+    "text": "The gap between the wheel and the adjustable tongue at the top of the guard must never be more than one-fourth inch.",
+    "cite": "1910.215"
+   },
+   {
+    "text": "Right before mounting, wheels must be inspected and ring tested, and the machine's spindle speed must not be higher than the speed marked on the wheel.",
+    "cite": "1910.215"
+   }
+  ],
+  "story_seed": "A worker noticed the tool rest had worn far back from the wheel. A small part slipped into the gap and jerked their fingers toward the wheel before they let go.",
+  "crew_questions": [
+   "Who checks the rest and tongue gaps on our grinders, and how often?",
+   "What do you do if a grinder wheel looks chipped or sounds wrong?"
+  ],
+  "references": [
+   "1910.215"
+  ]
+ },
+ {
+  "slug": "conveyors",
+  "title": "Working around conveyors",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Conveyors can catch hands, clothes and hair in belts, rollers, chains and pulleys, and can pull a person in.",
+  "key_points": [
+   "If someone gets caught, hit the nearest emergency stop or pull cord and shout for help. Know where they are and keep them clear.",
+   "Never climb on, ride on, or step over a running conveyor; use the crossover.",
+   "Keep guards on head and tail pulleys, drives and return rollers.",
+   "Lock out the conveyor before clearing jams, cleaning or fixing it.",
+   "Keep loose clothing, hair and gloves away from moving belts and rollers."
+  ],
+  "must_say": [
+   "Never reach into, climb on or ride a running conveyor."
+  ],
+  "never_say": [
+   "An emergency stop button is the same as lockout.",
+   "It's faster and fine to step over the conveyor.",
+   "You can clear a jam with the belt running if you are careful."
+  ],
+  "facts": [
+   {
+    "text": "Machine guarding must protect workers from hazards such as ingoing nip points and rotating parts.",
+    "cite": "1910.212"
+   }
+  ],
+  "story_seed": "A worker tried to free a stuck box at the tail pulley while the belt was moving. Their sleeve got pulled toward the roller, and a coworker hit the pull cord.",
+  "crew_questions": [
+   "Where are the e-stops and pull cords on our conveyors, and are any blocked?",
+   "Where do people step over or reach across conveyors here instead of using a crossover?"
+  ],
+  "references": [
+   "1910.212"
+  ]
+ },
+ {
+  "slug": "jam-clearing",
+  "title": "Clearing jams safely",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Jams tempt people to reach into a machine, and stuck parts or stored energy can suddenly release and cycle the machine.",
+  "key_points": [
+   "Stop the machine and lock it out before reaching in to clear a jam.",
+   "Release or block stored energy, like air or springs, that can move parts when the jam frees.",
+   "Use only the clearing tool your site's procedure names for that machine, and only after it is locked out.",
+   "Never reach past a guard to clear a jam while the machine can move.",
+   "Report machines that jam often so the cause can be fixed."
+  ],
+  "must_say": [
+   "Before you reach in to clear a jam, stop it and lock it out."
+  ],
+  "never_say": [
+   "Small jams don't need lockout.",
+   "Just hit stop and reach in fast.",
+   "If the sensor is blocked, the machine can't start."
+  ],
+  "facts": [
+   {
+    "text": "Servicing during production is covered by lockout if a worker must remove or bypass a guard or place any part of the body in the point of operation or a danger zone.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A case packer jammed and the operator reached in after pressing stop. When the jam freed, trapped air moved the pusher arm and it brushed their sleeve.",
+  "crew_questions": [
+   "Which jams here happen the most, and how do we clear each one?",
+   "What would make it easier for us to lock out every time we clear a jam?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "automated-equipment",
+  "title": "Robots and automated equipment",
+  "category": "Machines",
+  "months": [],
+  "hazard": "Robots and automated machines can move fast, start without warning, or pause and then start again, striking or crushing a person in their path.",
+  "key_points": [
+   "Stay out of robot cells and fenced areas while the equipment can move.",
+   "Never step over a light curtain, open a gate, or defeat a sensor to get in.",
+   "Treat a paused or quiet robot as able to move at any time.",
+   "Lock out before entering for maintenance, cleaning or jam clearing, following your site's procedure.",
+   "Report any gate, door or sensor that does not stop the equipment."
+  ],
+  "must_say": [
+   "A stopped robot can start again. Lock it out before you go in."
+  ],
+  "never_say": [
+   "If the robot is not moving, it is safe to walk in.",
+   "You can reach past a light curtain if you are quick.",
+   "Robots always move the same way, so you can predict them."
+  ],
+  "facts": [
+   {
+    "text": "Point of operation guarding must keep the operator from having any part of the body in the danger zone during the operating cycle.",
+    "cite": "1910.212"
+   },
+   {
+    "text": "Servicing during production is covered by lockout if a worker must remove or bypass a guard or safety device, or place any part of the body in a danger zone.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A technician stepped into a palletizer cell through an open gate because the robot looked stopped. It was only waiting for a sensor signal and swung toward the pallet as they reached it.",
+  "crew_questions": [
+   "Which automated machines here could start up while a person is inside the guarded area?",
+   "How do we get into a robot cell safely for a jam or cleaning?"
+  ],
+  "references": [
+   "1910.212",
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "ladder-inspection",
+  "title": "Inspect the ladder before you climb",
+  "category": "Falls",
+  "months": [],
+  "hazard": "A ladder with broken rungs, bent rails, missing feet or loose parts can fail and cause a fall.",
+  "key_points": [
+   "Inspect the ladder before you use it on your shift.",
+   "Check rails, rungs, steps, feet, locks and spreaders for damage or missing parts.",
+   "Make sure rungs and feet are clean of oil, grease and mud.",
+   "Tag a damaged ladder 'Dangerous: Do Not Use' and take it out of service.",
+   "Never try to repair a damaged ladder yourself; follow your site's procedure."
+  ],
+  "must_say": [
+   "If a ladder is damaged, tag it and take it out of service. Do not climb it."
+  ],
+  "never_say": [
+   "A small crack in a rail is fine if you climb carefully.",
+   "Tape is a good fix for a broken rung.",
+   "You only need to inspect a ladder once a month."
+  ],
+  "facts": [
+   {
+    "text": "Ladders must be inspected before first use in each work shift, and more often as needed, for visible defects.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "A ladder with structural or other defects must be tagged 'Dangerous: Do Not Use' or similar and removed from service until repaired or replaced.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "Wooden ladders must not be coated with anything that could hide defects.",
+    "cite": "1910.23"
+   }
+  ],
+  "story_seed": "A worker grabbed a stepladder that had been left in a corner. On the second step, a rivet popped on the spreader, and they stepped down before it folded.",
+  "crew_questions": [
+   "Where do damaged ladders end up here, and how do we tag them?",
+   "What is the last thing you noticed wrong with a ladder at our site?"
+  ],
+  "references": [
+   "1910.23"
+  ]
+ },
+ {
+  "slug": "portable-ladder-setup",
+  "title": "Setting up an extension ladder",
+  "category": "Falls",
+  "months": [],
+  "hazard": "An extension ladder that slides, tips or is set on a bad base can throw a worker to the ground.",
+  "key_points": [
+   "Set the ladder on firm, level ground, and secure it on slippery surfaces.",
+   "Set the base out at the angle shown on the ladder's label.",
+   "Make sure both side rails rest on the top support.",
+   "Extend the rails at least 3 feet above the landing when you use it to get up to a level.",
+   "Face the ladder and keep one hand on it as you climb.",
+   "Barricade or secure ladders in doorways, aisles and traffic areas."
+  ],
+  "must_say": [
+   "Never move, shift or extend a ladder while someone is on it."
+  ],
+  "never_say": [
+   "You can lean a ladder on a box to get more height.",
+   "Tying two short ladders together works fine.",
+   "It's OK to scoot the ladder over while you're on it."
+  ],
+  "facts": [
+   {
+    "text": "Portable ladders used to reach an upper landing must have side rails that extend at least 3 feet above that landing.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "A ladder must not be moved, shifted or extended while someone is on it.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "Ladders must be used on stable, level surfaces unless secured, and must not be placed on boxes, barrels or other unstable bases.",
+    "cite": "1910.23"
+   }
+  ],
+  "story_seed": "A worker set an extension ladder on a wet concrete floor without securing it. As they climbed, the feet began to slide out, and a coworker grabbed the base just in time.",
+  "crew_questions": [
+   "Where do we use extension ladders here, and how do we secure them?",
+   "What should we do when the only spot for a ladder is in a busy aisle?"
+  ],
+  "references": [
+   "1910.23"
+  ]
+ },
+ {
+  "slug": "stepladders",
+  "title": "Stepladders and step stools",
+  "category": "Falls",
+  "months": [],
+  "hazard": "Stepladders that are not fully open, overloaded, or climbed too high can tip or fold and cause a fall.",
+  "key_points": [
+   "Open the stepladder fully and lock the spreaders before you climb.",
+   "Never stand on the top cap or the top step.",
+   "Never use a closed stepladder leaned against a wall.",
+   "Face the ladder and keep at least one hand on it while climbing.",
+   "Keep tools and materials within your load rating, and don't carry loads that throw off your balance.",
+   "Use a taller ladder or a lift instead of overreaching."
+  ],
+  "must_say": [
+   "Never stand on the top cap or top step of a stepladder."
+  ],
+  "never_say": [
+   "The top cap is fine to stand on for a quick reach.",
+   "A folded stepladder is safe to lean against a wall.",
+   "Leaning out to one side is fine if you hold on."
+  ],
+  "facts": [
+   {
+    "text": "Each stepladder must have a metal spreader or locking device that holds the front and back open while it is in use.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "The cap and top step of a stepladder must not be used as steps.",
+    "cite": "1910.23"
+   },
+   {
+    "text": "Workers must face the ladder and use at least one hand to grasp it when climbing up or down.",
+    "cite": "1910.23"
+   }
+  ],
+  "story_seed": "A worker stood on the top step to reach a light fixture. The ladder rocked as they reached, and they caught the shelving to stop from falling.",
+  "crew_questions": [
+   "Are our stepladders tall enough for the jobs we do?",
+   "Where are people tempted to stand on top of a stepladder or use a chair instead?"
+  ],
+  "references": [
+   "1910.23"
+  ]
+ },
+ {
+  "slug": "four-foot-rule",
+  "title": "The 4-foot rule for edges",
+  "category": "Falls",
+  "months": [],
+  "hazard": "A fall from an open edge, platform or mezzanine can cause serious injury or death, even from a short height.",
+  "key_points": [
+   "Stay back from any open edge that has no guardrail.",
+   "Use guardrails, nets or personal fall protection when working at an edge 4 feet or more above a lower level.",
+   "Never remove a guardrail or chain to make a job easier without your site's approved fall protection.",
+   "Put a removed guardrail or gate back before you leave the area.",
+   "Report missing guardrails, open gates and unmarked edges right away."
+  ],
+  "must_say": [
+   "At an open edge 4 feet or more up, you need fall protection before you go near it."
+  ],
+  "never_say": [
+   "Short falls can't hurt you.",
+   "Just be careful near the edge and you won't need protection.",
+   "A caution tape line is the same as a guardrail."
+  ],
+  "facts": [
+   {
+    "text": "Workers on a walking-working surface with an unprotected side or edge 4 feet or more above a lower level must be protected by guardrails, safety nets, or personal fall protection.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "Workers 4 feet or more above dangerous equipment must be protected from falling, and workers less than 4 feet above it must be protected by guardrails or travel restraint unless the equipment is covered or guarded.",
+    "cite": "1910.28"
+   }
+  ],
+  "story_seed": "A worker removed a mezzanine chain to lift a box up with a forklift. While waiting, they stepped back toward the open edge before a coworker called out.",
+  "crew_questions": [
+   "Where are the open edges in our building, and are they all protected?",
+   "When do we take down a guardrail or gate here, and what protects us then?"
+  ],
+  "references": [
+   "1910.28"
+  ]
+ },
+ {
+  "slug": "floor-holes",
+  "title": "Holes, skylights and covers",
+  "category": "Falls",
+  "months": [],
+  "hazard": "Workers can step into or fall through floor holes, openings, and skylights that are uncovered or have weak covers.",
+  "key_points": [
+   "Never step, sit or lean on a skylight, even one with a screen, and never step on a cover you are not sure is secured.",
+   "Keep holes covered or guarded at all times, and secure covers so they cannot slide.",
+   "Put back any cover or guardrail you remove before you leave the area.",
+   "Report missing, loose or damaged covers right away.",
+   "Use guardrails or fall protection near skylights and open holes, following your site's procedure."
+  ],
+  "must_say": [
+   "Never walk on a skylight or step on an unmarked cover."
+  ],
+  "never_say": [
+   "Skylights are strong enough to walk on.",
+   "Plywood over a hole is always safe.",
+   "It's OK to leave a hole open for a few minutes."
+  ],
+  "facts": [
+   {
+    "text": "Workers must be protected from falling through any hole, including skylights, that is 4 feet or more above a lower level, by covers, guardrails, travel restraint, or personal fall arrest.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "Workers must be protected from tripping or stepping into holes less than 4 feet above a lower level by covers or guardrails.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "Each hole cover must hold at least twice the maximum intended load and be secured so it cannot be knocked out of place.",
+    "cite": "1910.29"
+   }
+  ],
+  "story_seed": "A maintenance worker on a roof backed up while coiling a hose and stepped near a skylight. A coworker yelled just before their heel reached the plastic dome.",
+  "crew_questions": [
+   "Where are the floor holes, hatches and skylights at our site?",
+   "How do we cover or guard a hole when we open one for work?"
+  ],
+  "references": [
+   "1910.28",
+   "1910.29"
+  ]
+ },
+ {
+  "slug": "guardrails",
+  "title": "Guardrails",
+  "category": "Falls",
+  "months": [],
+  "hazard": "A missing, loose or damaged guardrail can let a worker fall from a platform, mezzanine, or edge.",
+  "key_points": [
+   "Check that guardrails are in place and solid before you work near an edge.",
+   "Never sit on, stand on, climb, or lean hard on a guardrail.",
+   "Never use a guardrail as an anchor or to hoist materials.",
+   "Report loose, bent or missing rails right away and keep away from that edge.",
+   "Close gates and put back removed rails before you leave the area."
+  ],
+  "must_say": [
+   "If a guardrail is missing or loose, stay back and report it."
+  ],
+  "never_say": [
+   "You can lean on a guardrail to rest.",
+   "A chain or rope is just as strong as a guardrail.",
+   "It's fine to tie off your harness to any guardrail."
+  ],
+  "facts": [
+   {
+    "text": "The top rail of a guardrail must be 42 inches high, plus or minus 3 inches, above the walking-working surface.",
+    "cite": "1910.29"
+   },
+   {
+    "text": "Guardrails must withstand a force of at least 200 pounds applied downward or outward near the top edge.",
+    "cite": "1910.29"
+   },
+   {
+    "text": "Midrails, screens, or similar members are needed between the top rail and the walking surface when there is no wall or parapet at least 21 inches high.",
+    "cite": "1910.29"
+   }
+  ],
+  "story_seed": "A worker on a mezzanine leaned against a section of guardrail that had been bumped by a forklift. The rail gave a few inches, and they stepped back from the edge.",
+  "crew_questions": [
+   "Which guardrails here get bumped or removed most often?",
+   "How do we report a damaged guardrail, and who fixes it?"
+  ],
+  "references": [
+   "1910.29"
+  ]
+ },
+ {
+  "slug": "fixed-ladders",
+  "title": "Fixed ladders and cages",
+  "category": "Falls",
+  "months": [],
+  "hazard": "Workers can fall from fixed ladders on tanks, roofs and mezzanines, especially when they slip, carry loads, or lose their grip.",
+  "key_points": [
+   "Face the ladder and keep at least one hand on it while climbing.",
+   "Use the ladder safety system or fall arrest when the ladder has one.",
+   "Carry tools in a belt or hoist them up; keep your hands free.",
+   "Check rungs, rails, and the cage or safety system for damage before you climb.",
+   "Never count on a cage to catch you if you fall."
+  ],
+  "must_say": [
+   "If the ladder has a safety system, connect to it before you climb."
+  ],
+  "never_say": [
+   "A cage will stop your fall.",
+   "You can carry a bucket in one hand on a fixed ladder.",
+   "Fixed ladders don't need an inspection."
+  ],
+  "facts": [
+   {
+    "text": "Fixed ladders that extend more than 24 feet above a lower level need a personal fall arrest system, ladder safety system, cage or well if installed before November 19, 2018, and a personal fall arrest or ladder safety system if installed on or after that date.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "By November 18, 2036, all fixed ladders over 24 feet must have a personal fall arrest or ladder safety system.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "Workers must face the ladder, use at least one hand to grip it, and not carry anything that could make them lose balance.",
+    "cite": "1910.23"
+   }
+  ],
+  "story_seed": "A worker climbed a caged ladder to a tank top carrying a toolbag in one hand. Their boot slipped on a wet rung, and they caught the rail with their free hand.",
+  "crew_questions": [
+   "Which fixed ladders at our site have a ladder safety system, and which only have cages?",
+   "How do we get tools up a fixed ladder without carrying them?"
+  ],
+  "references": [
+   "1910.28",
+   "1910.23"
+  ]
+ },
+ {
+  "slug": "personal-fall-arrest",
+  "title": "Harness, lanyard and anchor checks",
+  "category": "Falls",
+  "months": [],
+  "hazard": "A damaged harness, wrong connector, or weak anchor can fail in a fall and let a worker hit the ground or a lower level.",
+  "key_points": [
+   "If someone falls and is hanging in a harness, call 911 and start your site's rescue plan right away.",
+   "Inspect your harness, lanyard and connectors before use each shift.",
+   "Take any gear out of service if it is worn, cut, burned, mildewed, or has caught a fall.",
+   "Connect only to anchors your site has approved for fall arrest.",
+   "Wear the harness snug, with the back D-ring between your shoulder blades."
+  ],
+  "must_say": [
+   "If your harness or lanyard has caught a fall or is damaged, take it out of service."
+  ],
+  "never_say": [
+   "Any pipe or railing makes a good anchor.",
+   "A harness that has caught a fall is fine if it looks OK.",
+   "Body belts are fine for fall arrest."
+  ],
+  "facts": [
+   {
+    "text": "Personal fall protection must be inspected before first use during each work shift, and defective parts must be removed from service.",
+    "cite": "1910.140"
+   },
+   {
+    "text": "Gear that has been subjected to impact loading must be removed from service until a competent person says it is safe.",
+    "cite": "1910.140"
+   },
+   {
+    "text": "The employer must provide for prompt rescue of each employee in the event of a fall.",
+    "cite": "1910.140"
+   }
+  ],
+  "story_seed": "Before going up in a boom lift, a worker checked their lanyard and found the shock pack partly torn open. They swapped it for new gear and reported the old one.",
+  "crew_questions": [
+   "What anchors are approved for tie-off at our site?",
+   "If someone falls and is hanging in a harness here, what is our rescue plan?"
+  ],
+  "references": [
+   "1910.140"
+  ]
+ },
+ {
+  "slug": "dock-edges",
+  "title": "Dock edges and dockboards",
+  "category": "Falls",
+  "months": [],
+  "hazard": "Workers and forklifts can fall from open dock edges, and trailers that creep or dockboards that shift can drop a load or a person.",
+  "key_points": [
+   "Keep dock doors closed or guarded when no trailer is at the door.",
+   "Check that the trailer is chocked or locked to the dock before anyone goes on the dockboard.",
+   "Make sure the dockboard is secure and rated for the load.",
+   "Stay back from open dock edges, and never jump from the dock.",
+   "Follow your site's procedure for dock locks, lights and communication with drivers."
+  ],
+  "must_say": [
+   "Never drive or walk onto a trailer until it is chocked or locked to the dock."
+  ],
+  "never_say": [
+   "The driver will never pull away while you're loading.",
+   "A dockboard will stay in place on its own.",
+   "It's faster and fine to jump down from the dock."
+  ],
+  "facts": [
+   {
+    "text": "Wheel chocks, sand shoes or similar measures must be used to keep the truck, trailer or rail car from moving while workers are on the dockboard.",
+    "cite": "1910.26"
+   },
+   {
+    "text": "Portable dockboards must be anchored or secured so they cannot move out of a safe position.",
+    "cite": "1910.26"
+   },
+   {
+    "text": "Workers on a dockboard must be protected from falling 4 feet or more by a guardrail or handrails, with limited exceptions for some material handling with motorized equipment.",
+    "cite": "1910.28"
+   }
+  ],
+  "story_seed": "A forklift driver started into a trailer when the truck began to roll forward. The dockboard dropped a few inches and the driver stopped and backed out.",
+  "crew_questions": [
+   "How do we know a trailer is chocked or locked before we go in?",
+   "Where are open dock edges left unguarded at our site?"
+  ],
+  "references": [
+   "1910.26",
+   "1910.28"
+  ]
+ },
+ {
+  "slug": "aerial-lifts",
+  "title": "Scissor lifts and aerial lifts",
+  "category": "Falls",
+  "months": [],
+  "hazard": "Workers can fall from, be thrown from, or be crushed by lifts that tip over, hit overhead objects, or move unexpectedly.",
+  "key_points": [
+   "Test the lift controls and inspect the lift before use each day.",
+   "Only operate a lift you are trained on.",
+   "Stand on the platform floor; never climb or stand on the rails or use a ladder in the basket.",
+   "In a boom lift, wear a harness and tie off to the boom or basket anchor.",
+   "Stay well away from overhead power lines, and follow your site's procedure for minimum distances.",
+   "Check the ground for holes, slopes and drop-offs before you raise or drive."
+  ],
+  "must_say": [
+   "Never climb on the rails or use a ladder in a lift basket."
+  ],
+  "never_say": [
+   "You can tie off to a nearby beam from a boom lift.",
+   "Leaning over the rail is fine if your harness is on.",
+   "Driving a raised lift is fine on any floor."
+  ],
+  "facts": [
+   {
+    "text": "For vehicle-mounted boom lifts, lift controls must be tested each day before use.",
+    "cite": "1910.67"
+   },
+   {
+    "text": "Workers in vehicle-mounted boom lifts must stand firmly on the basket floor, not sit or climb on the edge, and not use planks or ladders to work from.",
+    "cite": "1910.67"
+   },
+   {
+    "text": "Workers in these boom lifts must wear a personal fall arrest or travel restraint system attached to the boom or basket, and must not tie off to a nearby pole or structure.",
+    "cite": "1910.67"
+   }
+  ],
+  "story_seed": "A worker in a scissor lift drove it while raised and didn't see a floor drain cover was missing. The wheel dipped, the platform swayed, and they lowered it right away.",
+  "crew_questions": [
+   "What do we check on our lifts before each use?",
+   "Where at our site are there overhead hazards or floor drop-offs near lift work?"
+  ],
+  "references": [
+   "1910.67"
+  ]
+ },
+ {
+  "slug": "slips-trips",
+  "title": "Slips, trips and falls on the level",
+  "category": "Walking surfaces",
+  "months": [],
+  "hazard": "Wet floors, clutter, cords and uneven surfaces can cause slips and trips that lead to falls and serious injuries.",
+  "key_points": [
+   "Keep aisles, walkways and exits clear of boxes, hoses, cords and tools.",
+   "Guard and report spills as soon as you see them, and clean them up only if you know they are safe to handle.",
+   "Wear the slip-resistant shoes your site requires.",
+   "Walk, don't run, and watch where you step, especially when carrying loads.",
+   "Report loose mats, damaged flooring and poor lighting."
+  ],
+  "must_say": [
+   "If you see a spill or trip hazard, guard it and report it. Never walk past it."
+  ],
+  "never_say": [
+   "Slips are just bad luck and can't be prevented.",
+   "It's someone else's job to pick up clutter.",
+   "Walking faster gets you past a wet spot safely."
+  ],
+  "facts": [
+   {
+    "text": "Workplaces, passageways and walking-working surfaces must be kept clean, orderly and sanitary.",
+    "cite": "1910.22"
+   },
+   {
+    "text": "Floors must be kept clean and, as far as feasible, dry; where wet processes are used, drainage must be maintained and dry standing places like mats or platforms provided where feasible.",
+    "cite": "1910.22"
+   }
+  ],
+  "story_seed": "A worker carrying a box couldn't see a strapping band on the floor. Their foot caught it, and they stumbled before catching the rack.",
+  "crew_questions": [
+   "Where do slips and trips happen most at our site?",
+   "What is one cleanup habit our crew could do better?"
+  ],
+  "references": [
+   "1910.22"
+  ]
+ },
+ {
+  "slug": "spill-cleanup",
+  "title": "Clean it up or guard it",
+  "category": "Walking surfaces",
+  "months": [],
+  "hazard": "Spills and leaks on floors can cause slips and falls, and some spills can also burn skin or give off harmful vapors.",
+  "key_points": [
+   "If a spill is a chemical, unknown, large, or gives off fumes, move away, keep others back, and tell your supervisor right away.",
+   "Guard any spill you can safely stand near so no one walks through it.",
+   "Clean it up yourself only if you know what it is and are trained; follow your site's spill procedure.",
+   "Find and report the source of leaks so they get fixed.",
+   "Put up a cone or sign until the floor is dry."
+  ],
+  "must_say": [
+   "If you can't clean it up right now, guard it so no one walks through it."
+  ],
+  "never_say": [
+   "A wet floor sign means the spill is cleaned up.",
+   "Any spill can be wiped up with paper towels.",
+   "Leaks that come back every day are normal."
+  ],
+  "facts": [
+   {
+    "text": "Walking-working surfaces must be kept free of hazards such as leaks, spills, snow and ice.",
+    "cite": "1910.22"
+   },
+   {
+    "text": "Hazardous conditions must be fixed before anyone uses the surface again; if that can't happen right away, the hazard must be guarded to keep people off it.",
+    "cite": "1910.22"
+   }
+  ],
+  "story_seed": "A forklift was leaking hydraulic oil near a doorway. A worker stepped in the puddle and slipped, but caught the door frame, and then placed cones and reported it.",
+  "crew_questions": [
+   "Where are our spill kits and wet floor signs?",
+   "Which leaks around here keep coming back, and who do we tell?"
+  ],
+  "references": [
+   "1910.22"
+  ]
+ },
+ {
+  "slug": "winter-walkways",
+  "title": "Ice and snow on walkways",
+  "category": "Walking surfaces",
+  "months": [
+   12,
+   1,
+   2
+  ],
+  "hazard": "Ice, snow and slush on walkways, docks and entrances can cause hard falls, and wet tracked-in water makes indoor floors slippery.",
+  "key_points": [
+   "Walk slowly with short steps on icy surfaces, and keep your hands free.",
+   "Use handrails and the cleared, treated paths.",
+   "Wear footwear with good grip, and use ice cleats if your site provides them.",
+   "Report icy spots, drips and snow buildup at doors and docks.",
+   "Wipe feet and watch for wet floors just inside entrances."
+  ],
+  "must_say": [
+   "Report ice right away, and take the cleared path even if it is longer."
+  ],
+  "never_say": [
+   "Ice is only dangerous when it looks shiny.",
+   "Hands in pockets keep you warm and steady.",
+   "Shortcuts over snowbanks are fine."
+  ],
+  "facts": [
+   {
+    "text": "Walking-working surfaces must be kept free of hazards such as snow and ice.",
+    "cite": "1910.22"
+   },
+   {
+    "text": "Hazardous walking surfaces must be fixed before use, or guarded to keep workers off until they are fixed.",
+    "cite": "1910.22"
+   }
+  ],
+  "story_seed": "On an early shift, a worker started to cut across the parking lot instead of using the salted walk. Their foot slid on black ice, and they grabbed a car mirror, then went back to the cleared path.",
+  "crew_questions": [
+   "Where does ice or snow build up first at our site?",
+   "Who do we call when a walkway or dock needs salt or plowing?"
+  ],
+  "references": [
+   "1910.22"
+  ]
+ },
+ {
+  "slug": "stairs-handrails",
+  "title": "Stairs and handrails",
+  "category": "Walking surfaces",
+  "months": [],
+  "hazard": "Missing a step, carrying loads that block your view, or not holding the rail can lead to falls on stairs.",
+  "key_points": [
+   "Use the handrail every time you go up or down.",
+   "Keep one hand free for the rail; get help with large or heavy loads.",
+   "Watch your step and don't use your phone on stairs.",
+   "Keep stairs clear of boxes, tools and spills.",
+   "Report loose rails, damaged treads and poor lighting."
+  ],
+  "must_say": [
+   "Hold the handrail on every stairway, every time."
+  ],
+  "never_say": [
+   "Handrails are only for older workers.",
+   "You can carry boxes on stairs as long as you can see over them.",
+   "Running on stairs is fine when you're in a hurry."
+  ],
+  "facts": [
+   {
+    "text": "Each flight of stairs with at least 3 treads and at least 4 risers must have stair rail systems and handrails.",
+    "cite": "1910.28"
+   },
+   {
+    "text": "Handrails must withstand a force of at least 200 pounds applied downward or outward.",
+    "cite": "1910.29"
+   },
+   {
+    "text": "Stairs must have uniform riser heights and tread depths between landings.",
+    "cite": "1910.25"
+   }
+  ],
+  "story_seed": "A worker carried two cases down a stairway, so they couldn't see the steps or hold the rail. They missed the bottom step and caught themselves on the wall.",
+  "crew_questions": [
+   "Which stairs at our site are hard to use safely, and why?",
+   "How do we move materials between floors without carrying them on stairs?"
+  ],
+  "references": [
+   "1910.28",
+   "1910.29",
+   "1910.25"
+  ]
+ },
+ {
+  "slug": "housekeeping",
+  "title": "Housekeeping that prevents injuries",
+  "category": "Walking surfaces",
+  "months": [],
+  "hazard": "Spills, clutter, and loose material on floors and in aisles cause slips, trips, and falls, and can block exits and emergency equipment.",
+  "key_points": [
+   "Clean up a small spill right away only if you know what it is and it is safe; otherwise block it off and report it.",
+   "Keep aisles, walkways, and exits clear of pallets, hoses, cords, and scrap.",
+   "Put tools and materials back where they belong when you finish with them.",
+   "Report loose boards, holes, leaks, and damaged floors so they get fixed.",
+   "Keep the space in front of fire extinguishers, eyewash stations, and electrical panels clear.",
+   "Never walk past a hazard you could safely fix or report."
+  ],
+  "must_say": [
+   "If you see a spill, block it off and report it. Clean it only if you know it is safe."
+  ],
+  "never_say": [
+   "Housekeeping is the cleaning crew's job, not yours.",
+   "A small spill can wait until the end of the shift.",
+   "It's fine to leave things in an aisle for a little while."
+  ],
+  "facts": [
+   {
+    "text": "Workplaces, passageways, and storerooms must be kept clean and orderly. Walking surfaces must be kept free of hazards like sharp or sticking-out objects, loose boards, leaks, and spills.",
+    "cite": "1910.22(a)"
+   },
+   {
+    "text": "Floors must be kept clean and, as far as possible, dry. Where wet processes are used, drains must be kept working and dry places to stand, like mats or platforms, provided where possible.",
+    "cite": "1910.22(a)(2)"
+   },
+   {
+    "text": "A hazard on a walking surface must be fixed before anyone uses that surface again. If it cannot be fixed right away, it must be guarded so no one uses it.",
+    "cite": "1910.22(d)(2)"
+   }
+  ],
+  "story_seed": "A worker carrying a box down an aisle stepped on a strip of shrink wrap lying on a wet spot and caught themselves on a rack. The wrap had been there since the shift before.",
+  "crew_questions": [
+   "Where on our floor do spills or clutter show up most, and why?",
+   "What gets in the way of keeping our aisles and exits clear?"
+  ],
+  "references": [
+   "1910.22"
+  ]
+ },
+ {
+  "slug": "forklift-preshift",
+  "title": "Forklift pre-shift check",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "A forklift with bad brakes, steering, forks, horn, or a leak can lose control, drop a load, or hit someone.",
+  "key_points": [
+   "Check the forklift before you use it each shift, using your site's checklist.",
+   "Look at the forks, chains, mast, tires, and overhead guard for cracks, damage, or wear.",
+   "Test the brakes, steering, horn, lights, and backup alarm before you move a load.",
+   "Look for leaks of oil, fuel, hydraulic fluid, or battery acid under and around the truck.",
+   "Tag the forklift out of service and tell your supervisor if anything is wrong.",
+   "Never drive a forklift with a fuel leak or any problem that affects safe use."
+  ],
+  "must_say": [
+   "If the check finds a problem, the forklift does not run. Tag it out and report it."
+  ],
+  "never_say": [
+   "If you're running late, you can skip the check this one time.",
+   "A small hydraulic leak is fine as long as the forks still lift.",
+   "Only maintenance needs to look the truck over."
+  ],
+  "facts": [
+   {
+    "text": "Forklifts must be examined before being placed in service, at least daily. Where they are used around the clock, they must be examined after each shift. Defects must be reported right away and corrected.",
+    "cite": "1910.178(q)(7)"
+   },
+   {
+    "text": "A forklift that needs repair, is defective, or is unsafe in any way must be taken out of service until it is fixed.",
+    "cite": "1910.178(p)(1)"
+   },
+   {
+    "text": "No truck may be operated with a leak in the fuel system until the leak is fixed.",
+    "cite": "1910.178(p)(4)"
+   }
+  ],
+  "story_seed": "During a pre-shift check, an operator found the horn did not work and a hydraulic hose was weeping fluid. They tagged the truck out, and the hose later split on the repair stand instead of under a raised load.",
+  "crew_questions": [
+   "What problems have our pre-shift checks caught lately?",
+   "What makes it hard to do a full check at the start of a shift here?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "forklift-training",
+  "title": "Forklift training and evaluation",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "Untrained or out-of-practice drivers can tip a forklift, drop a load, or strike someone on foot.",
+  "key_points": [
+   "Never drive a forklift until you are trained, evaluated, and authorized by your site.",
+   "Drive only the types of trucks and attachments you were trained and evaluated on.",
+   "Speak up if you are asked to drive a truck you have not been trained on.",
+   "Ask for refresher training when you get a new truck type or attachment, or when your work area changes.",
+   "Follow what your training taught about this site's ramps, aisles, loads, and walkways."
+  ],
+  "must_say": [
+   "If you have not been trained and evaluated on that truck, do not drive it."
+  ],
+  "never_say": [
+   "If you can drive a car, you can drive a forklift.",
+   "Training on one kind of truck means you can drive any truck here.",
+   "A quick lap around the lot counts as training."
+  ],
+  "facts": [
+   {
+    "text": "Before anyone drives a forklift on the job, they must complete training and an evaluation. Trainees may drive only under direct supervision of a qualified trainer, and only where it does not put anyone in danger.",
+    "cite": "1910.178(l)"
+   },
+   {
+    "text": "Refresher training is required in several cases, including when an operator is assigned to a different type of truck or a change in the workplace affects safe driving.",
+    "cite": "1910.178(l)(4)(ii)"
+   },
+   {
+    "text": "Each operator's driving must be evaluated at least once every three years.",
+    "cite": "1910.178(l)(4)(iii)"
+   }
+  ],
+  "story_seed": "A new hire was asked to \"just move one pallet\" with a stand-up reach truck they had never driven. They said they were not trained on it, and a trained operator moved it instead.",
+  "crew_questions": [
+   "Which trucks or attachments here are you trained on, and which are you not?",
+   "What should someone do here if they are asked to drive something they are not trained on?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "forklift-parking",
+  "title": "Parking a forklift",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "A forklift left with raised forks, power on, or brakes off can roll, be bumped into, or trip and strike people walking by.",
+  "key_points": [
+   "Fully lower the forks to the floor every time you get off the truck.",
+   "Put the controls in neutral and set the brake before you step off.",
+   "Shut off the power when you walk away or lose sight of the truck.",
+   "Block the wheels if you must park on a slope.",
+   "Park only in approved spots, never in aisles, exits, or in front of fire equipment or stairways.",
+   "Follow your site's rules for keys so no one untrained can drive it."
+  ],
+  "must_say": [
+   "Every time you leave the truck: forks down, controls in neutral, brake set."
+  ],
+  "never_say": [
+   "It's fine to leave the forks up if you'll be right back.",
+   "Parking in the aisle is fine for a quick break.",
+   "You can leave it running while you step away."
+  ],
+  "facts": [
+   {
+    "text": "A forklift is unattended when the operator is 25 ft or more away, or cannot see it. Then the forks must be fully lowered, controls put in neutral, power shut off, and brakes set. Wheels must be blocked on an incline.",
+    "cite": "1910.178(m)(5)"
+   },
+   {
+    "text": "When the operator is off the truck but within 25 ft and can still see it, the forks must be fully lowered, controls put in neutral, and brakes set.",
+    "cite": "1910.178(m)(5)(iii)"
+   },
+   {
+    "text": "Fire aisles, access to stairways, and fire equipment must be kept clear.",
+    "cite": "1910.178(m)(14)"
+   }
+  ],
+  "story_seed": "An operator hopped off to grab paperwork and left the forks raised at chest height in a walkway. A coworker carrying a box around the end of a rack nearly walked into the fork tips.",
+  "crew_questions": [
+   "Where do people tend to park forklifts here when they are in a hurry?",
+   "Do we have enough marked parking spots, and are they in the right places?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "forklift-pedestrians",
+  "title": "Pedestrians and forklifts",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "Forklifts are heavy, can be quiet, and are hard to see around, so people on foot can be struck, pinned, or crushed.",
+  "key_points": [
+   "Walk only in marked walkways, and cross aisles at marked crossings where your site has them.",
+   "Stop and make eye contact with the driver before you cross in front of a forklift.",
+   "Never walk or stand under raised forks, loaded or empty.",
+   "Drivers: slow down and sound the horn at cross aisles, doorways, and blind corners.",
+   "Drivers: travel with the load trailing when it blocks your view ahead.",
+   "Never ride on a forklift unless there is a safe place to ride and you are authorized."
+  ],
+  "must_say": [
+   "Never walk or stand under raised forks.",
+   "Make eye contact with the driver before you cross in front of a forklift."
+  ],
+  "never_say": [
+   "Pedestrians always have the right of way, so forklifts will stop for you.",
+   "A backup alarm means the driver sees you.",
+   "Wearing a bright vest means drivers will always see you."
+  ],
+  "facts": [
+   {
+    "text": "No one may stand or pass under the raised part of any truck, loaded or empty.",
+    "cite": "1910.178(m)(2)"
+   },
+   {
+    "text": "Drivers must slow down and sound the horn at cross aisles and other places where they cannot see. If the load blocks the view ahead, they must travel with the load trailing.",
+    "cite": "1910.178(n)(4)"
+   },
+   {
+    "text": "Trucks must not be driven up to anyone standing in front of a bench or other fixed object.",
+    "cite": "1910.178(m)(1)"
+   }
+  ],
+  "story_seed": "A worker stepped out from between two racks while reading a pick list just as a forklift came around the end of the aisle. The driver had slowed and sounded the horn, and both stopped in time.",
+  "crew_questions": [
+   "Where on our site do people on foot and forklifts cross paths the most?",
+   "What blind spots or shortcuts do you see people use here?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "forklift-loads",
+  "title": "Forklift loads and tip-overs",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "Overloaded, off-balance, or raised loads can make a forklift tip over or drop a load, and a tip-over can crush the driver.",
+  "key_points": [
+   "Check the capacity plate and never lift more than the truck is rated for.",
+   "Carry loads low, tilted back, and only high enough to clear the floor.",
+   "On ramps and slopes, keep the load on the uphill side.",
+   "Slow down for turns and turn the wheel smoothly.",
+   "Tilt a raised load forward only when it is over the rack or stack where you are setting it down.",
+   "On a sit-down truck, wear your seatbelt; if it tips, never jump: stay in, hold on, lean away. Stand-up trucks: follow your training."
+  ],
+  "must_say": [
+   "If a sit-down forklift starts to tip, do not jump. Stay in, hold on, and lean away."
+  ],
+  "never_say": [
+   "If the forklift starts to tip, jump clear.",
+   "Every kind of forklift uses the same move to escape a tip-over.",
+   "Carrying the load high helps you see under it."
+  ],
+  "facts": [
+   {
+    "text": "Only stable or safely arranged loads, within the truck's rated capacity, may be handled. Use caution with off-center loads that cannot be centered.",
+    "cite": "1910.178(o)(1)"
+   },
+   {
+    "text": "On grades over 10 percent, loaded trucks must be driven with the load upgrade. On all grades, the load must be tilted back if possible and raised only enough to clear the road surface.",
+    "cite": "1910.178(n)(7)"
+   },
+   {
+    "text": "Tilting forward with the forks raised is not allowed except to pick up a load. A raised load may be tilted forward only when it is in place over a rack or stack.",
+    "cite": "1910.178(o)(6)"
+   }
+  ],
+  "story_seed": "An operator picked up a pallet of mixed parts that was heavier on one side and started up the dock ramp with the load raised to see over it. The back of the truck felt light, so they stopped, lowered the load, and had it restacked.",
+  "crew_questions": [
+   "Which loads here are hardest to keep stable, and why?",
+   "Where are the ramps, slopes, or rough floors that make tip-overs more likely?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "battery-charging",
+  "title": "Battery charging and propane changes",
+  "category": "Forklifts",
+  "months": [],
+  "hazard": "Charging batteries give off flammable gas and contain acid that burns skin and eyes, and leaking propane can catch fire or explode.",
+  "key_points": [
+   "If acid hits your eyes or skin, flush at the eyewash or shower now, call for help, and keep flushing until help says stop.",
+   "If you smell propane or hear a hiss, move away, keep others back, do not start or switch anything on, and report it.",
+   "Charge batteries or change propane tanks only if you are trained, and follow your site's procedure.",
+   "Park in the charging or fueling area, set the brake, and shut the truck off before you start.",
+   "Never smoke, use open flames, or make sparks near charging batteries or propane, and keep tools off battery tops.",
+   "Wear the eye, face, and hand protection your site requires for this job."
+  ],
+  "must_say": [
+   "No smoking, flames, or sparks near charging batteries or propane.",
+   "Shut the truck off and set the brake before charging or changing fuel."
+  ],
+  "never_say": [
+   "You can charge a forklift battery anywhere there is an outlet.",
+   "Pour water into acid to dilute it.",
+   "It's fine to change a propane tank with the engine running."
+  ],
+  "facts": [
+   {
+    "text": "Battery charging must be done in areas set aside for it, with ways to flush and neutralize spilled battery acid, fire protection, and enough ventilation to clear battery fumes.",
+    "cite": "1910.178(g)"
+   },
+   {
+    "text": "Smoking is banned in the charging area, open flames, sparks, and electric arcs must be prevented, and tools and other metal objects must be kept off the top of uncovered batteries.",
+    "cite": "1910.178(g)"
+   },
+   {
+    "text": "The truck must be in position with the brake set before changing or charging batteries. Fuel tanks must not be filled while the engine is running.",
+    "cite": "1910.178"
+   }
+  ],
+  "story_seed": "An operator about to swap a propane tank noticed a hissing sound and frost forming at the valve on the new tank. They stopped, moved away, kept others back, and called their supervisor.",
+  "crew_questions": [
+   "Where are our charging and fueling areas, and what do we keep near them that should not be there?",
+   "Where is the nearest eyewash to the charging area, and does it work?"
+  ],
+  "references": [
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "pallet-jacks",
+  "title": "Pallet jacks",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "Pallet jacks can crush feet, pin people against racks, walls, or trailers, and strain backs and shoulders when loads are heavy.",
+  "key_points": [
+   "Check the jack before use: wheels, handle, forks, brakes, and controls. Tag out and report anything broken.",
+   "Keep your feet and other people clear of the wheels and forks.",
+   "Use a powered pallet jack only if you are trained and authorized to use it.",
+   "Go slow at corners, doorways, and blind spots, and follow your site's rules for ramps and dock plates.",
+   "Never ride on a walk-behind pallet jack or use it to carry people.",
+   "Lower the forks fully and park the jack out of walkways when you are done."
+  ],
+  "must_say": [
+   "Keep your feet and other people clear of the wheels and forks."
+  ],
+  "never_say": [
+   "Riding on a walk-behind pallet jack is fine if you go slow.",
+   "Anyone can use a powered pallet jack without training.",
+   "You can move any load with a pallet jack if you go slowly."
+  ],
+  "facts": [],
+  "story_seed": "A worker backing a powered pallet jack out of a trailer felt their heel come close to the drive wheel near the trailer wall. They let go of the control, stopped, and changed their position before moving again.",
+  "crew_questions": [
+   "Where do pallet jacks and people get squeezed into tight spaces here?",
+   "What loads do we move by pallet jack that are really too heavy or awkward for it?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "manual-lifting",
+  "title": "Lifting without hurting your back",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "Lifting, twisting, and carrying loads the wrong way strains backs, shoulders, and knees, and the damage can build up over time.",
+  "key_points": [
+   "Size up the load first: test the weight, check for sharp edges, and plan your path.",
+   "Use a cart, hoist, lift table, or pallet jack when one is available.",
+   "Get close to the load, bend your knees, keep your back straight, and lift with your legs.",
+   "Keep the load close to your body and between your shoulders and knees when you can.",
+   "Turn with your feet instead of twisting your back.",
+   "Report pain or numbness early, before it becomes a bigger injury."
+  ],
+  "must_say": [
+   "If a load is too heavy or awkward, stop and get help or a lifting aid."
+  ],
+  "never_say": [
+   "If you lift with your legs, any weight is safe.",
+   "A back belt lets you lift more safely.",
+   "Pain is normal, just push through it."
+  ],
+  "facts": [],
+  "story_seed": "A worker reached deep into a bin to pull out a heavy box and felt a twinge in their lower back. They stopped, asked a coworker to help tip the bin, and reported the twinge to their supervisor.",
+  "crew_questions": [
+   "Which lifts here feel the hardest on your body?",
+   "Where could a cart, lift table, or other aid make a lift easier?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "team-lifts",
+  "title": "Team lifts and asking for help",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "Loads that are too heavy, long, or awkward for one person cause strains, dropped loads, and crushed hands and feet, and a team lift without a plan can go wrong fast.",
+  "key_points": [
+   "Ask for help before you lift something too heavy, long, or awkward for one person.",
+   "Pick one person to call the lift, and agree on the plan and path before you start.",
+   "Clear the path and check for doors, steps, and tight spots first.",
+   "Lift, move, and set down together on the leader's count.",
+   "Say \"stop\" if anyone loses grip or footing, and set the load down together.",
+   "Use a cart, hoist, or other lifting aid instead of a team lift when one is available."
+  ],
+  "must_say": [
+   "If a load is too much for you, stop and ask for help.",
+   "One person calls the lift, and everyone moves together."
+  ],
+  "never_say": [
+   "Asking for help slows the job down, so just do it yourself.",
+   "On a team lift, everyone can lift when they're ready.",
+   "Adding more people makes any load safe."
+  ],
+  "facts": [],
+  "story_seed": "Two workers carrying a long steel panel reached a doorway, and one turned without warning. The other felt the panel pull and called \"stop\", and they set it down and planned the turn before going on.",
+  "crew_questions": [
+   "What loads here should always be team lifts or use a lifting aid?",
+   "What makes people here not ask for help, and how can we change that?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "stacking-storage",
+  "title": "Stacking and storage",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "Unstable stacks and overloaded or damaged racks can collapse or drop items onto people, and storage in aisles causes trips and blocks exits.",
+  "key_points": [
+   "If a stack or rack starts to lean or fall, get clear, warn others, and never try to catch it.",
+   "Stack heavy items low and lighter items higher, and keep stacks square and stable.",
+   "Never load a rack or shelf beyond its marked capacity or above the height your site allows.",
+   "Never climb racks or shelves; use an approved ladder or lift.",
+   "Report damaged racks, bent uprights, or leaning stacks, and keep people away from them.",
+   "Keep aisles, exits, and fire equipment clear of stored materials."
+  ],
+  "must_say": [
+   "Report a damaged rack or leaning stack and keep people away from it."
+  ],
+  "never_say": [
+   "If a stack leans a little, just push it back into place.",
+   "Climbing a rack is fine for a quick grab.",
+   "It's fine to use an aisle for extra storage for a day."
+  ],
+  "facts": [
+   {
+    "text": "Materials stored in tiers must be stacked, blocked, interlocked, and limited in height so they are stable and won't slide or collapse.",
+    "cite": "1910.176(b)"
+   },
+   {
+    "text": "Aisles and passageways must be kept clear and in good repair, with nothing in or across them that could create a hazard.",
+    "cite": "1910.176(a)"
+   },
+   {
+    "text": "Storage areas must be kept free of piled-up materials that create trip, fire, explosion, or pest hazards.",
+    "cite": "1910.176(c)"
+   }
+  ],
+  "story_seed": "A worker noticed a rack upright had been bent by a forklift and the shelf above was sagging under a full pallet. They roped off the bay and reported it before anyone pulled stock from it.",
+  "crew_questions": [
+   "Where do stacks or racks look unstable or damaged here?",
+   "Where does stored material creep into aisles or in front of exits?"
+  ],
+  "references": [
+   "1910.176"
+  ]
+ },
+ {
+  "slug": "overhead-cranes",
+  "title": "Overhead crane basics",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "A dropped, swinging, or overloaded crane load can crush or strike people, and a failed hook, chain, or rope can let a load fall without warning.",
+  "key_points": [
+   "Run a crane only if you are trained and designated to operate it.",
+   "Check the crane before use with your site's checklist, and report damaged hooks, chains, ropes, or controls.",
+   "Know the load's weight and never lift more than the crane's marked rated load.",
+   "Lift the load just a few inches first to check balance and rigging before going higher.",
+   "Never carry a load over people; sound the warning and wait for the path to clear.",
+   "Never leave the controls while a load is hanging."
+  ],
+  "must_say": [
+   "Never carry a load over people, and never leave the controls with a load hanging."
+  ],
+  "never_say": [
+   "It's fine to move a load over people if you go slow.",
+   "The upper limit switch can be used as a normal stop.",
+   "Anyone who has watched it done can run the crane."
+  ],
+  "facts": [
+   {
+    "text": "Only designated people may operate a crane.",
+    "cite": "1910.179(b)(8)"
+   },
+   {
+    "text": "A crane must not be loaded beyond its rated load, and the rated load must be marked on each side of the crane so it can be read from the floor.",
+    "cite": "1910.179"
+   },
+   {
+    "text": "The operator must avoid carrying loads over people, must sound the warning signal when the load or hook nears or goes over people, and must not leave the controls while a load is hanging.",
+    "cite": "1910.179(n)(3)"
+   }
+  ],
+  "story_seed": "A crane operator was moving a die across the bay when a worker stepped into the path from behind a machine. The operator stopped, sounded the warning, and waited for the worker to clear before moving on.",
+  "crew_questions": [
+   "Where do crane loads travel near where people work or walk here?",
+   "What problems have come up in our crane checks, and were they fixed?"
+  ],
+  "references": [
+   "1910.179"
+  ]
+ },
+ {
+  "slug": "slings-rigging",
+  "title": "Slings and rigging",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "A damaged, overloaded, or badly rigged sling can break or slip and drop the load, and hands can be crushed between a sling and the load.",
+  "key_points": [
+   "Inspect slings and hardware before each use, and take damaged ones out of service.",
+   "Never use a sling with a missing or unreadable tag.",
+   "Never tie knots in a sling or shorten it with bolts or other makeshift fixes.",
+   "Pad slings where they wrap around sharp edges.",
+   "Keep hands and fingers out from between the sling and the load as it tightens.",
+   "Never pull a sling out from under a load that is resting on it."
+  ],
+  "must_say": [
+   "If a sling is damaged or has no readable tag, do not use it."
+  ],
+  "never_say": [
+   "A knot is a fine way to shorten a sling.",
+   "A small cut in a web sling is okay if the load is light.",
+   "You can guide the load by holding the sling as it tightens."
+  ],
+  "facts": [
+   {
+    "text": "Each day before use, slings and all fastenings and attachments must be inspected for damage by a competent person chosen by the employer. Damaged or defective slings must be removed from service right away.",
+    "cite": "1910.184(d)"
+   },
+   {
+    "text": "Slings must not be shortened with knots, bolts, or other makeshift devices, and must not be loaded beyond their rated capacity.",
+    "cite": "1910.184(c)"
+   },
+   {
+    "text": "Slings without attached, readable identification markings must not be used.",
+    "cite": "1910.184(c)(14)"
+   }
+  ],
+  "story_seed": "While rigging a motor for a lift, a worker found a web sling with a cut edge and a worn-off tag. They set it aside, tagged it out, and got a good sling from the rigging rack.",
+  "crew_questions": [
+   "Where do we keep slings here, and how do damaged ones get taken out of use?",
+   "Which of our loads have sharp edges that need padding?"
+  ],
+  "references": [
+   "1910.184"
+  ]
+ },
+ {
+  "slug": "suspended-loads",
+  "title": "Never under a suspended load",
+  "category": "Material handling",
+  "months": [],
+  "hazard": "A load hanging from a crane or hoist can fall, swing, or shift at any moment and crush anyone under it or in its path.",
+  "key_points": [
+   "Never walk or stand under a suspended load, even for a moment.",
+   "Stay out of the path the load will travel and out of the area where it could fall or swing.",
+   "Stop the lift and warn people if anyone walks into the lift area.",
+   "Never ride on a load or a hook.",
+   "Guide loads the way your site's procedure says, such as with a tag line, and keep your body out of pinch points.",
+   "Keep barricades and lift zones in place until the load is set down."
+  ],
+  "must_say": [
+   "Never walk or stand under a suspended load."
+  ],
+  "never_say": [
+   "It's okay to pass under a load if you're quick.",
+   "If you know where the load is going, you can stand close to it.",
+   "Riding the hook is fine for a short move."
+  ],
+  "facts": [
+   {
+    "text": "All employees must be kept clear of loads about to be lifted and of suspended loads.",
+    "cite": "1910.184(c)(9)"
+   },
+   {
+    "text": "The crane operator must avoid carrying loads over people.",
+    "cite": "1910.179(n)(3)(vi)"
+   },
+   {
+    "text": "While anyone is on the load or hook, there must be no hoisting, lowering, or traveling.",
+    "cite": "1910.179(n)(3)(v)"
+   }
+  ],
+  "story_seed": "A worker took a shortcut across the bay while a crane was moving a steel coil overhead. A coworker shouted, the operator stopped, and the worker backed out before the load passed over.",
+  "crew_questions": [
+   "Where are the lift paths in our area, and how do people know when a lift is happening?",
+   "When do people here feel pushed to take a shortcut under or near a load?"
+  ],
+  "references": [
+   "1910.179",
+   "1910.184"
+  ]
+ },
+ {
+  "slug": "electrical-panels",
+  "title": "Keep electrical panels clear",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "Blocked or damaged electrical panels slow down shutting off power in an emergency and can expose people to shock, burns, and arc flash.",
+  "key_points": [
+   "If a panel is smoking, sparking, or smells like burning, stay back, keep others away, and call for help.",
+   "Keep the floor space in front of electrical panels clear of carts, pallets, boxes, and trash.",
+   "Never store or stack anything in front of or against a panel, even for a short time.",
+   "Keep panel doors closed and report missing covers or open holes.",
+   "Report breaker and disconnect labels that are missing or hard to read.",
+   "Never reset a breaker that keeps tripping; report it to a qualified person."
+  ],
+  "must_say": [
+   "Keep the space in front of every electrical panel clear, all the time."
+  ],
+  "never_say": [
+   "It's fine to park a cart in front of a panel for a little while.",
+   "If a breaker trips, keep resetting it until it holds.",
+   "A missing panel cover is fine if you're careful."
+  ],
+  "facts": [
+   {
+    "text": "The working space in front of electrical equipment may not be used for storage.",
+    "cite": "1910.303(g)(1)(ii)"
+   },
+   {
+    "text": "The working space in front of electrical equipment must be at least as wide as the equipment or 30 inches, whichever is more, and must let equipment doors open at least 90 degrees.",
+    "cite": "1910.303(g)(1)(i)(B)"
+   },
+   {
+    "text": "Each disconnect and circuit must be clearly marked to show what it is for, unless its purpose is obvious.",
+    "cite": "1910.303(f)"
+   }
+  ],
+  "story_seed": "During a power problem, a maintenance tech had to move a stack of boxed parts before reaching the panel to shut off a machine. The parts had been put there \"just for the day\" a week earlier.",
+  "crew_questions": [
+   "Which panels in our area get blocked most often, and by what?",
+   "Can you find and reach the disconnect for the machine you run?"
+  ],
+  "references": [
+   "1910.303"
+  ]
+ },
+ {
+  "slug": "extension-cords",
+  "title": "Extension cords",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "Damaged or misused extension cords can shock people, start fires, and cause trips.",
+  "key_points": [
+   "Check each cord before use for cuts, crushed spots, missing ground pins, and loose plugs.",
+   "Take damaged cords out of service; never tape over a cut or broken jacket.",
+   "Never run cords through doorways, windows, or holes in walls, or use them as permanent wiring.",
+   "Keep cords out of walkways and traffic, or protect them so they are not run over or tripped on.",
+   "Use a cord rated for the job and the location, including outdoor or wet areas.",
+   "Never remove a ground pin or use an adapter that breaks the ground."
+  ],
+  "must_say": [
+   "If a cord is cut, crushed, or missing a ground pin, take it out of service."
+  ],
+  "never_say": [
+   "Electrical tape makes a damaged cord safe again.",
+   "It's fine to cut off the ground pin to fit an old outlet.",
+   "Extension cords can be used as permanent wiring if they're taped down."
+  ],
+  "facts": [
+   {
+    "text": "Flexible cords may not be used in place of permanent building wiring, run through holes in walls, ceilings, or floors, run through doorways or windows, attached to building surfaces, or hidden behind walls, ceilings, or floors.",
+    "cite": "1910.305(g)(1)(iv)"
+   },
+   {
+    "text": "Cords must be connected to devices and fittings with strain relief, so a pull on the cord does not pull directly on joints or terminal screws.",
+    "cite": "1910.305(g)(2)(iii)"
+   },
+   {
+    "text": "Extension cords must be visually inspected before use on any shift for loose parts, bent or missing pins, damage to the outer jacket, and signs of inside damage like pinched or crushed spots.",
+    "cite": "1910.334(a)(2)(i)"
+   }
+  ],
+  "story_seed": "A worker found an extension cord running under a closed door to power a fan, with the jacket crushed flat where the door pinched it. They unplugged it, tagged it out, and asked maintenance about a proper outlet.",
+  "crew_questions": [
+   "Where do we use extension cords here that should really be permanent outlets?",
+   "Where do cords cross walkways or get run over?"
+  ],
+  "references": [
+   "1910.305",
+   "1910.334"
+  ]
+ },
+ {
+  "slug": "qualified-electrical",
+  "title": "Qualified and unqualified: who touches live parts",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "Touching or getting too close to live electrical parts can cause shock, burns, and death, and untrained workers may not see the danger.",
+  "key_points": [
+   "If someone is being shocked, do not touch them; shut off the power if you safely can and call 911.",
+   "Never open electrical panels or work on live parts unless you are trained and authorized as a qualified person.",
+   "Never bypass or defeat an electrical interlock or guard.",
+   "Never reach blindly into a space that might have live parts.",
+   "Stay out of areas marked with barricades or signs for electrical work.",
+   "Treat wires and parts as live until a qualified person says otherwise, and report problems to them."
+  ],
+  "must_say": [
+   "If you are not qualified, do not touch it. Call a qualified person.",
+   "If someone is being shocked, do not touch them. Shut off power if you can and call 911."
+  ],
+  "never_say": [
+   "Low voltage can't hurt you, so anyone can work on it.",
+   "If you've done wiring at home, you can do it here.",
+   "You can pull a person off a live wire if you're quick."
+  ],
+  "facts": [
+   {
+    "text": "Only qualified persons may work on electrical parts or equipment that have not been deenergized and locked out or tagged.",
+    "cite": "1910.333(c)(2)"
+   },
+   {
+    "text": "Qualified persons must be trained to tell exposed live parts from other parts, to find the voltage of live parts, and to know the required clearance distances.",
+    "cite": "1910.332(b)(3)"
+   },
+   {
+    "text": "Only a qualified person following energized-work rules may defeat an electrical safety interlock, and only for the time they are working on the equipment.",
+    "cite": "1910.333(c)(10)"
+   }
+  ],
+  "story_seed": "A machine stopped mid-shift and an operator reached for the control cabinet door to \"just check a fuse.\" A coworker stopped them, and they called the on-shift electrician instead.",
+  "crew_questions": [
+   "Who are the qualified electrical people on our shift, and how do we reach them?",
+   "Where are people tempted to open a panel or bypass an interlock to keep running?"
+  ],
+  "references": [
+   "1910.332",
+   "1910.333"
+  ]
+ },
+ {
+  "slug": "damaged-cords-tools",
+  "title": "Damaged cords and power tools",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "A damaged cord or power tool can shock or burn the user, start a fire, or fail in a way that injures the user.",
+  "key_points": [
+   "If a tool shocks you, sparks, or smokes, stop, unplug it if it is safe to, and report it.",
+   "Look over every cord and power tool before you use it each shift.",
+   "Tag out any cord or tool with cuts, crushed spots, bent or missing pins, cracked housings, or loose parts.",
+   "Never lift, lower, or drag a tool by its cord.",
+   "Never staple cords or hang them in a way that could damage them.",
+   "Never use a tool with its ground pin removed or its guard missing."
+  ],
+  "must_say": [
+   "If a cord or tool is damaged, tag it out and do not use it."
+  ],
+  "never_say": [
+   "Tape fixes a cut cord.",
+   "A small tingle from a tool is normal.",
+   "You can carry a drill by its cord."
+  ],
+  "facts": [
+   {
+    "text": "Cord-and-plug tools and extension cords must be visually inspected before use on any shift for loose parts, bent or missing pins, damage to the outer jacket, and signs of inside damage like pinched or crushed spots.",
+    "cite": "1910.334(a)(2)(i)"
+   },
+   {
+    "text": "If a cord or tool has a defect that could hurt someone, it must be removed from service and no one may use it until it is repaired and tested.",
+    "cite": "1910.334(a)(2)(ii)"
+   },
+   {
+    "text": "Cords may not be used to raise or lower equipment, and may not be stapled or hung in a way that could damage the jacket or insulation.",
+    "cite": "1910.334(a)(1)"
+   }
+  ],
+  "story_seed": "A worker picked up a grinder and noticed the cord jacket was split near the handle with the inner wires showing. They tagged it out and got another grinder from the tool crib.",
+  "crew_questions": [
+   "How do damaged tools get tagged out and replaced here?",
+   "Which tools or cords in our area get beat up the most, and why?"
+  ],
+  "references": [
+   "1910.334"
+  ]
+ },
+ {
+  "slug": "wet-locations",
+  "title": "Electricity and water",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "Water lets electricity flow through your body much more easily, so wet floors, wet hands, and wet equipment greatly raise the risk of serious shock.",
+  "key_points": [
+   "If someone is shocked near water, do not touch them or step into the water; shut off power if you safely can and call 911.",
+   "Keep cords, plugs, and tools out of water and off wet floors.",
+   "Dry your hands before you plug in or unplug anything.",
+   "Use only tools and cords approved for wet areas, plugged into ground-fault protection (GFCI) as your site's procedure says.",
+   "Report water near panels, outlets, or machines, and lock out equipment before washdown as your site's procedure says.",
+   "Stop using any tool or cord that gets wet and have it checked before using it again."
+  ],
+  "must_say": [
+   "Never plug in or unplug anything with wet hands."
+  ],
+  "never_say": [
+   "Rubber boots make it safe to work with electricity in water.",
+   "A tool that got wet is fine once it looks dry.",
+   "It's okay to hose down a machine's control panel while it's running."
+  ],
+  "facts": [
+   {
+    "text": "Unless they are identified for use there, electrical wiring and equipment may not be located in damp or wet locations.",
+    "cite": "1910.303(b)(6)"
+   },
+   {
+    "text": "Portable tools and cords used where workers are likely to contact water or other conductive liquids must be approved for those locations.",
+    "cite": "1910.334(a)(4)"
+   },
+   {
+    "text": "Hands may not be wet when plugging and unplugging energized cords and equipment.",
+    "cite": "1910.334(a)(5)(i)"
+   }
+  ],
+  "story_seed": "During a washdown, a worker noticed a portable fan plugged into an outlet near the floor with water pooling around the cord. They stopped spraying, had the circuit shut off, and moved the fan once power was off.",
+  "crew_questions": [
+   "Where in our area do water and electricity come close together?",
+   "What is our site's procedure for washdown around electrical equipment?"
+  ],
+  "references": [
+   "1910.303",
+   "1910.334"
+  ]
+ },
+ {
+  "slug": "arc-flash",
+  "title": "Arc flash awareness",
+  "category": "Electrical",
+  "months": [],
+  "hazard": "An arc flash is an electrical explosion that can cause severe burns, blindness, hearing damage, and blast injuries in a split second.",
+  "key_points": [
+   "If an arc flash happens, call 911, keep others back, and do not touch anyone who may still be in contact with equipment.",
+   "Stay out of marked electrical work areas and behind barricades unless you are qualified and authorized.",
+   "Never open a panel or work on live equipment unless you are qualified, authorized, and wearing the protective gear (PPE) your site requires.",
+   "Ask for equipment to be shut off and locked out before work near live parts.",
+   "Remove rings, watches, and other metal jewelry before any electrical work.",
+   "Report panels that buzz, smell hot, or show burn marks, and keep people away."
+  ],
+  "must_say": [
+   "If you are not qualified and authorized, stay back from open electrical equipment."
+  ],
+  "never_say": [
+   "Regular work clothes and safety glasses are enough for any electrical work.",
+   "Arc flash only happens on high-voltage power lines.",
+   "You're safe from arc flash as long as you don't touch anything."
+  ],
+  "facts": [
+   {
+    "text": "Live parts must be deenergized before an employee works on or near them, unless the employer can show that deenergizing creates greater hazards or is not possible.",
+    "cite": "1910.333(a)(1)"
+   },
+   {
+    "text": "Employees must wear eye or face protection wherever there is danger from electric arcs or flashes, or from objects thrown by an electrical explosion.",
+    "cite": "1910.335(a)(1)(v)"
+   },
+   {
+    "text": "Conductive jewelry and clothing, like rings, watch bands, and key chains, may not be worn if they might contact exposed live parts, unless they are made nonconductive.",
+    "cite": "1910.333(c)(8)"
+   }
+  ],
+  "story_seed": "A panel cover was off for troubleshooting and a worker walked up to watch over the electrician's shoulder. The electrician stopped and asked them to stay behind the barricade until the work was done.",
+  "crew_questions": [
+   "Which panels or equipment here are opened most often while live?",
+   "How do we mark off an area when electrical work is going on?"
+  ],
+  "references": [
+   "1910.333",
+   "1910.335"
+  ]
+ },
+ {
+  "slug": "ppe-hazard-assessment",
+  "title": "Why your protective gear (PPE) was chosen",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Wearing the wrong protective gear, damaged gear, or no gear leaves workers open to the hazards the gear was picked to stop.",
+  "key_points": [
+   "Wear the protective gear (PPE) your task requires, every time, for the whole task.",
+   "Ask your supervisor what hazard each piece of gear protects you from.",
+   "Check your gear before each use and replace it if it is damaged or worn out.",
+   "Tell your supervisor if your gear doesn't fit or gets in the way of the job.",
+   "Speak up when a job, chemical, or machine changes so the gear choice can be checked again.",
+   "Use guards, lockout, and other controls first; gear is the last line of defense."
+  ],
+  "must_say": [
+   "If your gear is damaged or does not fit, do not use it. Get a replacement."
+  ],
+  "never_say": [
+   "Any gloves will do for any job.",
+   "If you wear protective gear, you don't need machine guards.",
+   "Damaged gear is better than no gear."
+  ],
+  "facts": [
+   {
+    "text": "The employer must check the workplace for hazards that call for protective gear, pick gear that protects against them, tell each affected worker what was picked, and choose gear that fits each worker.",
+    "cite": "1910.132(d)(1)"
+   },
+   {
+    "text": "Defective or damaged protective gear must not be used.",
+    "cite": "1910.132(e)"
+   },
+   {
+    "text": "Workers must be trained on when gear is needed, what gear is needed, how to put it on, take it off, adjust, and wear it, its limits, and its care. They must show they understand before doing work that needs it.",
+    "cite": "1910.132(f)"
+   }
+  ],
+  "story_seed": "A worker on a new cleaning task kept using the same cloth gloves they wore for boxing parts. A lead asked what the cleaner was, checked the label, and got them chemical-resistant gloves.",
+  "crew_questions": [
+   "Which jobs here have gear that people question or skip, and why?",
+   "Has anything changed in your job lately that might need different gear?"
+  ],
+  "references": [
+   "1910.132"
+  ]
+ },
+ {
+  "slug": "eye-protection",
+  "title": "Eye protection",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Flying chips, dust, chemicals, and bright light can cut, burn, or blind an eye in an instant.",
+  "key_points": [
+   "If a chemical splashes in your eye, get to the eyewash, hold your eyes open, call for help, and keep flushing until help says stop.",
+   "Wear safety glasses with side protection whenever something could fly toward your eyes.",
+   "Wear goggles for chemical splash, and add a face shield over your glasses or goggles when the task or your site calls for it.",
+   "Keep your eye protection on the whole time you are in the hazard area.",
+   "Replace eye protection that is scratched, cracked, or loose.",
+   "Know where the nearest eyewash is before you start work."
+  ],
+  "must_say": [
+   "If something splashes in your eyes, get to the eyewash, keep flushing, and call for help."
+  ],
+  "never_say": [
+   "Regular prescription glasses count as safety glasses.",
+   "You only need eye protection while your own machine is running.",
+   "Rub your eye to get the dust out."
+  ],
+  "facts": [
+   {
+    "text": "Employers must make sure workers use proper eye or face protection when exposed to flying particles, molten metal, liquid chemicals, acids or caustic liquids, chemical gases or vapors, or harmful light.",
+    "cite": "1910.133(a)(1)"
+   },
+   {
+    "text": "Eye protection must have side protection when there is a hazard from flying objects.",
+    "cite": "1910.133(a)(2)"
+   },
+   {
+    "text": "Workers who wear prescription glasses must wear eye protection with the prescription built in, or protection that fits over their glasses without moving them out of place.",
+    "cite": "1910.133(a)(3)"
+   }
+  ],
+  "story_seed": "A worker walking past a grinding station felt something hit the side of their safety glasses. They found a small metal chip stuck in the side shield.",
+  "crew_questions": [
+   "Where in our area can things fly, splash, or flash toward your eyes?",
+   "Where is the nearest eyewash to where you work, and have you used it?"
+  ],
+  "references": [
+   "1910.133"
+  ]
+ },
+ {
+  "slug": "face-shields",
+  "title": "Face shields and splash protection",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Splashes of chemicals, hot liquids, or flying debris can burn or cut the face and eyes, and a face shield alone does not fully protect the eyes.",
+  "key_points": [
+   "If a chemical splashes your face or eyes, go to the eyewash or shower now, call for help, and keep flushing until help says stop.",
+   "Wear a face shield only over safety glasses or goggles, and wear goggles under it for chemical splash.",
+   "Use the face and eye protection listed for the chemical or task by the safety data sheet and your site's rules.",
+   "Put the face shield down before you start pouring, spraying, grinding, or pressure cleaning.",
+   "Replace face shields that are cracked, scratched, or loose on the headgear.",
+   "Keep your shield down until the task is done and the area is safe."
+  ],
+  "must_say": [
+   "A face shield goes over safety glasses or goggles, never alone."
+  ],
+  "never_say": [
+   "A face shield by itself protects your eyes.",
+   "Safety glasses alone are enough for chemical splashes.",
+   "You can lift your shield for a better look while you work."
+  ],
+  "facts": [
+   {
+    "text": "Employers must make sure workers use proper eye or face protection when exposed to liquid chemicals, acids or caustic liquids, chemical gases or vapors, flying particles, or molten metal.",
+    "cite": "1910.133(a)(1)"
+   },
+   {
+    "text": "Eye and face protection must be clearly marked to show who made it.",
+    "cite": "1910.133(a)(4)"
+   }
+  ],
+  "story_seed": "A worker was transferring cleaner from a drum when the pump hose slipped and sprayed their face shield. The goggles under the shield kept the splash out of their eyes, and they went straight to the eyewash to rinse off.",
+  "crew_questions": [
+   "Which tasks here need a face shield, and is one always there when needed?",
+   "What makes people lift or skip their face shield on a task?"
+  ],
+  "references": [
+   "1910.133"
+  ]
+ },
+ {
+  "slug": "hearing-protection",
+  "title": "Wearing hearing protection right",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Loud noise damages hearing for good, and earplugs or earmuffs that are worn wrong or taken out give little protection.",
+  "key_points": [
+   "Wear hearing protection the whole time you are in a noisy area, not just some of the time.",
+   "Roll foam earplugs thin, pull your ear up and back, put the plug in, and hold it until it expands.",
+   "Make sure earmuffs seal around your ears; hair, hats, and glasses arms can break the seal.",
+   "Put earplugs in with clean hands and replace them when dirty or damaged.",
+   "Ask for a different size or type if your hearing protection hurts or won't stay in.",
+   "Tell your supervisor if your ears ring or sound muffled after work."
+  ],
+  "must_say": [
+   "Wear hearing protection the entire time you are in a noisy area."
+  ],
+  "never_say": [
+   "Earplugs pushed only partway in still protect you.",
+   "You get used to noise, so it stops hurting your hearing.",
+   "Earbuds playing music count as hearing protection."
+  ],
+  "facts": [
+   {
+    "text": "Employers must make hearing protectors available at no cost to workers exposed to an 8-hour average of 85 decibels or more, and let them choose from a variety of suitable types.",
+    "cite": "1910.95(i)"
+   },
+   {
+    "text": "Employers must train workers in the use and care of hearing protectors, make sure they are fitted correctly at first, and supervise their correct use.",
+    "cite": "1910.95(i)"
+   },
+   {
+    "text": "Workers in the hearing conservation program must get training every year on how noise affects hearing, how to choose and wear hearing protectors, and what hearing tests are for.",
+    "cite": "1910.95(k)"
+   }
+  ],
+  "story_seed": "A worker on the packaging line wore their earplugs hanging loose around their neck during a quick fix next to a running machine. A coworker pointed it out, and they put the plugs in properly before going back.",
+  "crew_questions": [
+   "Which hearing protection works best for you here, and why?",
+   "When do people pull their hearing protection out in loud areas?"
+  ],
+  "references": [
+   "1910.95"
+  ]
+ },
+ {
+  "slug": "noise-exposure",
+  "title": "How loud is too loud",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Loud noise over time causes permanent hearing loss and ringing in the ears, and it can hide warnings like horns and alarms.",
+  "key_points": [
+   "Treat an area as too loud if you must raise your voice to talk to someone an arm's length away.",
+   "Wear hearing protection in all posted noise areas and around loud tools, even for short jobs.",
+   "Report new or louder noise, like a loud machine, air leak, or worn bearing.",
+   "Go to your hearing tests and ask what your results mean.",
+   "Tell your supervisor about ringing ears or muffled hearing after a shift.",
+   "Keep guards, covers, and mufflers on equipment because they help keep noise down."
+  ],
+  "must_say": [
+   "If you have to raise your voice to be heard at arm's length, wear hearing protection."
+  ],
+  "never_say": [
+   "Hearing loss from noise heals overnight.",
+   "If it doesn't hurt, it's not too loud.",
+   "Short bursts of loud noise don't count."
+  ],
+  "facts": [
+   {
+    "text": "The louder the noise, the shorter the time a worker may be exposed. When noise is over the limits, the employer must use feasible engineering or work-practice controls, and hearing protection when those are not enough.",
+    "cite": "1910.95(b)"
+   },
+   {
+    "text": "A hearing conservation program is required when worker noise exposure reaches an 8-hour average of 85 decibels.",
+    "cite": "1910.95(c)(1)"
+   },
+   {
+    "text": "Hearing tests must be made available at no cost to workers exposed at or above an 8-hour average of 85 decibels.",
+    "cite": "1910.95(g)"
+   }
+  ],
+  "story_seed": "A worker noticed they had to shout to talk to a coworker standing right next to a new blower. They reported it, and the area was checked and posted as a hearing protection area.",
+  "crew_questions": [
+   "Where in our area do you have to raise your voice to be heard?",
+   "Has anyone noticed noise getting louder from a machine or air line lately?"
+  ],
+  "references": [
+   "1910.95"
+  ]
+ },
+ {
+  "slug": "respirator-fit",
+  "title": "Respirator fit and seal",
+  "category": "PPE",
+  "months": [],
+  "hazard": "A respirator that does not fit or seal lets dust, fumes, or vapors leak in, so the worker breathes in the very hazard it is meant to stop.",
+  "key_points": [
+   "If you smell or taste the contaminant, breathing gets hard, or the seal leaks, leave the area right away and tell your supervisor.",
+   "Wear only the make, model, style, and size of respirator you were fit tested on.",
+   "Do a seal check every time you put the respirator on.",
+   "Be clean-shaven where the respirator seals to your face.",
+   "Tell your supervisor about weight changes, dental work, or face changes that could affect fit.",
+   "Inspect your respirator before each use and change filters or cartridges as your site's program says."
+  ],
+  "must_say": [
+   "Do a seal check every time you put it on. If it leaks, leave the area."
+  ],
+  "never_say": [
+   "One size of respirator fits everyone.",
+   "A little stubble doesn't affect the seal.",
+   "If you can't smell anything, the cartridge is still good."
+  ],
+  "facts": [
+   {
+    "text": "Workers using a tight-fitting respirator must be fit tested before first use, whenever a different size, style, model, or make is used, and at least once a year after that.",
+    "cite": "1910.134(f)(2)"
+   },
+   {
+    "text": "Tight-fitting respirators may not be worn by workers with facial hair that comes between the sealing surface and the face, or that gets in the way of the valves.",
+    "cite": "1910.134(g)(1)(i)"
+   },
+   {
+    "text": "Workers must do a user seal check every time they put on a tight-fitting respirator, and must leave the work area if they notice vapor or gas getting through, harder breathing, or facepiece leaks.",
+    "cite": "1910.134(g)"
+   }
+  ],
+  "story_seed": "A worker borrowed a coworker's respirator because theirs was in the locker, but it was a different size. During the seal check they felt air leaking at the chin, so they stopped and got their own.",
+  "crew_questions": [
+   "Which jobs here need a respirator, and when were you last fit tested?",
+   "What makes it hard to get a good seal here, like heat, other gear, or facial hair rules?"
+  ],
+  "references": [
+   "1910.134"
+  ]
+ },
+ {
+  "slug": "voluntary-dust-masks",
+  "title": "Voluntary dust masks",
+  "category": "PPE",
+  "months": [],
+  "hazard": "A dust mask worn for the wrong hazard, or kept dirty, can give false comfort while harmful gases, vapors, or fumes still get into your lungs.",
+  "key_points": [
+   "Read and follow the maker's instructions and warnings before you wear a dust mask.",
+   "Check the mask or its box for NIOSH certification and what it is made to protect against.",
+   "Never count on a dust mask to stop gases, vapors, fumes, or smoke.",
+   "Keep your own mask clean and stored so you never pick up someone else's by mistake.",
+   "Tell your supervisor if you think a task needs a required respirator, not just a voluntary dust mask."
+  ],
+  "must_say": [
+   "A dust mask filters dust. It does not protect you from gases, vapors, or fumes."
+  ],
+  "never_say": [
+   "A dust mask protects you from chemical vapors or welding fumes.",
+   "Any mask works as long as it covers your nose and mouth.",
+   "Wearing a voluntary dust mask means you can work in an area that requires a respirator."
+  ],
+  "facts": [
+   {
+    "text": "If your employer lets you wear a respirator when one is not required, they must give you the information in OSHA's Appendix D for voluntary users.",
+    "cite": "1910.134"
+   },
+   {
+    "text": "OSHA's voluntary-use information tells workers not to wear a respirator into air with contaminants it is not designed to protect against. A dust filter will not protect against gases, vapors, or very small particles of fumes or smoke.",
+    "cite": "1910.134"
+   },
+   {
+    "text": "Workers who only wear filtering facepieces (dust masks) voluntarily do not have to be included in a written respiratory protection program.",
+    "cite": "1910.134"
+   }
+  ],
+  "story_seed": "A worker grabbed a dust mask from the shelf before mixing a strong-smelling cleaner, thinking any mask would help. A coworker pointed out the box said it was for dust only, and they stopped to ask the supervisor what the job really needed.",
+  "crew_questions": [
+   "Where on our site do people wear dust masks by choice, and what are they trying to keep out?",
+   "Which of our tasks have fumes or vapors that a dust mask would not stop?"
+  ],
+  "references": [
+   "1910.134"
+  ]
+ },
+ {
+  "slug": "glove-selection",
+  "title": "The right glove for the job",
+  "category": "PPE",
+  "months": [],
+  "hazard": "The wrong glove lets chemicals soak through, lets blades cut through, or lets heat burn your hands, and any glove can get caught and pull your hand into rotating parts.",
+  "key_points": [
+   "Take off gloves and rings, secure loose sleeves, and tie back long hair before working near drills, lathes, or other rotating parts.",
+   "Match the glove to the hazard: cut, chemical, heat, or puncture, as your site's glove chart or supervisor says.",
+   "Check the chemical label or safety data sheet to find which glove material resists that chemical.",
+   "Inspect gloves before each use and replace any with holes, tears, swelling, or stiffness.",
+   "Ask for a different size or type if your gloves do not fit or slow you down."
+  ],
+  "must_say": [
+   "Never wear gloves near rotating parts. Take them off, do not look for a better glove."
+  ],
+  "never_say": [
+   "Any glove is better than no glove.",
+   "A tighter or thicker glove makes it safe to work near rotating parts.",
+   "One type of glove works for every chemical."
+  ],
+  "facts": [
+   {
+    "text": "Employers must select and require hand protection when hands face hazards like skin absorption of harmful substances, severe cuts, punctures, chemical burns, thermal burns, and harmful temperature extremes.",
+    "cite": "1910.138"
+   },
+   {
+    "text": "Glove selection must be based on how the glove performs for the task, the conditions, how long it is used, and the hazards found.",
+    "cite": "1910.138"
+   }
+  ],
+  "story_seed": "A worker reached for a cut-resistant glove before pouring a cleaning chemical, then noticed the label called for a chemical-resistant glove instead. They swapped gloves before starting.",
+  "crew_questions": [
+   "Which jobs on our site need a different glove than the one most of us grab?",
+   "Where on our site are there rotating parts where gloves must come off?"
+  ],
+  "references": [
+   "1910.138"
+  ]
+ },
+ {
+  "slug": "foot-protection",
+  "title": "Foot protection",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Falling or rolling objects can crush toes, sharp objects can pierce the sole, and some areas carry static or shock hazards that the right footwear helps control.",
+  "key_points": [
+   "Wear the protective footwear your site requires in every area where it is required.",
+   "Inspect your boots for cracked soles, exposed toe caps, deep cuts, or worn tread, and replace damaged pairs.",
+   "Ask which footwear rating you need if you work near electrical or static hazards.",
+   "Keep your feet out from under loads, pallet jacks, and rolling carts.",
+   "Never cut or modify safety footwear."
+  ],
+  "must_say": [
+   "Wear your protective footwear every time you are in an area that requires it."
+  ],
+  "never_say": [
+   "Regular sneakers are fine if you are careful.",
+   "Safety toes make it okay to put your feet under a load.",
+   "Any boot labeled for work meets every hazard rating."
+  ],
+  "facts": [
+   {
+    "text": "Employers must make sure workers use protective footwear where there is a danger of foot injury from falling or rolling objects or objects piercing the sole.",
+    "cite": "1910.136"
+   },
+   {
+    "text": "Protective footwear is also required when it will protect a worker from an electrical hazard, such as static discharge or electric shock, that remains after other protective steps are taken.",
+    "cite": "1910.136"
+   },
+   {
+    "text": "Protective footwear must meet a listed consensus standard, or be shown to be at least as effective.",
+    "cite": "1910.136"
+   }
+  ],
+  "story_seed": "A worker stepping back from a pallet felt a pallet jack wheel roll onto the front of their boot. The safety toe held, and the crew talked about keeping feet clear of moving equipment.",
+  "crew_questions": [
+   "Where on our site are falling, rolling, or sharp objects most likely to reach our feet?",
+   "How do we get worn-out safety footwear replaced here?"
+  ],
+  "references": [
+   "1910.136"
+  ]
+ },
+ {
+  "slug": "head-protection",
+  "title": "Hard hats and bump caps",
+  "category": "PPE",
+  "months": [],
+  "hazard": "Falling objects and contact with exposed electrical parts can cause serious head injuries, and a bump cap is not built to stop them.",
+  "key_points": [
+   "Wear a hard hat wherever objects could fall on your head, as your site requires.",
+   "Use only a bump cap where your site allows it, and never in place of a hard hat.",
+   "Wear an electrical-rated hard hat when working near exposed electrical parts that could touch your head.",
+   "Inspect the shell and suspension before each shift and replace any hard hat that is cracked, dented, or has been struck.",
+   "Follow the maker's instructions for cleaning, storage, and what can be stuck on the shell."
+  ],
+  "must_say": [
+   "A bump cap is not a hard hat. Wear a hard hat wherever things can fall."
+  ],
+  "never_say": [
+   "A bump cap protects you from falling objects.",
+   "Any hard hat is fine near live electrical parts.",
+   "A hard hat that took a hit is fine if you cannot see a crack."
+  ],
+  "facts": [
+   {
+    "text": "Employers must make sure workers wear a protective helmet where there is a potential for head injury from falling objects.",
+    "cite": "1910.135"
+   },
+   {
+    "text": "Workers near exposed electrical conductors that could contact the head must wear a helmet designed to reduce electrical shock hazard.",
+    "cite": "1910.135"
+   },
+   {
+    "text": "Head protection must meet one of the listed ANSI consensus standards, or be shown to be at least as effective.",
+    "cite": "1910.135"
+   }
+  ],
+  "story_seed": "A worker wearing a bump cap walked under a mezzanine where a crew was moving parts overhead. A coworker stopped them and handed them a hard hat before they went through.",
+  "crew_questions": [
+   "Where on our site is a bump cap okay, and where is a hard hat required?",
+   "When did you last check your hard hat's suspension, and what would make you replace it?"
+  ],
+  "references": [
+   "1910.135"
+  ]
+ },
+ {
+  "slug": "hazcom-labels",
+  "title": "Read the label",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Using a chemical without reading its label can lead to burns, poisoning, breathing harm, or fire.",
+  "key_points": [
+   "Read the label before you open, pour, or use any chemical.",
+   "Look for the signal word, the pictograms, and the hazard statements first.",
+   "Follow the precautionary statements for protective gear, handling, and first aid.",
+   "Never remove or cover a label on an incoming container.",
+   "Stop and ask your supervisor if a label is missing, damaged, or hard to read."
+  ],
+  "must_say": [
+   "If there is no label, do not use it. Tell your supervisor."
+  ],
+  "never_say": [
+   "If you have used a chemical before, you do not need to read the label.",
+   "A 'Warning' label means the chemical is safe.",
+   "You can tell what is in a container by its color or smell."
+  ],
+  "facts": [
+   {
+    "text": "Labels on shipped chemical containers must show a product identifier, signal word, hazard statements, pictograms, precautionary statements, and the maker's or supplier's name, address, and phone number.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "The signal words are 'Danger' for more severe hazards and 'Warning' for less severe hazards.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "Employers must not remove or deface labels on incoming chemical containers unless the container is right away marked with the required information.",
+    "cite": "1910.1200"
+   }
+  ],
+  "story_seed": "A worker was about to use a new degreaser the same way as the old one. They read the label first and saw it needed a different glove and more ventilation.",
+  "crew_questions": [
+   "Which chemicals in our area have the signal word 'Danger' on them?",
+   "What do we do here when we find a container with a missing or worn label?"
+  ],
+  "references": [
+   "1910.1200"
+  ]
+ },
+ {
+  "slug": "sds",
+  "title": "Safety data sheets",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Not knowing a chemical's hazards, first aid, and spill steps can turn a small exposure or spill into a serious injury.",
+  "key_points": [
+   "Help an exposed person first: flush at the eyewash or get them to fresh air, call for help, then check the safety data sheet.",
+   "Know where to find safety data sheets for your area, on paper or electronic, before you need them.",
+   "Look up the protective gear section before working with a new chemical.",
+   "Read the accidental release section before cleaning up any spill.",
+   "Ask your supervisor if you cannot find or understand a safety data sheet."
+  ],
+  "must_say": [
+   "Know where your safety data sheets are before an emergency happens."
+  ],
+  "never_say": [
+   "Safety data sheets are only for managers or safety staff.",
+   "If the safety data sheet is hard to find, guess based on a similar chemical.",
+   "You only need the label, never the safety data sheet."
+  ],
+  "facts": [
+   {
+    "text": "Employers must have a safety data sheet (SDS) in the workplace for each hazardous chemical they use.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "Safety data sheets must be readily accessible to workers in their work area during each work shift. Electronic access is allowed if it creates no barriers to immediate access.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "An SDS has 16 sections in a set order, including First-aid measures (Section 4), Fire-fighting measures (Section 5), Accidental release measures (Section 6), and Exposure controls/personal protection (Section 8).",
+    "cite": "1910.1200"
+   }
+  ],
+  "story_seed": "A worker got a splash of cleaner on their arm and flushed it at the eyewash right away, but no one on the crew knew where the safety data sheets were kept. After that, the crew walked to the safety data sheet station together and practiced finding the first-aid section.",
+  "crew_questions": [
+   "Where are the safety data sheets for our area, and how do we reach them on night shift?",
+   "If someone got splashed, what would you do first, and who would pull up the safety data sheet?"
+  ],
+  "references": [
+   "1910.1200"
+  ]
+ },
+ {
+  "slug": "secondary-containers",
+  "title": "Labeling bottles and secondary containers",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "An unlabeled bottle or bucket can be mistaken for water or a different chemical, leading to burns, poisoning, or dangerous mixing.",
+  "key_points": [
+   "Label any container you pour a chemical into before someone else could use or move it.",
+   "Use your site's workplace labels with the product name and its hazards.",
+   "Never put chemicals in food or drink containers.",
+   "Never use a chemical from an unlabeled container; tell your supervisor.",
+   "Replace labels that are worn, faded, or hard to read."
+  ],
+  "must_say": [
+   "If you pour it into another container, label it, unless you alone will use it all right away."
+  ],
+  "never_say": [
+   "Everyone knows what is in the blue spray bottle, so it does not need a label.",
+   "It is fine to reuse a drink bottle for a chemical if you write on it later.",
+   "Leftover chemicals can go back in any empty container."
+  ],
+  "facts": [
+   {
+    "text": "Each container of hazardous chemicals in the workplace must be labeled with the product identifier and words, pictures, or symbols that give general information about its hazards, or with the full shipped-container label information.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "A portable container does not need a label only if the chemical came from a labeled container and is for the immediate use of the person who did the transfer.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "Workplace labels must be legible, in English, and prominently displayed. Other languages may be added as long as English is also shown.",
+    "cite": "1910.1200"
+   }
+  ],
+  "story_seed": "At shift change, a worker found an unlabeled spray bottle on a cart and almost used it on a food-contact surface. They set it aside and asked the previous shift what was in it.",
+  "crew_questions": [
+   "Which bottles or buckets in our area get filled from bigger containers, and are they labeled?",
+   "Where do we get blank workplace labels here?"
+  ],
+  "references": [
+   "1910.1200"
+  ]
+ },
+ {
+  "slug": "flammable-storage",
+  "title": "Flammable liquid storage",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Flammable liquids give off vapors that can catch fire or explode from a spark, flame, or hot surface.",
+  "key_points": [
+   "Keep flammable liquids in closed, approved containers and safety cans when not in use.",
+   "Return flammable liquids to the flammable storage cabinet or room when you are done.",
+   "Never smoke or use open flames in flammable liquid storage areas.",
+   "Keep cabinet doors closed and never block or prop them open.",
+   "Follow your site's procedure for bonding and grounding when you transfer flammable liquids."
+  ],
+  "must_say": [
+   "No smoking and no open flames where flammable liquids are stored."
+  ],
+  "never_say": [
+   "Flammable liquids only burn if you pour them on a fire.",
+   "It is fine to leave a flammable cabinet door propped open for convenience.",
+   "Any container with a lid is good enough for gasoline or solvent."
+  ],
+  "facts": [
+   {
+    "text": "Open flames and smoking are not permitted in flammable liquid storage areas.",
+    "cite": "1910.106"
+   },
+   {
+    "text": "A safety can is an approved container of not more than 5 gallons, with a spring-closing lid and spout cover, designed to relieve internal pressure in a fire.",
+    "cite": "1910.106"
+   },
+   {
+    "text": "Flammable storage cabinets must be labeled 'Flammable—Keep Fire Away' in conspicuous lettering.",
+    "cite": "1910.106"
+   }
+  ],
+  "story_seed": "A worker found an open can of solvent left on a bench near a grinder at the end of shift. They closed it and put it back in the flammable cabinet before anyone started grinding.",
+  "crew_questions": [
+   "Where do flammable liquids end up outside the cabinet in our area during a shift?",
+   "What ignition sources are near where we use or store flammable liquids?"
+  ],
+  "references": [
+   "1910.106"
+  ]
+ },
+ {
+  "slug": "gas-cylinders",
+  "title": "Compressed gas cylinders",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "A damaged or knocked-over cylinder can release gas under high pressure, turn into a missile, feed a fire, or leak a toxic or flammable gas.",
+  "key_points": [
+   "Secure cylinders upright so they cannot be knocked over, as your site's procedure requires.",
+   "Keep the valve cap on, hand-tight, whenever the cylinder is not in use or connected for use.",
+   "Close cylinder valves when work is finished and on empty cylinders.",
+   "Never drop cylinders, lift them by the cap, or use them as rollers or supports.",
+   "Keep oxygen cylinders and fittings free of oil and grease, and never handle them with oily hands or gloves."
+  ],
+  "must_say": [
+   "Before moving a cylinder, remove the regulator and cap the valve, unless it is secured on a cylinder cart."
+  ],
+  "never_say": [
+   "An empty cylinder is harmless, so it does not need its valve closed.",
+   "A little oil on an oxygen fitting helps it seal.",
+   "You can lift a cylinder by its valve cap."
+  ],
+  "facts": [
+   {
+    "text": "Valve protection caps must be in place, hand-tight, except when the cylinder is in use or connected for use.",
+    "cite": "1910.253"
+   },
+   {
+    "text": "Stored oxygen cylinders must be kept at least 20 feet from fuel-gas cylinders or combustible materials, or separated by a noncombustible barrier at least 5 feet high with a fire-resistance rating of at least one-half hour.",
+    "cite": "1910.253"
+   },
+   {
+    "text": "Unless cylinders are secured on a special cart made for them, regulators must be removed and valve caps put in place before cylinders are moved.",
+    "cite": "1910.253"
+   }
+  ],
+  "story_seed": "A worker saw a stored oxygen cylinder standing loose with no chain and no cap, right beside the fuel-gas cylinders. They chained and capped it and told the lead it needed to be moved away from the fuel gas.",
+  "crew_questions": [
+   "Where on our site are cylinders stored or used, and are they always secured?",
+   "How do we move cylinders here, and what equipment do we use?"
+  ],
+  "references": [
+   "1910.253"
+  ]
+ },
+ {
+  "slug": "hot-work",
+  "title": "Hot work and welding fire safety",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Sparks, slag, and heat from welding, cutting, or grinding can travel far and start fires that smolder long after the work stops.",
+  "key_points": [
+   "Get the hot work permit or authorization your site requires before you start.",
+   "Move combustibles away from the work, or cover and shield what cannot be moved.",
+   "Keep a charged fire extinguisher ready at the work area.",
+   "Post a fire watch when your site's permit calls for one, and keep watching after the work ends.",
+   "Stop hot work right away if conditions change or the area cannot be made safe."
+  ],
+  "must_say": [
+   "If the area cannot be made safe, do not do the hot work."
+  ],
+  "never_say": [
+   "Once the welding stops, the fire risk is over.",
+   "It is fine to weld in a sprinklered building while the sprinklers are shut off.",
+   "Sparks only fall straight down, so a few feet of clearance is enough."
+  ],
+  "facts": [
+   {
+    "text": "Before cutting or welding, the area must be inspected by the person responsible for authorizing it, who sets the precautions, preferably in a written permit.",
+    "cite": "1910.252"
+   },
+   {
+    "text": "Where practicable, combustibles must be moved at least 35 feet from the work site, or protected with flameproofed covers or shields.",
+    "cite": "1910.252"
+   },
+   {
+    "text": "When a fire watch is required, it must be kept for at least a half hour after welding or cutting ends to catch smoldering fires.",
+    "cite": "1910.252"
+   }
+  ],
+  "story_seed": "After a cutting job ended, the fire watch stayed and noticed smoke rising from cardboard behind a wall opening. They put it out with the extinguisher they had kept ready.",
+  "crew_questions": [
+   "Where on our site do sparks have a path to reach combustibles, like floor gaps or wall openings?",
+   "Who authorizes hot work here, and how do we get a permit?"
+  ],
+  "references": [
+   "1910.252"
+  ]
+ },
+ {
+  "slug": "small-spills",
+  "title": "Small chemical spills",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Spilled chemicals can burn skin, give off harmful vapors, catch fire, or react with other materials, and slips on spills cause falls.",
+  "key_points": [
+   "Get away and warn others if the spill is large, unknown, fuming, or anyone is hurt, then call for help per your site's plan.",
+   "Clean up only small spills you are trained for and that your site's procedure allows.",
+   "Check the label or safety data sheet before cleanup to know the hazards and protective gear.",
+   "Use your site's spill kit and protective gear, and keep others away from the area.",
+   "Report every spill to your supervisor, even small ones you cleaned up."
+  ],
+  "must_say": [
+   "If you do not know what it is, or it is too big, get away and call for help."
+  ],
+  "never_say": [
+   "Mix another chemical in to neutralize any spill.",
+   "Just wipe it with whatever rags are around.",
+   "Small spills do not need to be reported."
+  ],
+  "facts": [
+   {
+    "text": "Every safety data sheet must include an 'Accidental release measures' section.",
+    "cite": "1910.1200"
+   },
+   {
+    "text": "Chemical safety training must cover how workers can protect themselves, including work practices, emergency procedures, and protective equipment the employer has set up.",
+    "cite": "1910.1200"
+   }
+  ],
+  "story_seed": "A worker noticed a puddle under a drum and was about to wipe it up with a shop towel. They checked the label first, saw it was corrosive, and got the spill kit and gloves the safety data sheet called for.",
+  "crew_questions": [
+   "Where is the nearest spill kit to our area, and what is in it?",
+   "Which spills in our area are too big or too hazardous for us to clean up ourselves?"
+  ],
+  "references": [
+   "1910.1200"
+  ]
+ },
+ {
+  "slug": "eyewash",
+  "title": "Eyewash and drench showers",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Corrosive chemicals in the eyes or on the skin can cause lasting damage within moments if they are not flushed off right away.",
+  "key_points": [
+   "Get to the eyewash or shower right away if a corrosive chemical splashes in your eyes or on your body.",
+   "Hold your eyelids open and keep flushing until medical help or your site's procedure says to stop. Do not stop early.",
+   "Remove contaminated clothing while under the shower, and get medical help.",
+   "Know where the nearest eyewash and shower are, and keep the path to them clear.",
+   "Report any eyewash or shower that is blocked, dirty, or not working."
+  ],
+  "must_say": [
+   "If it splashes in your eyes, get to the eyewash now and keep flushing. Have someone call for medical help."
+  ],
+  "never_say": [
+   "Rub your eyes to get the chemical out.",
+   "A quick splash of water is enough.",
+   "Finish your task first, then go to the eyewash."
+  ],
+  "facts": [
+   {
+    "text": "Where the eyes or body may be exposed to injurious corrosive materials, facilities for quick drenching or flushing of the eyes and body must be provided within the work area for immediate emergency use.",
+    "cite": "1910.151"
+   }
+  ],
+  "story_seed": "A worker found a pallet parked in front of the eyewash station during a busy shift. They moved it and reminded the crew that someone with chemical in their eyes cannot get around obstacles.",
+  "crew_questions": [
+   "Can you walk to the nearest eyewash from your spot with your eyes closed, and is the path clear?",
+   "Who checks our eyewash stations, and what do we do if one is not working?"
+  ],
+  "references": [
+   "1910.151"
+  ]
+ },
+ {
+  "slug": "corrosives",
+  "title": "Acids and caustics",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Acids and caustics can burn skin and eyes, damage lungs, and react violently when mixed with the wrong chemicals.",
+  "key_points": [
+   "Flush right away at the eyewash or shower if you are splashed, keep flushing, and have someone call for medical help.",
+   "Wear the eye, face, hand, and body protection the safety data sheet and your site require.",
+   "Never mix acids and caustics or other chemicals unless your site's procedure says to.",
+   "Keep containers closed, labeled, and stored apart as your site requires.",
+   "Know where the nearest eyewash and shower are before you start."
+  ],
+  "must_say": [
+   "If you are splashed, flush with water right away and keep flushing. Have someone call for medical help."
+  ],
+  "never_say": [
+   "Put a base on an acid burn to neutralize it.",
+   "Caustics are less dangerous than acids.",
+   "Safety glasses alone are enough when pouring corrosives."
+  ],
+  "facts": [
+   {
+    "text": "Where the eyes or body may be exposed to injurious corrosive materials, facilities for quick drenching or flushing must be provided within the work area for immediate emergency use.",
+    "cite": "1910.151"
+   },
+   {
+    "text": "Every safety data sheet must include sections on first-aid measures and on exposure controls and personal protection.",
+    "cite": "1910.1200"
+   }
+  ],
+  "story_seed": "A worker was about to top off a caustic cleaning tank wearing only safety glasses. A coworker reminded them the safety data sheet called for goggles and a face shield, and they went back to get them.",
+  "crew_questions": [
+   "Which acids or caustics do we use in our area, and what protective gear does each one need?",
+   "Where could an acid and a caustic get mixed by mistake on our site?"
+  ],
+  "references": [
+   "1910.151",
+   "1910.1200"
+  ]
+ },
+ {
+  "slug": "carbon-monoxide",
+  "title": "Carbon monoxide from engines",
+  "category": "Chemicals",
+  "months": [
+   11,
+   12,
+   1,
+   2
+  ],
+  "hazard": "Engines on forklifts, trucks, and other equipment give off carbon monoxide, a gas you cannot see or smell that can cause headaches, confusion, collapse, and death.",
+  "key_points": [
+   "Shut off engines and get anyone with headache, dizziness, or confusion to fresh air; call 911 if anyone is confused, very sick, or passes out.",
+   "Never idle engines in closed areas, trailers, or near air intakes.",
+   "Keep doors and ventilation open as your site requires when engine-powered equipment runs indoors.",
+   "Report forklifts or equipment that run rough or smell of strong exhaust for maintenance.",
+   "Tell your supervisor if you or others feel sick when engines are running nearby.",
+   "Never go into a closed trailer or room where someone collapsed near a running engine; call 911."
+  ],
+  "must_say": [
+   "If someone gets dizzy or confused near running engines, get them to fresh air and call 911."
+  ],
+  "never_say": [
+   "You will smell carbon monoxide before it hurts you.",
+   "Propane forklifts do not make carbon monoxide.",
+   "Opening one door makes it safe to idle a truck inside all day."
+  ],
+  "facts": [
+   {
+    "text": "Carbon monoxide from powered industrial truck operations must not exceed the limits set in OSHA's air contaminant rules.",
+    "cite": "1910.178"
+   },
+   {
+    "text": "OSHA's exposure limit for carbon monoxide is 50 parts per million (ppm), averaged over an 8-hour work shift.",
+    "cite": "1910.1000"
+   },
+   {
+    "text": "Forklift operator training must cover closed areas where poor ventilation or poor maintenance could cause a buildup of carbon monoxide or diesel exhaust.",
+    "cite": "1910.178"
+   }
+  ],
+  "story_seed": "On a cold day with the dock doors shut, several workers near a propane forklift started getting headaches. One spoke up, the truck was shut off, everyone went outside to fresh air and got checked, and the truck was sent for maintenance.",
+  "crew_questions": [
+   "Where on our site do engines run indoors, especially when doors are closed in cold weather?",
+   "What would you do if a coworker near a running engine seemed confused or sick?"
+  ],
+  "references": [
+   "1910.1000",
+   "1910.178"
+  ]
+ },
+ {
+  "slug": "silica",
+  "title": "Silica dust",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Breathing fine crystalline silica dust from cutting, grinding, or crushing stone, concrete, sand, or brick can scar the lungs and cause lung disease and cancer.",
+  "key_points": [
+   "Use the water, dust collection, or ventilation your site provides every time you cut, grind, or crush silica materials.",
+   "Never dry sweep or use compressed air to clean silica dust; use wet methods or a HEPA vacuum.",
+   "Wear the respirator your site requires for the task, and keep it clean and fitted.",
+   "Keep out of marked regulated areas unless you are authorized.",
+   "Report dust controls that are broken, clogged, or not working."
+  ],
+  "must_say": [
+   "Never dry sweep or blow silica dust with compressed air."
+  ],
+  "never_say": [
+   "If you cannot see the dust, it cannot hurt you.",
+   "A cloth over your face is enough for silica dust.",
+   "Blowing dust off with compressed air is the fastest safe way to clean up."
+  ],
+  "facts": [
+   {
+    "text": "OSHA's limit for respirable crystalline silica is 50 micrograms per cubic meter of air, averaged over an 8-hour day.",
+    "cite": "1910.1053"
+   },
+   {
+    "text": "Dry sweeping or dry brushing is not allowed where it could add to silica exposure, unless wet sweeping, HEPA vacuuming, or other low-exposure methods are not feasible.",
+    "cite": "1910.1053"
+   },
+   {
+    "text": "Employers must offer medical exams at no cost to workers exposed at or above the action level of 25 micrograms per cubic meter of air (8-hour average) for 30 or more days per year.",
+    "cite": "1910.1053"
+   }
+  ],
+  "story_seed": "At the end of a shift, a worker reached for an air hose to blow concrete dust off a bench. A coworker handed them the HEPA vacuum instead.",
+  "crew_questions": [
+   "Which tasks or materials on our site make silica dust?",
+   "How do we clean up dust in our area now, and is there a safer way?"
+  ],
+  "references": [
+   "1910.1053"
+  ]
+ },
+ {
+  "slug": "bloodborne",
+  "title": "Bloodborne pathogens",
+  "category": "Chemicals",
+  "months": [],
+  "hazard": "Contact with someone else's blood or certain body fluids, through cuts, needle sticks, or splashes to eyes or mouth, can spread infections like hepatitis B, hepatitis C, and HIV.",
+  "key_points": [
+   "Call 911 and your site's first aid responders when someone is badly hurt, and put on gloves before touching blood.",
+   "Wash your hands and skin with soap and water right away after any contact with blood.",
+   "Never pick up broken glass that may have blood on it with your hands; use a brush and dust pan or tongs.",
+   "Leave blood cleanup to people trained and assigned by your site.",
+   "Report any blood contact or needle stick to your supervisor right away."
+  ],
+  "must_say": [
+   "Report any contact with someone else's blood right away."
+  ],
+  "never_say": [
+   "If the person looks healthy, their blood is safe to touch.",
+   "Bare hands are fine for a small cut on a coworker.",
+   "You only need to report a needle stick if you feel sick later."
+  ],
+  "facts": [
+   {
+    "text": "Employees must wash hands and other skin with soap and water, or flush eyes, nose, or mouth with water, immediately or as soon as feasible after contact with blood or other potentially infectious materials.",
+    "cite": "1910.1030"
+   },
+   {
+    "text": "Broken glassware that may be contaminated must not be picked up directly with the hands. Use a brush and dust pan, tongs, or forceps.",
+    "cite": "1910.1030"
+   }
+  ],
+  "story_seed": "A worker cut their hand on a box cutter and a coworker reached to help with bare hands. Another coworker handed over gloves from the first aid kit first.",
+  "crew_questions": [
+   "Who on our site is trained to clean up blood, and how do we reach them?",
+   "Where are the gloves in our first aid kits, and are they stocked?"
+  ],
+  "references": [
+   "1910.1030"
+  ]
+ },
+ {
+  "slug": "compressed-air",
+  "title": "Compressed air is not a broom",
+  "category": "Tools",
+  "months": [],
+  "hazard": "Compressed air can drive chips and dust into eyes and skin, and air forced into the body through skin or openings can cause serious injury.",
+  "key_points": [
+   "Use a brush, vacuum, or other method your site approves instead of compressed air when you can.",
+   "Never point compressed air at yourself or anyone else, or use it to clean clothes or skin.",
+   "Use only air nozzles your site approves for cleaning, with chip guarding.",
+   "Wear eye protection and other protective gear when using compressed air.",
+   "Check that no one is in the path of flying chips before you start."
+  ],
+  "must_say": [
+   "Never blow compressed air at yourself or anyone else."
+  ],
+  "never_say": [
+   "Blowing off your clothes with shop air is a quick way to get clean.",
+   "Low-pressure air is safe to point at people.",
+   "Compressed air horseplay is harmless."
+  ],
+  "facts": [
+   {
+    "text": "Compressed air must not be used for cleaning unless it is reduced to less than 30 psi, and then only with effective chip guarding and protective equipment.",
+    "cite": "1910.242"
+   },
+   {
+    "text": "Employers are responsible for the safe condition of tools and equipment workers use, including tools workers bring themselves.",
+    "cite": "1910.242"
+   }
+  ],
+  "story_seed": "At the end of a shift, a worker started to blow metal chips off their pants with an air hose. A coworker stopped them, and they used a brush instead.",
+  "crew_questions": [
+   "Where on our site do people reach for an air hose to clean, and what could we use instead?",
+   "Are the air nozzles in our area the approved type?"
+  ],
+  "references": [
+   "1910.242"
+  ]
+ },
+ {
+  "slug": "emergency-action-plan",
+  "title": "Your emergency action plan",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "In a fire, chemical release, or other emergency, people who do not know the alarms, routes, and meeting points can be trapped or hurt.",
+  "key_points": [
+   "Know how to report a fire or emergency at your site.",
+   "Learn what each alarm sound means and what you must do when you hear it.",
+   "Know your exit routes and your assembly point.",
+   "Know who to ask about the plan and your duties in it.",
+   "Ask for a review of the plan when your job or the plan changes."
+  ],
+  "must_say": [
+   "When the alarm sounds, follow the plan. Get out by your route and go to your meeting point."
+  ],
+  "never_say": [
+   "Finish your task before responding to the alarm.",
+   "The emergency plan is only for managers.",
+   "Every alarm means the same thing."
+  ],
+  "facts": [
+   {
+    "text": "An emergency action plan must include how to report emergencies, how to evacuate and which exit routes to use, how to account for all employees after evacuating, and duties for anyone doing rescue or medical work.",
+    "cite": "1910.38"
+   },
+   {
+    "text": "Employers must use an employee alarm system with a distinctive signal for each purpose.",
+    "cite": "1910.38"
+   },
+   {
+    "text": "Employers must review the plan with each covered employee when the plan is developed or the employee is first assigned, when their duties under it change, and when the plan changes.",
+    "cite": "1910.38"
+   }
+  ],
+  "story_seed": "During a drill, a new worker heard an alarm tone they had never heard before and did not know if it meant evacuate or shelter. Their lead walked them through what each signal meant afterward.",
+  "crew_questions": [
+   "What alarm sounds do we have on our site, and what does each one mean?",
+   "Who is the contact for our emergency plan, and when was it last reviewed with you?"
+  ],
+  "references": [
+   "1910.38"
+  ]
+ },
+ {
+  "slug": "exit-routes",
+  "title": "Exit routes and doors",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "Blocked, locked, or hidden exits can trap people during a fire or other emergency.",
+  "key_points": [
+   "Keep exit routes, aisles, and exit doors clear of materials and equipment at all times.",
+   "Never lock, chain, or block an exit door.",
+   "Report exit signs that are dark, damaged, or hidden.",
+   "Know every way out of your work area, not just the door you usually use.",
+   "Report any exit door that is hard to open or will not open."
+  ],
+  "must_say": [
+   "Never block or lock an exit, even for a minute."
+  ],
+  "never_say": [
+   "It is fine to stack pallets in front of an exit if you move them later.",
+   "Exit doors can be locked to keep people from leaving early.",
+   "Everyone knows where the exits are, so signs are not needed."
+  ],
+  "facts": [
+   {
+    "text": "Employees must be able to open an exit route door from the inside at all times without keys, tools, or special knowledge.",
+    "cite": "1910.36"
+   },
+   {
+    "text": "An exit access must be at least 28 inches wide at all points.",
+    "cite": "1910.36"
+   },
+   {
+    "text": "Exit routes must be free and unobstructed, and no materials or equipment may be placed in them, even temporarily.",
+    "cite": "1910.37"
+   }
+  ],
+  "story_seed": "A worker found a stack of empty totes blocking the side exit during a busy receiving day. They cleared it and told the lead so it would not happen again.",
+  "crew_questions": [
+   "Which exit in our area most often gets blocked, and why?",
+   "If your usual exit was full of smoke, which way would you go?"
+  ],
+  "references": [
+   "1910.36",
+   "1910.37"
+  ]
+ },
+ {
+  "slug": "fire-extinguishers",
+  "title": "Fire extinguishers",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "Fires grow fast, and trying to fight a fire that is too big, or without training, can trap or burn you.",
+  "key_points": [
+   "Sound the alarm and call for help first, before anything else.",
+   "Follow your site's plan: if it says evacuate only, get out and do not fight the fire.",
+   "Use an extinguisher only if you are trained and allowed, the fire is small, and you have a clear way out.",
+   "Keep extinguishers visible, mounted, and free of blocking materials.",
+   "Report extinguishers that are missing, used, damaged, or low on pressure."
+  ],
+  "must_say": [
+   "Sound the alarm first. If the fire is not small or you are not trained, get out."
+  ],
+  "never_say": [
+   "Everyone should try to put out a fire before leaving.",
+   "Any extinguisher works on any fire.",
+   "Fight the fire even if the plan says evacuate."
+  ],
+  "facts": [
+   {
+    "text": "Where extinguishers are provided for employee use, employers must train employees on their use and the hazards of fighting early-stage fires when first hired and at least annually after that.",
+    "cite": "1910.157"
+   },
+   {
+    "text": "Portable extinguishers must be visually inspected monthly and get an annual maintenance check.",
+    "cite": "1910.157"
+   },
+   {
+    "text": "For Class A fires, extinguishers must be placed so employees travel 75 feet or less to reach one.",
+    "cite": "1910.157"
+   }
+  ],
+  "story_seed": "A small fire started in a trash bin near a work cell. The worker pulled the alarm first, then, because they were trained and their site allows it, used the nearby extinguisher with their back to the exit, and the fire went out.",
+  "crew_questions": [
+   "Does our site plan say to fight small fires or to evacuate only, and who is allowed to use extinguishers?",
+   "Where is the nearest extinguisher to where you work right now?"
+  ],
+  "references": [
+   "1910.157"
+  ]
+ },
+ {
+  "slug": "fire-prevention",
+  "title": "Fire prevention",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "Piles of combustible waste, poor chemical storage, and uncontrolled heat or sparks can start fires that spread quickly.",
+  "key_points": [
+   "Clear away combustible waste like cardboard and dust, and put oily rags in the closed container your site provides.",
+   "Store flammable and hazardous materials only where your site says.",
+   "Keep heat sources, sparks, and open flames away from combustibles.",
+   "Report damaged cords, overheating equipment, and broken safeguards on heaters or ovens.",
+   "Know the fire hazards in your area and who controls them."
+  ],
+  "must_say": [
+   "Keep your area clean. Combustible waste is fuel for a fire."
+  ],
+  "never_say": [
+   "A little dust or cardboard pile is no fire risk.",
+   "Oily rags can go in any trash can.",
+   "Fire prevention is only the maintenance team's job."
+  ],
+  "facts": [
+   {
+    "text": "A fire prevention plan must list major fire hazards, how to handle and store hazardous materials, potential ignition sources and their control, and the fire protection equipment needed.",
+    "cite": "1910.39"
+   },
+   {
+    "text": "The plan must include procedures to control buildup of flammable and combustible waste.",
+    "cite": "1910.39"
+   },
+   {
+    "text": "Employers must tell employees about the fire hazards they are exposed to when first assigned to a job.",
+    "cite": "1910.39"
+   }
+  ],
+  "story_seed": "A worker noticed a pile of oily rags stuffed behind a warm machine at the end of shift. They moved them to the proper waste container and reported it.",
+  "crew_questions": [
+   "Where does combustible waste pile up in our area during a shift?",
+   "What heat sources or spark sources are close to combustibles here?"
+  ],
+  "references": [
+   "1910.39"
+  ]
+ },
+ {
+  "slug": "evacuation-headcount",
+  "title": "Evacuation and headcount",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "If people are not counted after an evacuation, someone missing may go unnoticed, or others may go back in and get hurt.",
+  "key_points": [
+   "Leave right away by your assigned route when the evacuation alarm sounds.",
+   "Go straight to your assembly point and check in for the headcount.",
+   "Never go back inside until the people in charge say it is safe.",
+   "Tell the person taking the headcount if you know someone is missing or where they were.",
+   "Follow the directions of your site's trained evacuation helpers."
+  ],
+  "must_say": [
+   "Never go back inside for anyone or anything. Tell responders who is missing."
+  ],
+  "never_say": [
+   "Go back in and look for missing coworkers yourself.",
+   "You can skip the assembly point if you leave the site.",
+   "Stop to grab your belongings before evacuating."
+  ],
+  "facts": [
+   {
+    "text": "An emergency action plan must include procedures to account for all employees after evacuation.",
+    "cite": "1910.38"
+   },
+   {
+    "text": "Employers must designate and train employees to help with a safe and orderly evacuation of other employees.",
+    "cite": "1910.38"
+   }
+  ],
+  "story_seed": "During a drill, a worker left by the back door and went to their car instead of the assembly point. The headcount showed them missing, and the crew talked about what that would mean for responders in a real fire.",
+  "crew_questions": [
+   "Where is our assembly point, and who takes the headcount for our area?",
+   "How would visitors or contractors in our area be counted?"
+  ],
+  "references": [
+   "1910.38"
+  ]
+ },
+ {
+  "slug": "severe-weather",
+  "title": "Severe weather and sheltering",
+  "category": "Emergencies",
+  "months": [
+   3,
+   4,
+   5,
+   6
+  ],
+  "hazard": "Tornadoes, lightning, and severe storms can cause flying debris, building damage, and electrical strikes that injure people caught in the open or in the wrong spot.",
+  "key_points": [
+   "Go to your site's designated shelter area right away when a severe weather alert or alarm sounds.",
+   "Move indoors when you hear thunder or see lightning, as your site's procedure says.",
+   "Stay in the shelter area until the people in charge give the all-clear.",
+   "Know how your site warns you about severe weather and where to go from your area.",
+   "Check in for the headcount after sheltering."
+  ],
+  "must_say": [
+   "When the severe weather alarm sounds, go to your shelter area now."
+  ],
+  "never_say": [
+   "Stay by the windows to watch the storm.",
+   "Shelter in a trailer or vehicle during a tornado.",
+   "Keep working outside until the rain starts."
+  ],
+  "facts": [
+   {
+    "text": "An emergency action plan must include procedures for emergency evacuation, including the type of evacuation and exit route assignments.",
+    "cite": "1910.38"
+   },
+   {
+    "text": "Employers must have and maintain an employee alarm system with a distinctive signal for each purpose.",
+    "cite": "1910.38"
+   }
+  ],
+  "story_seed": "A storm warning came over the radio while a crew was loading trailers at the dock. One worker knew the shelter signal and led the crew to the designated room before the wind picked up.",
+  "crew_questions": [
+   "Where is the severe weather shelter area closest to where you work?",
+   "How do we get warned about severe weather on our site, especially outside or at the dock?"
+  ],
+  "references": [
+   "1910.38"
+  ]
+ },
+ {
+  "slug": "first-aid",
+  "title": "First aid on site",
+  "category": "Emergencies",
+  "months": [],
+  "hazard": "Delays in getting help after an injury can make it much worse, and untrained or unprotected helpers can be hurt themselves.",
+  "key_points": [
+   "Call 911 right away for serious injuries, then call your site's first aid responders.",
+   "Check the area is safe first; never touch someone in contact with electricity or enter a confined space after them. Call 911.",
+   "Know who the trained first aid responders are on your shift and how to reach them.",
+   "Know where first aid kits are, and report kits that are empty or missing supplies.",
+   "Put on gloves before touching blood or body fluids."
+  ],
+  "must_say": [
+   "For a serious injury, call 911 first. Do not wait."
+  ],
+  "never_say": [
+   "Move a badly injured person right away even if they might have a neck or back injury.",
+   "Only call 911 after a supervisor says it is okay.",
+   "Gloves are optional when helping with a bleeding injury."
+  ],
+  "facts": [
+   {
+    "text": "If there is no infirmary, clinic, or hospital near the workplace, a person or persons must be adequately trained to give first aid.",
+    "cite": "1910.151"
+   },
+   {
+    "text": "Adequate first aid supplies must be readily available.",
+    "cite": "1910.151"
+   },
+   {
+    "text": "If workers may be exposed to blood while using first aid supplies, employers must provide protective equipment such as gloves.",
+    "cite": "1910.151"
+   }
+  ],
+  "story_seed": "A worker got a deep cut on night shift, and the crew could not find the first aid kit or remember who was trained. After that, the lead posted the responder names and kit locations at the break room.",
+  "crew_questions": [
+   "Who are the trained first aid responders on our shift, and how do we reach them?",
+   "Where is the nearest first aid kit, and when did someone last check it?"
+  ],
+  "references": [
+   "1910.151"
+  ]
+ },
+ {
+  "slug": "osha-reporting",
+  "title": "Reporting serious injuries to OSHA",
+  "category": "Recordkeeping",
+  "months": [],
+  "hazard": "When serious injuries are not reported quickly inside the company, the site can miss required reports to OSHA and the hazard may hurt someone else.",
+  "key_points": [
+   "Call 911 first for any serious injury, then tell your supervisor right away.",
+   "Tell your supervisor right away if a coworker is admitted to a hospital, loses an eye, or has an amputation from a work incident.",
+   "Report serious injuries even if they happen at the end of a shift or off-hours.",
+   "Leave the scene as it is unless changing it is needed to help someone or prevent more harm.",
+   "Follow your site's procedure for who makes the report to OSHA."
+  ],
+  "must_say": [
+   "Tell your supervisor about any serious injury right away, so the site can report it on time."
+  ],
+  "never_say": [
+   "Serious injuries only need to be reported at the end of the week.",
+   "Hold off reporting until you know if the person will be okay.",
+   "Only fatalities ever need to be reported to OSHA."
+  ],
+  "facts": [
+   {
+    "text": "Under federal OSHA rules, employers must report a work-related death to OSHA within eight (8) hours.",
+    "cite": "1904.39"
+   },
+   {
+    "text": "Under federal OSHA rules, employers must report a work-related in-patient hospitalization, amputation, or loss of an eye to OSHA within twenty-four (24) hours, if it happens within 24 hours of the incident.",
+    "cite": "1904.39"
+   }
+  ],
+  "story_seed": "A worker was taken to the hospital after a late-shift incident, and the crew assumed someone else had told the supervisor. The next morning they learned no one had, and the crew agreed to always call the supervisor directly.",
+  "crew_questions": [
+   "Who do you call on our site if a serious injury happens on nights or weekends?",
+   "What gets in the way of reporting an injury right away here?"
+  ],
+  "references": [
+   "1904.39"
+  ]
+ },
+ {
+  "slug": "report-every-injury",
+  "title": "Report every injury",
+  "category": "Recordkeeping",
+  "months": [],
+  "hazard": "Small injuries that go unreported can get worse without care, and the hazard that caused them stays in place to hurt someone else.",
+  "key_points": [
+   "Get first aid or medical care first when you are hurt.",
+   "Report every work injury or illness to your supervisor right away, even if it seems minor.",
+   "Report close calls and the hazards behind them too.",
+   "Follow your site's procedure for how and where to report.",
+   "Speak up if you feel pressure not to report an injury."
+  ],
+  "must_say": [
+   "Report every work injury or illness to your supervisor right away, even if it seems small."
+  ],
+  "never_say": [
+   "Reporting an injury will get you in trouble.",
+   "Only report injuries that need a doctor.",
+   "Keep minor injuries to yourself so the team's record stays clean."
+  ],
+  "facts": [
+   {
+    "text": "Employers must set up a reasonable way for employees to report work injuries and illnesses promptly and accurately. A procedure that would discourage reporting is not reasonable.",
+    "cite": "1904.35"
+   },
+   {
+    "text": "Federal rules say employees have the right to report work-related injuries and illnesses, and employers must not fire or in any way discriminate against employees for reporting.",
+    "cite": "1904.35"
+   }
+  ],
+  "story_seed": "A worker felt a pull in their back lifting a box but decided not to say anything. A week later it was worse, and when they finally reported it, the crew found the shelf height was causing the problem for others too.",
+  "crew_questions": [
+   "How do you report an injury on our site, and is it easy to do?",
+   "What might keep someone here from reporting a small injury?"
+  ],
+  "references": [
+   "1904.35"
+  ]
+ },
+ {
+  "slug": "near-miss",
+  "title": "Near misses are free lessons",
+  "category": "Culture",
+  "months": [],
+  "hazard": "A near miss that nobody reports is a warning ignored, and the same hazard can hurt someone the next time.",
+  "key_points": [
+   "Stop and make the area safe first if the hazard is still there.",
+   "Report every near miss to your supervisor the same shift, even if nobody was hurt.",
+   "Tell what happened and what almost happened, not who to blame.",
+   "Follow your site's procedure for writing up near misses.",
+   "Ask what was changed after a report, so the fix really happens."
+  ],
+  "must_say": [
+   "If it almost hurt someone, report it today.",
+   "A near miss is a free lesson. Report it so nobody gets hurt next time."
+  ],
+  "never_say": [
+   "Near misses don't count because nobody got hurt.",
+   "Reporting a near miss will get you or your coworker in trouble.",
+   "Only report it if a supervisor saw it."
+  ],
+  "facts": [],
+  "story_seed": "A pallet slid off a forklift's forks and landed where a worker had been standing a moment before. The driver almost kept quiet, but the report led to a fix in how loads were stacked.",
+  "crew_questions": [
+   "What near miss have you seen here that never got reported?",
+   "What makes it hard to report a near miss on our site, and how can we make it easier?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "heat-illness-signs",
+  "title": "Heat illness: know the signs",
+  "category": "Health",
+  "months": [
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "hazard": "Working in heat can overheat the body, leading to heat exhaustion and heat stroke, which can kill.",
+  "key_points": [
+   "Call 911 right away if someone is confused, passes out, has a seizure, or stops making sense; that can be heat stroke.",
+   "Cool a person with heat stroke right now while waiting for help: move them to shade, remove extra clothing, and wet them down.",
+   "Watch for early signs: heavy sweating, dizziness, headache, cramps, nausea, or feeling weak.",
+   "Stop work and get to a cool place as soon as you or a coworker feel these signs.",
+   "Never leave a person who feels sick from heat alone.",
+   "Follow your site's heat plan for water, rest, and shade."
+  ],
+  "must_say": [
+   "Confusion or passing out in the heat is an emergency. Call 911 and start cooling them now.",
+   "Never leave a sick worker alone in the heat."
+  ],
+  "never_say": [
+   "Someone with heat stroke just needs to drink water and rest.",
+   "If they stopped sweating, they are cooling down and are fine.",
+   "There is a federal OSHA heat standard you must follow."
+  ],
+  "facts": [],
+  "story_seed": "A worker on a hot loading dock started slurring words and stumbling. A coworker called 911 and the crew moved him to shade and soaked him with cool water until help came.",
+  "crew_questions": [
+   "Where on our site does it get hottest, and where is the nearest cool spot?",
+   "How would you get help fast if a coworker started acting confused in the heat?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "heat-acclimatization",
+  "title": "New to the heat",
+  "category": "Health",
+  "months": [
+   4,
+   5,
+   6,
+   7
+  ],
+  "hazard": "Workers who are new to the heat or back from time off have bodies that are not used to it yet, so they can get heat sick fast.",
+  "key_points": [
+   "Call 911 and start cooling someone right away if they get confused or pass out in the heat.",
+   "Build up time in the heat slowly when you are new or coming back from time off.",
+   "Take the rest and water breaks your site's heat plan gives you, even if you feel fine.",
+   "Watch new coworkers closely and check on them often during hot shifts.",
+   "Tell your supervisor if you are new to the heat or have been away from work."
+  ],
+  "must_say": [
+   "New and returning workers need time to get used to the heat. Build up slowly and check on each other."
+  ],
+  "never_say": [
+   "Tough workers don't need time to get used to heat.",
+   "If you worked in the heat last year, you are already used to it.",
+   "There is a federal OSHA heat standard that sets the schedule."
+  ],
+  "facts": [],
+  "story_seed": "On his first hot week back after time off, a worker skipped breaks to keep up with the crew and got dizzy. A lead noticed, sat him in the shade, and adjusted his workload.",
+  "crew_questions": [
+   "Who on our crew is new or just back, and how are we looking out for them?",
+   "How does our site help people get used to working in the heat?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "cold-stress",
+  "title": "Cold stress",
+  "category": "Health",
+  "months": [
+   11,
+   12,
+   1,
+   2
+  ],
+  "hazard": "Cold, wet, and windy conditions can drop body temperature and freeze skin, causing hypothermia and frostbite.",
+  "key_points": [
+   "Call 911 if someone is shivering hard, then stops, or becomes confused or very sleepy; get them to a warm place.",
+   "Wear layers, a hat, and gloves that fit the task, and keep a dry set of clothes.",
+   "Change out of wet clothes as soon as you can.",
+   "Take warm-up breaks in a heated area as your site allows.",
+   "Watch coworkers for numb, pale, or waxy skin on fingers, toes, ears, and face.",
+   "Never rub frostbitten skin; warm it gently and get medical help."
+  ],
+  "must_say": [
+   "Confusion or very slow, sleepy behavior in the cold is an emergency. Call 911 and get them warm."
+  ],
+  "never_say": [
+   "Rub frostbitten skin hard to warm it up.",
+   "A drink of alcohol will warm you up in the cold.",
+   "If they stop shivering, they are getting better."
+  ],
+  "facts": [],
+  "story_seed": "A worker in a freezer area kept going in damp gloves and lost feeling in his fingers. A coworker noticed, sent him to the break room to warm up, and reported it to the supervisor.",
+  "crew_questions": [
+   "Where on our site do people get coldest or wettest?",
+   "What do we have here to help people warm up and stay dry?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "hydration",
+  "title": "Water, rest, shade",
+  "category": "Health",
+  "months": [
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "hazard": "Without enough water, rest, and shade, workers in heat can quickly get heat exhaustion or heat stroke.",
+  "key_points": [
+   "Call 911 and cool the person now if someone in the heat is confused or passes out; water alone will not fix heat stroke.",
+   "Drink water often during the shift, even before you feel thirsty.",
+   "Take rest breaks in shade or a cool area when it is hot.",
+   "Know where water and cool rest areas are before the shift starts.",
+   "Speak up if water runs low or shade is missing.",
+   "Follow your site's heat plan for breaks."
+  ],
+  "must_say": [
+   "Drink water often and rest in shade. If someone is confused in the heat, call 911 and cool them now."
+  ],
+  "never_say": [
+   "Water is the cure for heat stroke.",
+   "Skipping breaks shows you are a hard worker.",
+   "Only drink water when you feel thirsty."
+  ],
+  "facts": [],
+  "story_seed": "A crew working outside on a hot afternoon found the water cooler empty. One worker spoke up, the lead brought more water and set up a shaded rest spot before work went on.",
+  "crew_questions": [
+   "Where is the closest water and shade from where you work today?",
+   "What gets in the way of taking breaks when it is hot here?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "fatigue",
+  "title": "Fatigue and long shifts",
+  "category": "Health",
+  "months": [],
+  "hazard": "Tired workers react slower and make more mistakes, which can lead to crashes, falls, and caught-in injuries.",
+  "key_points": [
+   "Tell your supervisor if you are too tired to work safely, especially before driving or running equipment.",
+   "Take your breaks and use them to rest.",
+   "Watch coworkers for signs of fatigue like nodding off, missed steps, or slow reactions.",
+   "Plan for safe sleep before shifts, especially when working nights or overtime.",
+   "Never run machines or drive a forklift when you are fighting to stay awake."
+  ],
+  "must_say": [
+   "If you are too tired to work safely, tell your supervisor before you start the task."
+  ],
+  "never_say": [
+   "Energy drinks fix fatigue.",
+   "Pushing through tiredness is part of the job.",
+   "You can't get hurt from being tired."
+  ],
+  "facts": [],
+  "story_seed": "Near the end of a double shift, a forklift driver almost backed into a coworker because he zoned out. He parked the truck and told his lead he was too tired to drive safely.",
+  "crew_questions": [
+   "When are people most tired on our shifts, and what tasks are riskiest then?",
+   "How can someone here say they are too tired without feeling judged?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "repetitive-motion",
+  "title": "Repetitive motion and strains",
+  "category": "Health",
+  "months": [],
+  "hazard": "Doing the same motion over and over, especially with force or awkward positions, can injure muscles, tendons, and nerves.",
+  "key_points": [
+   "Report early signs like pain, tingling, numbness, or swelling to your supervisor right away.",
+   "Switch hands or tasks when your site allows, and use job rotation if it is offered.",
+   "Keep work close to your body and avoid bending or twisting your wrists.",
+   "Use the right tool so you don't have to squeeze or force it.",
+   "Take short breaks to stretch and change position."
+  ],
+  "must_say": [
+   "Report pain, tingling, or numbness early. Don't wait until it gets worse."
+  ],
+  "never_say": [
+   "Pain is normal and will go away if you keep working.",
+   "Only lifting heavy things causes strain injuries.",
+   "Reporting aches makes you look weak."
+  ],
+  "facts": [],
+  "story_seed": "A packer felt tingling in her hand for weeks and kept quiet. When she finally reported it, her lead found the tape gun was hard to squeeze and replaced it.",
+  "crew_questions": [
+   "Which tasks here make your hands, wrists, or shoulders ache?",
+   "What small change would make your most repetitive task easier on your body?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "workstation-ergonomics",
+  "title": "Set up your work area",
+  "category": "Health",
+  "months": [],
+  "hazard": "A poorly set-up work area forces awkward reaches, bending, and twisting that can strain your back, neck, and arms.",
+  "key_points": [
+   "Set up your work area so tools and parts are within easy reach.",
+   "Adjust the height of tables, chairs, or platforms when you can, so you work at about elbow level.",
+   "Keep heavy items between waist and shoulder height.",
+   "Use mats, anti-fatigue flooring, or footrests if your site has them.",
+   "Report work setups that cause pain so they can be fixed."
+  ],
+  "must_say": [
+   "Set up your work area before you start, so you are not reaching, bending, or twisting all shift."
+  ],
+  "never_say": [
+   "Your body will adjust to any work setup.",
+   "There is nothing you can change about your work area.",
+   "Back pain is just part of the job."
+  ],
+  "facts": [],
+  "story_seed": "A worker on a new line kept reaching over a bin to grab parts and started having shoulder pain. Moving the bin closer fixed the reach in a few minutes.",
+  "crew_questions": [
+   "What part of your work area makes you reach, bend, or twist the most?",
+   "Who do you tell here when a workstation needs to be adjusted?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "workplace-violence",
+  "title": "Workplace violence warning signs",
+  "category": "Health",
+  "months": [],
+  "hazard": "Threats, fights, and attacks at work can cause serious injury or death, and they often follow warning signs.",
+  "key_points": [
+   "Get away to a safe place and call 911 if someone has a weapon or is attacking.",
+   "Report threats, harassment, or scary behavior to your supervisor or security right away.",
+   "Notice warning signs like angry outbursts, threats, or talk of hurting others.",
+   "Never try to calm down or confront an armed or violent person yourself.",
+   "Know your site's emergency plan, exits, and how to call for help."
+  ],
+  "must_say": [
+   "If someone has a weapon or is attacking, get away and call 911.",
+   "Report every threat. Never keep a threat to yourself."
+  ],
+  "never_say": [
+   "Ignore threats; they are just people blowing off steam.",
+   "Step in and wrestle a weapon away from someone.",
+   "Only report violence after someone gets hurt."
+  ],
+  "facts": [],
+  "story_seed": "A worker heard a coworker make a threat about a supervisor after a write-up. She reported it to security, who followed the site's plan before anything happened.",
+  "crew_questions": [
+   "Who would you tell here if a coworker made a threat?",
+   "Do you know the exits and how to call for help from your work area?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "impairment",
+  "title": "Working impaired",
+  "category": "Health",
+  "months": [],
+  "hazard": "Working under the influence of alcohol, drugs, some medicines, or extreme tiredness slows reactions and judgment, putting you and others at risk.",
+  "key_points": [
+   "Never run machines, drive, or work at heights while impaired.",
+   "Tell your supervisor if a medicine makes you sleepy or dizzy, before you start work.",
+   "Speak up to a supervisor if a coworker seems impaired and could get hurt.",
+   "Follow your site's policy on alcohol, drugs, and medicines.",
+   "Use your site's employee help program if you or someone you know needs support."
+  ],
+  "must_say": [
+   "Never run equipment or drive while impaired. Tell your supervisor before you start."
+  ],
+  "never_say": [
+   "A little alcohol before a shift is fine if you feel okay.",
+   "Prescription medicine is always safe to work on.",
+   "Covering for an impaired coworker is being a good friend."
+  ],
+  "facts": [],
+  "story_seed": "A worker took a new cold medicine and felt foggy at the start of shift. He told his lead before he got on the forklift.",
+  "crew_questions": [
+   "What would you do if a coworker showed up and did not seem right?",
+   "Do you know where to find our site's help program?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "permit-spaces",
+  "title": "Permit-required confined spaces",
+  "category": "Confined spaces",
+  "months": [],
+  "hazard": "Confined spaces like tanks, pits, and bins can hold bad air, trap people, or bury them in loose material, and can kill in minutes.",
+  "key_points": [
+   "Never go in after someone who collapses inside a confined space; call trained rescue and 911.",
+   "Never enter a permit space unless you are trained, authorized, and the entry permit is complete.",
+   "Learn which spaces at your site are permit spaces; if a tank, pit, or bin is not marked, ask before entering.",
+   "Follow your site's entry permit and procedure every time.",
+   "Make sure an attendant is outside and rescue is set up before anyone goes in.",
+   "Get out right away if the attendant tells you to or you notice warning signs."
+  ],
+  "must_say": [
+   "Never enter a permit space unless you are trained and the permit is complete.",
+   "If someone collapses inside, do not go in. Call trained rescue and 911."
+  ],
+  "never_say": [
+   "A quick look inside a tank doesn't need a permit.",
+   "If the air smells fine, it is safe to go in.",
+   "Anyone can go in to help a coworker who collapses inside."
+  ],
+  "facts": [
+   {
+    "text": "A confined space is big enough to bodily enter, has limited ways in or out, and is not designed for people to be in all the time.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "A permit space is a confined space with extra hazards, such as bad air, material that can bury you, a shape that can trap you, or another serious hazard.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "Employers must tell workers about permit spaces, for example with a sign reading 'DANGER - PERMIT-REQUIRED CONFINED SPACE, DO NOT ENTER.'",
+    "cite": "1910.146"
+   }
+  ],
+  "story_seed": "A worker was about to climb into a hopper to clear a jam. A coworker pointed to the danger sign and stopped him until the entry permit, air test, and attendant were in place.",
+  "crew_questions": [
+   "Which spaces on our site are permit spaces?",
+   "What would stop you from going in, even if someone asked you to hurry?"
+  ],
+  "references": [
+   "1910.146"
+  ]
+ },
+ {
+  "slug": "confined-space-attendant",
+  "title": "The attendant's job",
+  "category": "Confined spaces",
+  "months": [],
+  "hazard": "If the attendant gets distracted or goes inside, entrants in trouble may not get out, and the attendant can become a second victim.",
+  "key_points": [
+   "Call for rescue right away if an entrant may need help getting out; do not go in.",
+   "Stay outside the space for the whole entry until another attendant relieves you.",
+   "Keep an accurate count of who is inside at all times.",
+   "Order everyone out right away if you see a problem inside or outside the space.",
+   "Keep unauthorized people away from the space.",
+   "Do no other work that pulls your attention from the entrants."
+  ],
+  "must_say": [
+   "Attendants stay outside. If entrants need help, call rescue. Never go in."
+  ],
+  "never_say": [
+   "The attendant can step away for a minute if things look fine.",
+   "If an entrant collapses, the attendant should go in after them.",
+   "The attendant can help with other work while watching."
+  ],
+  "facts": [
+   {
+    "text": "The attendant must stay outside the permit space during entry until relieved by another attendant.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "The attendant must keep an accurate count of entrants and order them out if a problem is detected inside or outside the space.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "The attendant must call rescue and emergency services as soon as entrants may need help to escape.",
+    "cite": "1910.146"
+   }
+  ],
+  "story_seed": "An attendant noticed an entrant's voice sounded slurred over the radio. She ordered everyone out right away and called for the rescue team instead of going in herself.",
+  "crew_questions": [
+   "What do our attendants use to keep track of who is inside?",
+   "How would our attendant call rescue from each permit space we have?"
+  ],
+  "references": [
+   "1910.146"
+  ]
+ },
+ {
+  "slug": "atmospheric-testing",
+  "title": "Testing the air before entry",
+  "category": "Confined spaces",
+  "months": [],
+  "hazard": "The air inside a confined space can lack oxygen or hold flammable or toxic gases you cannot see or smell, and it can kill quickly.",
+  "key_points": [
+   "Never enter until the air has been tested and the permit says it is safe.",
+   "Make sure the air is tested in order by a trained tester: oxygen first, then flammable gases, then toxic gases.",
+   "Keep testing or monitoring during the job as your permit requires.",
+   "Get out right away if the alarm sounds or conditions change.",
+   "Ask to watch the air testing; entrants must be given the chance to see it.",
+   "Follow your site's procedure for the meter and its checks."
+  ],
+  "must_say": [
+   "Never enter a confined space until the air is tested and the permit says it is safe."
+  ],
+  "never_say": [
+   "If you can't smell anything, the air is safe.",
+   "One test in the morning is good for the whole day no matter what.",
+   "Sniff the air at the opening to check it."
+  ],
+  "facts": [
+   {
+    "text": "Before entry, the permit space must be tested to see if conditions are acceptable, and each entrant must be given the chance to watch the testing.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "When testing the air, test first for oxygen, then for combustible gases and vapors, then for toxic gases and vapors.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "Oxygen below 19.5 percent or above 23.5 percent is a hazardous atmosphere.",
+    "cite": "1910.146"
+   }
+  ],
+  "story_seed": "A crew was ready to enter a tank that had been cleaned the day before. The air meter showed low oxygen, and the entry was stopped until the space was ventilated and retested.",
+  "crew_questions": [
+   "Who tests the air on our permit spaces, and how is the meter checked?",
+   "What would you do if the alarm went off while you were inside?"
+  ],
+  "references": [
+   "1910.146"
+  ]
+ },
+ {
+  "slug": "confined-space-rescue",
+  "title": "Don't become the second victim",
+  "category": "Confined spaces",
+  "months": [],
+  "hazard": "People who rush into a confined space to save a coworker are often overcome by the same hazard and die too.",
+  "key_points": [
+   "Never go into a confined space to rescue someone; call for trained rescue and 911.",
+   "Use the retrieval line from outside if your site's rescue plan allows it.",
+   "Keep others from going in.",
+   "Know how to call rescue from each permit space before entry starts.",
+   "Follow your site's rescue plan."
+  ],
+  "must_say": [
+   "Never go in after a downed coworker. Call trained rescue and 911.",
+   "Do not become the second victim."
+  ],
+  "never_say": [
+   "Hold your breath and go in to pull them out.",
+   "Anyone nearby should jump in to help.",
+   "A dust mask is enough to go in for a quick rescue."
+  ],
+  "facts": [
+   {
+    "text": "Retrieval systems must be used when an entrant goes into a permit space, unless they would increase the overall risk or would not help a rescue.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "A mechanical device must be available to pull people out of vertical permit spaces more than 5 feet deep.",
+    "cite": "1910.146"
+   },
+   {
+    "text": "Rescue team members must practice permit space rescues at least once every 12 months.",
+    "cite": "1910.146"
+   }
+  ],
+  "story_seed": "A worker saw a coworker slump at the bottom of a pit. He started down the ladder, but the attendant stopped him, called rescue, and began cranking the retrieval line.",
+  "crew_questions": [
+   "Who is our rescue team for permit spaces, and how do we call them?",
+   "What would make it hard not to rush in, and how can we stop each other?"
+  ],
+  "references": [
+   "1910.146"
+  ]
+ },
+ {
+  "slug": "hand-tools",
+  "title": "Hand tools",
+  "category": "Tools",
+  "months": [],
+  "hazard": "Broken or misused hand tools can slip, break, or send pieces flying, causing cuts, eye injuries, and bruises.",
+  "key_points": [
+   "Inspect hand tools before use and tag out ones with cracked handles, mushroomed heads, or worn jaws.",
+   "Use the right tool for the job; never use a screwdriver as a pry bar or chisel.",
+   "Wear safety glasses when striking, cutting, or chipping.",
+   "Carry and store sharp tools so edges are covered or pointed down.",
+   "Never use compressed air to clean off your clothes or skin."
+  ],
+  "must_say": [
+   "Inspect every tool before you use it. If it is damaged, tag it out."
+  ],
+  "never_say": [
+   "A taped-up handle is as good as new.",
+   "Any tool works if you push hard enough.",
+   "Your own tools from home are not the company's concern."
+  ],
+  "facts": [
+   {
+    "text": "The employer is responsible for the safe condition of tools used at work, including tools that workers bring from home.",
+    "cite": "1910.242"
+   },
+   {
+    "text": "Compressed air may only be used for cleaning when reduced to less than 30 psi, and only with chip guarding and protective gear (PPE).",
+    "cite": "1910.242"
+   }
+  ],
+  "story_seed": "A worker grabbed a hammer with a cracked handle to free a stuck part. A coworker noticed the crack, swapped in a good hammer, and tagged the broken one out.",
+  "crew_questions": [
+   "Where do we send damaged hand tools here?",
+   "Which jobs tempt people to use the wrong tool?"
+  ],
+  "references": [
+   "1910.242"
+  ]
+ },
+ {
+  "slug": "portable-power-tools",
+  "title": "Portable power tools",
+  "category": "Tools",
+  "months": [],
+  "hazard": "Power tools can cut, crush, shock, or throw debris, and a missing guard or bad cord can cause serious injury.",
+  "key_points": [
+   "Inspect the tool, cord, and guard before each use; remove damaged tools from service.",
+   "Never remove, pin back, or tie back a guard.",
+   "Unplug or disconnect the tool before changing blades, bits, or wheels.",
+   "Keep both hands and body out of the line of the blade or bit.",
+   "Wear eye protection and other protective gear (PPE) your site requires.",
+   "Follow your site's procedure for cords and ground fault protection."
+  ],
+  "must_say": [
+   "Never remove or tie back a guard on a power tool."
+  ],
+  "never_say": [
+   "It's fine to pin the lower guard on a circular saw so it cuts faster.",
+   "Tape on a damaged cord makes it safe.",
+   "You can change a blade while the tool is plugged in if the switch is off."
+  ],
+  "facts": [
+   {
+    "text": "Hand-held circular saws with blades over 2 inches must have guards above and below the base plate, and the lower guard must return to cover the blade automatically.",
+    "cite": "1910.243"
+   },
+   {
+    "text": "All cracked saws must be removed from service.",
+    "cite": "1910.243"
+   },
+   {
+    "text": "The on/off control on hand-held power tools must be placed to reduce the chance of turning it on by accident.",
+    "cite": "1910.243"
+   }
+  ],
+  "story_seed": "A worker found a circular saw with its lower guard wedged open. He took it out of service and reported it before anyone used it.",
+  "crew_questions": [
+   "Which power tools here get the most wear and need the closest checks?",
+   "How do we tag and remove a damaged tool on our site?"
+  ],
+  "references": [
+   "1910.243"
+  ]
+ },
+ {
+  "slug": "knives-box-cutters",
+  "title": "Knives and box cutters",
+  "category": "Tools",
+  "months": [],
+  "hazard": "Knives and box cutters can slip and cause deep cuts to hands, legs, and arms.",
+  "key_points": [
+   "Cut away from your body and keep your free hand out of the cutting path.",
+   "Use a sharp blade; dull blades take more force and slip more.",
+   "Use self-retracting or safety cutters if your site provides them.",
+   "Retract or cover the blade every time you set it down.",
+   "Wear the cut-resistant gloves your site requires for cutting tasks.",
+   "Throw out used blades in the container your site provides."
+  ],
+  "must_say": [
+   "Always cut away from your body, and keep your other hand out of the path."
+  ],
+  "never_say": [
+   "A dull blade is safer than a sharp one.",
+   "Pull the blade toward you for better control.",
+   "Leave the blade out so it's ready to use."
+  ],
+  "facts": [],
+  "story_seed": "A worker cutting shrink wrap pulled the knife toward his leg and the blade skipped. It caught his pants, not his leg, and he started cutting away from his body after that.",
+  "crew_questions": [
+   "Which cutting jobs here are the most awkward?",
+   "Do we have the right cutters and gloves for the jobs we do?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "abrasive-cutoff",
+  "title": "Cut-off saws and abrasive wheels",
+  "category": "Tools",
+  "months": [],
+  "hazard": "Abrasive wheels spin very fast and can shatter, throwing pieces that cause serious injuries to the face, eyes, and body.",
+  "key_points": [
+   "Inspect every wheel and do a ring test before mounting it.",
+   "Check that the tool's speed does not exceed the speed marked on the wheel.",
+   "Keep the guard in place and adjusted between you and the wheel.",
+   "Stand out of the path of the wheel when starting the tool.",
+   "Wear eye and face protection your site requires.",
+   "Use only the wheel type made for your tool and task."
+  ],
+  "must_say": [
+   "Never use a grinder or cut-off saw without its guard in place."
+  ],
+  "never_say": [
+   "You can take the guard off to reach a tight spot.",
+   "Any wheel that fits the spindle is okay to use.",
+   "A cracked wheel is fine if the crack is small."
+  ],
+  "facts": [
+   {
+    "text": "Right before mounting, every wheel must be closely inspected and sounded by the user (a ring test) to check for damage.",
+    "cite": "1910.243"
+   },
+   {
+    "text": "The spindle speed of the machine must be checked so it does not exceed the maximum speed marked on the wheel.",
+    "cite": "1910.243"
+   },
+   {
+    "text": "Guards on right angle (vertical) portable grinders must be placed between the operator and the wheel during use.",
+    "cite": "1910.243"
+   }
+  ],
+  "story_seed": "A worker grabbed a cut-off wheel from a drawer and almost mounted it on a faster grinder. A coworker checked the speed marking, and the wheel was swapped for the right one.",
+  "crew_questions": [
+   "How do we store wheels here so they don't get damaged?",
+   "Who checks that wheels and tools are matched for speed?"
+  ],
+  "references": [
+   "1910.243"
+  ]
+ },
+ {
+  "slug": "stop-work",
+  "title": "Stop work authority",
+  "category": "Culture",
+  "months": [],
+  "hazard": "When people keep working through an unsafe condition because they feel they can't stop, someone can get hurt.",
+  "key_points": [
+   "Stop the job right away if you see a hazard that could hurt someone.",
+   "Tell the people involved and your supervisor why you stopped.",
+   "Make the area safe or keep people away until the hazard is fixed.",
+   "Restart only after the hazard is fixed and the crew agrees it is safe.",
+   "Follow your site's stop work procedure, and ask your supervisor who can stop a job at your site.",
+   "Thank people who stop work, even when it turns out to be okay."
+  ],
+  "must_say": [
+   "If something looks unsafe, stop first, then talk."
+  ],
+  "never_say": [
+   "You'll get in trouble for stopping work if it turns out fine.",
+   "Finish the job first, then report the hazard.",
+   "Keep working and hope it is fine."
+  ],
+  "facts": [],
+  "story_seed": "A new worker saw a load swinging close to people and called out to stop. The crane operator paused, the area was cleared, and the lift was replanned.",
+  "crew_questions": [
+   "What would make it hard to stop work here?",
+   "When was the last time someone stopped a job here, and what happened?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "speak-up",
+  "title": "Speaking up about a hazard",
+  "category": "Culture",
+  "months": [],
+  "hazard": "Hazards that people see but don't mention stay in place until they hurt someone.",
+  "key_points": [
+   "Shout 'Stop!' first if someone is about to get hurt; skip the polite words and explain after.",
+   "Tell the person directly and kindly what you see.",
+   "Report hazards to your supervisor and follow your site's reporting process.",
+   "Listen and say thanks when someone points out a hazard to you.",
+   "Follow up if a hazard you reported is not fixed."
+  ],
+  "must_say": [
+   "If you see something unsafe, say something. Speak up now, not later."
+  ],
+  "never_say": [
+   "It's not your place to say anything.",
+   "If no one else is worried, it must be fine.",
+   "Speaking up is snitching."
+  ],
+  "facts": [],
+  "story_seed": "A worker saw a coworker about to climb a damaged ladder. She spoke up, offered a good ladder, and they tagged the broken one out together.",
+  "crew_questions": [
+   "What makes it hard to speak up here?",
+   "How do you want people to tell you when they see you doing something unsafe?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "line-of-fire",
+  "title": "Line of fire",
+  "category": "Culture",
+  "months": [],
+  "hazard": "Workers get struck, crushed, or caught when they are in the path of moving equipment, falling objects, or released energy.",
+  "key_points": [
+   "Stay out of the path of moving vehicles, loads, and machine parts.",
+   "Never stand under a suspended load.",
+   "Keep out of the path of anything under tension or pressure, like straps, springs, and hoses.",
+   "Never put your hands or body between moving and fixed objects.",
+   "Stop and move out of the path if equipment or loads start to move."
+  ],
+  "must_say": [
+   "Stay out of the path. Things that move, fall, or snap do not go where you expect."
+  ],
+  "never_say": [
+   "Just know where it will go and you'll be fine.",
+   "Quick reflexes will keep you safe.",
+   "Standing under a load is okay if it's only for a second."
+  ],
+  "facts": [],
+  "story_seed": "A worker stood right behind a strap being tightened on a load. The strap snapped, but he had just stepped aside after a coworker told him to move out of the path.",
+  "crew_questions": [
+   "Where on our site are people most often in the line of fire?",
+   "What equipment here stores energy that could suddenly release?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "pre-task-planning",
+  "title": "Plan the job before you start",
+  "category": "Culture",
+  "months": [],
+  "hazard": "Jumping into a job without planning means hazards get missed until someone gets hurt.",
+  "key_points": [
+   "Walk the work area and look for hazards before you start.",
+   "Talk through the steps, the hazards, and the controls with your crew.",
+   "Check that you have the right tools, protective gear (PPE), and permits.",
+   "Stop and re-plan if the job or conditions change.",
+   "Follow your site's pre-task planning form or process."
+  ],
+  "must_say": [
+   "Plan the job before you start, and stop to re-plan if anything changes."
+  ],
+  "never_say": [
+   "Planning is a waste of time on simple jobs.",
+   "Experienced workers don't need to plan.",
+   "Once the plan is written, never change it."
+  ],
+  "facts": [],
+  "story_seed": "Before moving a heavy part, a crew talked through the job and spotted that the path was blocked. They cleared it first instead of finding out halfway through.",
+  "crew_questions": [
+   "Which jobs here change the most once we get started?",
+   "What's one hazard we have missed in past plans?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "shift-handoff",
+  "title": "Shift handoff",
+  "category": "Culture",
+  "months": [],
+  "hazard": "When important safety information is not passed between shifts, the next crew can walk into hazards they don't know about.",
+  "key_points": [
+   "Tell the next shift about any open hazards, locked-out equipment, or unfinished work.",
+   "Use your site's handoff log or checklist.",
+   "Ask questions if something in the handoff is not clear.",
+   "Walk the area together for jobs that are risky or not finished.",
+   "Never assume equipment is safe because it was safe last shift.",
+   "Follow your site's lockout procedure at shift change; never remove another person's lock."
+  ],
+  "must_say": [
+   "Tell the next shift about every open hazard and unfinished job."
+  ],
+  "never_say": [
+   "The next shift will figure it out.",
+   "If it's not written down, it doesn't matter.",
+   "Equipment that was safe last shift is safe now."
+  ],
+  "facts": [
+   {
+    "text": "Lockout programs must use specific procedures at shift or personnel changes so lockout protection continues, including an orderly transfer of locks or tags between off-going and oncoming workers.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A night crew left a machine with its guard off while waiting for a repair part. The day crew lead asked about it during the handoff and made sure the machine stayed locked out until the guard was back on.",
+  "crew_questions": [
+   "What information most often gets lost between our shifts?",
+   "How could we make our handoff easier and clearer?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ },
+ {
+  "slug": "new-workers",
+  "title": "Looking out for new workers",
+  "category": "Culture",
+  "months": [],
+  "hazard": "New workers don't yet know the hazards, shortcuts, and warning signs of a site, so they are more likely to get hurt.",
+  "key_points": [
+   "Show new workers the hazards, exits, and emergency steps in your area.",
+   "Watch new workers do a task before leaving them alone.",
+   "Tell new workers it is okay to ask questions and stop work.",
+   "Speak up kindly when you see a new worker doing something unsafe.",
+   "Follow your site's training and mentoring process."
+  ],
+  "must_say": [
+   "Look out for new workers. Show them the hazards and tell them they can always ask."
+  ],
+  "never_say": [
+   "New workers should figure it out on their own.",
+   "Show them the shortcuts so they can keep up.",
+   "Asking questions means they can't do the job."
+  ],
+  "facts": [],
+  "story_seed": "A new hire was about to reach into a conveyor to clear a jam. A veteran worker stopped him and showed him how to lock it out the way the site's procedure says before clearing it.",
+  "crew_questions": [
+   "What do you wish someone had told you on your first week here?",
+   "How do we pair new workers with experienced ones?"
+  ],
+  "references": []
+ },
+ {
+  "slug": "signs-tags",
+  "title": "Safety signs and tags",
+  "category": "Culture",
+  "months": [],
+  "hazard": "Ignoring or removing safety signs and tags can expose people to hazards they don't know are there.",
+  "key_points": [
+   "Read and follow every danger and caution sign and tag.",
+   "Never remove a tag unless you are the person allowed to by your site's procedure.",
+   "Report missing, damaged, or hard-to-read signs and tags.",
+   "Ask your supervisor if you don't understand a sign or tag."
+  ],
+  "must_say": [
+   "Never ignore or remove a danger tag. Follow it every time."
+  ],
+  "never_say": [
+   "Tags are just suggestions.",
+   "If you know the hazard, you can ignore the sign.",
+   "Anyone can take off a tag once the work looks done."
+  ],
+  "facts": [
+   {
+    "text": "Danger signs mean immediate danger and that special precautions are needed; caution signs mean a possible hazard.",
+    "cite": "1910.145"
+   },
+   {
+    "text": "Tags must have a signal word, like Danger or Caution, and a message about the hazard or the instruction.",
+    "cite": "1910.145"
+   },
+   {
+    "text": "Tags must be used until the hazard is gone or the hazardous job is done.",
+    "cite": "1910.145"
+   }
+  ],
+  "story_seed": "A worker saw a 'Do Not Use' tag on a hand truck and almost used it anyway to save time. A coworker reminded him, and they found a cracked axle when they looked closer.",
+  "crew_questions": [
+   "Which signs or tags here get ignored most?",
+   "Who do we tell when a sign is missing or damaged?"
+  ],
+  "references": [
+   "1910.145"
+  ]
+ },
+ {
+  "slug": "contractors",
+  "title": "Contractors on your site",
+  "category": "Culture",
+  "months": [],
+  "hazard": "Contractors may not know your site's hazards, and your crew may not know theirs, which can lead to someone starting equipment someone else is working on.",
+  "key_points": [
+   "Never remove, move, or work around a contractor's lock or tag.",
+   "Tell contractors about hazards in your area before they start.",
+   "Ask contractors what they are working on and what is locked out.",
+   "Follow your site's procedure for working with contractors.",
+   "Report contractors working unsafely to your supervisor."
+  ],
+  "must_say": [
+   "Never remove or work around anyone's lock or tag, including a contractor's."
+  ],
+  "never_say": [
+   "Contractors are on their own; their safety isn't our problem.",
+   "It's okay to start equipment if the contractor seems done.",
+   "Contractor locks don't count on our machines."
+  ],
+  "facts": [
+   {
+    "text": "When outside contractors do work covered by the lockout rule, the site and the contractor must tell each other their lockout or tagout procedures.",
+    "cite": "1910.147"
+   },
+   {
+    "text": "The site must make sure its own workers understand and follow the contractor's lockout rules.",
+    "cite": "1910.147"
+   }
+  ],
+  "story_seed": "A worker was about to restart a conveyor when he saw a lock he didn't recognize. He checked and found a contractor still working inside the guard.",
+  "crew_questions": [
+   "How do we let our crew know when contractors are working in our area?",
+   "What do we do if we find a contractor's lock and can't find the contractor?"
+  ],
+  "references": [
+   "1910.147"
+  ]
+ }
+]

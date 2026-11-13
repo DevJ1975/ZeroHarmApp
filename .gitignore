@@ -41,3 +41,18 @@ yarn-error.*
 /android
 
 .env
+
+# Django
+__pycache__/
+*.pyc
+backend/db.sqlite3
+# City database downloaded by `python manage.py geo_update`
+backend/geo/
+
+# content console (local only)
+console/.env.local
+console/node_modules
+console/dist
+
+# local Claude launch settings
+.claude/

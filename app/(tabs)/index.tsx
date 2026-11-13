@@ -1,140 +1,92 @@
 import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import { Body, Button, ComingSoon, Heading, Screen } from '@/components/ui';
+import { AnimatedOtis } from '@/components/AnimatedOtis';
+import { HolidayBanner, HolidayTagline } from '@/components/Holiday';
+import { MondayMinuteLogo } from '@/components/MondayMinuteCard';
+import { MondayMinuteView } from '@/components/MondayMinuteView';
+import { Body, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { AlertCard } from '@/components/feed';
-import { EpisodeCard } from '@/components/EpisodeCard';
-import { WeatherBar } from '@/components/WeatherBar';
-import { Episode, listEpisodes } from '@/lib/episodes';
-import { FeedItem, listFeed } from '@/lib/feed';
-import { issueNumber, listTalks, Talk } from '@/lib/talks';
+import { useContentRefresh } from '@/lib/live';
+import { listMinutes, Minute } from '@/lib/monday';
+import { markStale } from '@/lib/saved-first';
+import { useHoliday } from '@/lib/season';
 
-/** Today: this week's talk as a safety placard, then past talks. */
-export default function TodayScreen() {
+/** The first screen in the app: this week's Monday Minute, ready to read, print, sign in and talk over. */
+export default function MondayHome() {
   const t = useTheme();
-  const [talks, setTalks] = useState<Talk[] | null>(null);
+  const festive = useHoliday();
+  const [m, setM] = useState<Minute | null | undefined>(undefined);
   const [offline, setOffline] = useState(false);
-  const [alerts, setAlerts] = useState<FeedItem[]>([]);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const load = useCallback(() => {
+    const show = (list: Minute[]) => {
+      setM(list[0] ?? null);
+      setOffline(false);
+    };
+    return listMinutes(show, () => setOffline(true)).then((list) => setM(list[0] ?? null));
+  }, []);
+  useFocusEffect(useCallback(() => void load(), [load]));
+  const refresh = useCallback(() => {
+    markStale('monday');
+    return load();
+  }, [load]);
+  useContentRefresh(refresh); // a Minute published or pulled while this screen is open
 
-  useFocusEffect(
-    useCallback(() => {
-      listTalks().then((r) => {
-        setTalks(r.talks);
-        setOffline(r.offline);
-      });
-      listFeed(['alert']).then(setAlerts);
-      listEpisodes().then(setEpisodes);
-    }, []),
-  );
-
-  const [current, ...past] = talks ?? [];
-
+  if (m === undefined)
+    return (
+      <Screen>
+        <ActivityIndicator />
+      </Screen>
+    );
+  if (m === null)
+    return (
+      <View style={{ flex: 1 }}>
+      <Screen onRefresh={refresh}>
+        {festive ? (
+          <HolidayBanner>
+            <MondayMinuteLogo onDark />
+            <HolidayTagline />
+          </HolidayBanner>
+        ) : (
+          <MondayMinuteLogo />
+        )}
+        {offline && <OfflineNote text="No signal. The Monday Minute will show when you're back in range." />}
+        <Body>A new 5-minute crew talk lands here every Monday morning. Read it to your crew, print it with a sign-in sheet, or have the crew sign on this phone.</Body>
+        <Body muted>The first Monday Minute arrives Monday at 5 AM Pacific. Turn on Monday Minute in Settings to get a notification.</Body>
+        <View style={styles.links}>
+          <Link href="/today" style={[styles.link, { color: t.text }]}>Zero Harm Weekly and more →</Link>
+          <Link href="/sheets" style={[styles.link, { color: t.text }]}>My sign-in sheets →</Link>
+          <Link href="/settings" style={[styles.link, { color: t.text }]}>Settings →</Link>
+        </View>
+      </Screen>
+      <AskOtis />
+      </View>
+    );
   return (
-    <Screen>
-      <View style={styles.topRow}>
-        <Heading>Today</Heading>
-        <Link href="/settings" style={[styles.link, { color: t.muted }]}>Settings</Link>
-      </View>
-      <WeatherBar />
+    <View style={{ flex: 1 }}>
+      <MondayMinuteView minute={m} onChange={setM} onRefresh={refresh} offline={offline} />
+      <AskOtis />
+    </View>
+  );
+}
 
-      {talks === null && <ActivityIndicator />}
-
-      {talks !== null && !current && (
-        <ComingSoon
-          title="The first talk lands Sunday, January 3"
-          detail="Zero Harm Weekly starts in January. Turn on reminders in Settings and we'll let you know when it's ready for Monday's meeting."
-        />
-      )}
-
-      {current && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Open this week's talk: ${current.title}`}
-          onPress={() => router.push(`/talk/${current.issue}`)}
-          style={[styles.placard, { borderColor: t.text, backgroundColor: t.surface }]}>
-          <View style={[styles.band, { backgroundColor: t.accent }]}>
-            <Text style={[styles.bandText, { color: t.onAccent }]}>This week’s talk</Text>
-            <Text style={[styles.bandText, { color: t.onAccent }]}>Issue {issueNumber(current)}</Text>
-          </View>
-          <View style={styles.placardBody}>
-            <Text style={[styles.title, { color: t.text }]}>{current.title}</Text>
-            <Body muted>{current.month_theme}</Body>
-            <Body>{current.crew_question}</Body>
-            <Button label="Open the talk" onPress={() => router.push(`/talk/${current.issue}`)} />
-          </View>
-        </Pressable>
-      )}
-
-      {alerts.length > 0 && (
-        <View style={{ gap: space.sm }}>
-          <View style={styles.topRow}>
-            <Text style={[styles.section, { color: t.text }]}>Latest alert</Text>
-            <Link href="/alerts" style={[styles.link, { color: t.muted }]}>All alerts</Link>
-          </View>
-          <AlertCard item={alerts[0]} />
-        </View>
-      )}
-
-      {episodes.length > 0 && (
-        <View style={{ gap: space.sm }}>
-          <View style={styles.topRow}>
-            <Text style={[styles.section, { color: t.text }]}>Zero Hour</Text>
-            <Link href="/zero-hour" style={[styles.link, { color: t.muted }]}>All episodes</Link>
-          </View>
-          <EpisodeCard ep={episodes[0]} compact />
-        </View>
-      )}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ask OTIS, the Zero Harm safety assistant"
-        onPress={() => router.push('/otis')}
-        style={[styles.otis, { backgroundColor: t.surface, borderColor: t.rule }]}>
-        <Text style={[styles.otisTitle, { color: t.text }]}>Ask OTIS</Text>
-        <Body muted>Safety questions answered from Zero Harm talks. Works with no signal.</Body>
-      </Pressable>
-
-      {offline && talks !== null && <Body muted>No signal. Showing the talks saved on this phone.</Body>}
-
-      {past.length > 0 && (
-        <View style={{ gap: space.sm }}>
-          <Text style={[styles.section, { color: t.text }]}>Past talks</Text>
-          {past.slice(0, 3).map((p) => (
-            <Pressable
-              key={p.issue}
-              accessibilityRole="button"
-              onPress={() => router.push(`/talk/${p.issue}`)}
-              style={[styles.row, { borderColor: t.rule }]}>
-              <Text style={[styles.rowNum, { color: t.muted }]}>{issueNumber(p)}</Text>
-              <Text style={[styles.rowTitle, { color: t.text }]}>{p.title}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-      <View style={styles.links}>
-        <Link href="/archive" style={[styles.link, { color: t.text }]}>Open the archive →</Link>
-        <Link href="/suggest" style={[styles.link, { color: t.text }]}>Suggest a talk →</Link>
-      </View>
-    </Screen>
+/** OTIS floats in the corner of the Monday screen, smiling. A tap opens the safety assistant. */
+function AskOtis() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ask OTIS, the Zero Harm safety assistant"
+      onPress={() => router.push('/otis')}
+      hitSlop={8}
+      style={styles.otis}>
+      <AnimatedOtis size={68} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  link: { fontFamily: fonts.bodyMedium, fontSize: 16 },
-  placard: { borderWidth: 3, borderRadius: 8, overflow: 'hidden' },
-  band: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.md, paddingVertical: 10 },
-  bandText: { fontFamily: fonts.display, fontSize: 18 },
-  placardBody: { padding: space.md, gap: space.sm },
-  title: { fontFamily: fonts.display, fontSize: 34, lineHeight: 36 },
-  section: { fontFamily: fonts.displayMedium, fontSize: 22, marginTop: space.sm },
-  row: { flexDirection: 'row', gap: space.md, paddingVertical: 12, borderBottomWidth: 1 },
-  rowNum: { fontFamily: fonts.displayMedium, fontSize: 18, width: 28 },
-  otis: { borderWidth: 1, borderRadius: 6, padding: space.md, gap: 2 },
-  otisTitle: { fontFamily: fonts.displayMedium, fontSize: 22 },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, paddingVertical: space.sm },
-  rowTitle: { fontFamily: fonts.bodyMedium, fontSize: 17, flex: 1 },
+  links: { gap: space.md, marginTop: space.sm },
+  link: { fontFamily: fonts.bodyBold, fontSize: 17 },
+  otis: { position: 'absolute', right: space.md, bottom: space.md, borderRadius: 34, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
 });

@@ -3,16 +3,18 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
 import { getPrefs, hasBeenAsked, markAsked, setPrefs } from '@/lib/push';
 import { startSession } from '@/lib/signins';
-import { getTalk, issueNumber, Talk } from '@/lib/talks';
+import { regLinks } from '@/lib/regs';
+import { getTalk, isEarly, issueNumber, sendDay, Talk } from '@/lib/talks';
 
 /** Labels on this screen in both languages. Talk text comes from the approved translation. */
 const L = {
-  en: { issue: 'Issue', ask: 'Ask your crew', pdf: 'Open the printable PDF', run: 'Run the talk', start: 'Start crew sign-in', pending: 'The full talk text will appear here. Until then, open the printable PDF below.' },
-  es: { issue: 'Número', ask: 'Pregunte a su equipo', pdf: 'Abrir el PDF para imprimir', run: 'Dar la charla', start: 'Registrar asistencia', pending: 'El texto completo aparecerá aquí. Mientras tanto, abra el PDF para imprimir.' },
+  en: { early: 'Ready early. The newsletter goes out', issue: 'Issue', ask: 'Ask your crew', pdf: 'Open the printable PDF', run: 'Run the talk', start: 'Start crew sign-in', pending: 'The full talk text will appear here.', pendingPdf: 'Until then, open the printable PDF below.', note: 'This talk adds to your site training and doesn’t replace it. Always follow your site’s written steps.' },
+  es: { early: 'Disponible antes. El boletín sale el', issue: 'Número', ask: 'Pregunte a su equipo', pdf: 'Abrir el PDF para imprimir', run: 'Dar la charla', start: 'Registrar asistencia', pending: 'El texto completo aparecerá aquí.', pendingPdf: 'Mientras tanto, abra el PDF para imprimir.', note: 'Esta charla complementa la capacitación de su sitio y no la reemplaza. Siga siempre los pasos escritos de su sitio.' },
 };
 
 export default function TalkScreen() {
@@ -26,7 +28,7 @@ export default function TalkScreen() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
 
   useEffect(() => {
-    getTalk(Number(issue)).then(setTalk);
+    getTalk(Number(issue), setTalk).then(setTalk);
     // Ask for push at a good moment: right after someone opens their first talk.
     hasBeenAsked().then((asked) => setShowReminder(!asked));
   }, [issue]);
@@ -35,7 +37,7 @@ export default function TalkScreen() {
   if (talk === null)
     return (
       <Screen>
-        <Body>This talk isn’t available yet. Talks open on the Sunday before their Monday date.</Body>
+        <Body>This talk isn’t available yet. Each talk opens as soon as its text is ready, and no later than the Sunday before its Monday date.</Body>
       </Screen>
     );
 
@@ -96,6 +98,7 @@ export default function TalkScreen() {
           </View>
         )}
       </View>
+      {isEarly(talk) && <Body muted>{l.early} {sendDay(talk, es ? 'es' : undefined)}.</Body>}
       <Text style={[styles.title, { color: t.text }]}>{text.title}</Text>
       <Text style={[styles.story, { color: t.muted }]}>{text.story_title}</Text>
 
@@ -108,13 +111,16 @@ export default function TalkScreen() {
           ),
         )
       ) : (
-        <Body muted>{l.pending}</Body>
+        <Body muted>{l.pending}{talk.pdf_url ? ` ${l.pendingPdf}` : ''}</Body>
       )}
 
       <View style={[styles.question, { borderColor: t.text }]}>
         <Text style={[styles.qLabel, { color: t.text }]}>{l.ask}</Text>
         <Body>{text.crew_question}</Body>
       </View>
+
+      <RegLinks links={regLinks(text.body_md, text.crew_question)} />
+      <Body muted>{l.note}</Body>
 
       {talk.pdf_url && (
         <Button kind="secondary" label={l.pdf} onPress={() => WebBrowser.openBrowserAsync(talk.pdf_url!)} />

@@ -1,0 +1,890 @@
+{
+ "_about": [
+  "Messages from two independent checks of the OTIS routing (English crew slang; Spanish, Spanglish and very short).",
+  "Every message here is run through looksUrgent and routeQuestion with the served knowledge base, and every flow case through stepFlow, in __tests__/otis-gate.test.ts.",
+  "urgent: the 911 banner, then the safety answer, never a support path. hazard: the safety answer, never a support entry or a report offer.",
+  "flows: [message that started the report, step it is at, what is typed there, is it an emergency]: never sent, never taken as an answer to the step, handed back and answered as safety (with the banner for an emergency).",
+  "appComplaints: [message, the entry the checker expected or null]: a support path, or the safety answer with the small Report a problem link. Never neither.",
+  "failing: the inputs the checkers' reports listed as failing before the pure-app gate. All of them are in the lists above too."
+ ],
+ "urgent": [
+  "app froze and mike is not moving",
+  "OTIS IS DOWN AND JOE IS NOT MOVING",
+  "app froze n tony aint movin",
+  "app crashd and hes bleding bad",
+  "app crashed, coworker havin a seazure",
+  "app froze hes twitching on the ground by the line",
+  "app wont load maria is shaking on the floor",
+  "zero harm app crashed and the guy is turning purple",
+  "app froze cnt breathe in here",
+  "app keeps crashing, smells like propane in the shop",
+  "app froze, homie got pinched in the press",
+  "app froze n my bro is gushing from his arm",
+  "OTIS FROZE GUYS ARM IS STUCK IN THE ROLLER",
+  "app froze, mans down by dock 4",
+  "app keeps crashin and theres a fire in the dryer",
+  "app crashed theres smoke comin out the panel",
+  "app froze, guy got electrocutted on the panel",
+  "app froze my guy is unconcious",
+  "the app crashed and he is havin a stroke",
+  "app froze, hes bleeding from the head",
+  "app crashed theres a gas smell by the boiler",
+  "CO ALARM GOING OFF AND THE APP WONT OPEN",
+  "app froze, guy fell thru the skylight",
+  "phone died, scissor lift tipped with a guy on it",
+  "app wont open. dude collapsed on the line",
+  "my phone has no signal and im locked in the cooler",
+  "app froze buddy wont get up",
+  "my phone died and theres a downed power line on a truck with the driver inside",
+  "OTIS not working jimmy got hit by the forklift",
+  "app crashed while i was on the phone and now my partner is foaming at the mouth",
+  "screen froze n my eyes r burning from the chemical",
+  "app keeps freezing and the guy next to me is puking and dizzy",
+  "app is glitching, there's a active shooter in the warehouse",
+  "my phone froze, a guy pulled a knife on the dock",
+  "app froze, somebody got ran over in the yard",
+  "notification popped up and then the ammonia alarm went off",
+  "app crashed and luis is not breathing right",
+  "app froze and frank is out cold",
+  "app wont load, my chest feels real tight",
+  "app crashed, im gonna pass out its so hot",
+  "OTIS crashed and bobby got his hand caught in the conveyor",
+  "app crashed and jose fell off the ladder and hes not talking",
+  "video wont load and the guy in the tank aint answering",
+  "link wont open, theres a fire in the paint booth",
+  "app froze, steve is gray and clammy",
+  "app keeps closing and kevin is bleeding everywhere",
+  "my phone froze, dave got shocked bad and is laying there",
+  "la app se trabó y mi compañero se desmayó",
+  "otis no responde y Juan no está respirando",
+  "la aplicación se cerró, hay humo en la bodega",
+  "se congeló la app y hay una fuga de amoníaco",
+  "the app crashed y hay fuego en la línea 2",
+  "la app no carga, al chavo le agarró la mano la banda",
+  "otis no sirve, se cayó del andamio",
+  "la app está trabada y mi compa está sangrando mucho",
+  "app no jala y el señor no reacciona",
+  "la app se cierra sola, me quemé con vapor",
+  "me caí de la escalera",
+  "me golpeé la cabeza",
+  "el montacargas me pegó",
+  "the app froze and then the forklift hit me",
+  "the app keeps crashing and a pallet landed on my foot",
+  "otis stopped working and theres smoke coming from the panel",
+  "la app no abre, alguien se electrocutó",
+  "my phone died and my coworker isnt breathing",
+  "the screen froze and he got his hand caught in the press",
+  "la app falla, mi compañera tiene convulsiones",
+  "app crashed lol and bro is bleeding bad",
+  "se me trabó otis, huele a gas",
+  "la app no funciona y hay un incendio en la bodega",
+  "the app is down and someone collapsed in the freezer",
+  "app no sirve, le dio un infarto al supervisor",
+  "the app glitched and the guy fell off the roof",
+  "otis no contesta y mi compañero está atrapado en el tanque",
+  "me picó una abeja y no puedo respirar",
+  "the app froze and my hand is stuck in the roller",
+  "mi compa se cortó el dedo con la sierra",
+  "chemical in my eyes y no veo nada",
+  "la app se cerró y me torcí el tobillo, no puedo caminar",
+  "la app crashea y me quemé la mano con el aceite",
+  "the app froze and I just got shocked by the outlet",
+  "la app no responde y el trabajador se quedó encerrado en el congelador",
+  "ayuda porfa",
+  "man down",
+  "hombre caído",
+  "fuego",
+  "humo negro",
+  "no respira",
+  "se cayó",
+  "me caí",
+  "sangre",
+  "me quemé",
+  "gas leak",
+  "huele a gas",
+  "me electrocuté",
+  "está inconsciente"
+ ],
+ "hazard": [
+  "app froze and theres a hole in the floor by line 3",
+  "app crashed, theres water all over the floor real slippery",
+  "this screen froze, the stair railing is loose",
+  "OTIS keeps crashing and the exit door is blocked",
+  "app keeps freezing, theres a snake in the warehouse",
+  "app crashed and theres a bees nest by the back door",
+  "app wont open theres broken glass everywhere in the breakroom",
+  "app froze, the sprinkler head is broke and spraying",
+  "app crashed theres a needle in the bathroom",
+  "app wont load and the rebar aint capped",
+  "app keeps freezing, the floor is slick with oil",
+  "app crashed, theres rats all over the warehouse",
+  "app froze, I twisted my ankle on the stairs",
+  "app crashed and I tweaked my back lifting",
+  "app froze, I sprained my wrist",
+  "app froze, the generator is running inside the building",
+  "app is broken and so is the stair rail on the mezz",
+  "app froze there is a fight in the parking lot",
+  "app froze and a customer is getting aggressive with my crew",
+  "app crashed, they make us work 16 hours with no water",
+  "app keeps crashing, super wont let us drink water",
+  "app wont sign in, i didnt get paid for overtime",
+  "app froze, the nail gun is jammed and firing on its own",
+  "app froze, guys working without hard hats",
+  "app froze, wasp nest on the ladder",
+  "OTIS keeps crashing, someone smoking by the oxygen tanks",
+  "app froze, the trench walls are cracking",
+  "app froze, roof is leaking on the electrical panel",
+  "app crashed, the guard on the saw is gone",
+  "app froze, forklift brakes are shot",
+  "app keeps crashing and the eyewash is empty",
+  "my phone froze, the lanyard is frayed",
+  "app crashed, a guy is on the roof with no tie off",
+  "app froze, they told us to skip lockout to save time",
+  "app froze, the dock plate is cracked",
+  "APP CRASHED AND THE FLOOR IS ICED OVER BY THE COOLER",
+  "app wont load, theres asbestos looking stuff falling from the ceiling",
+  "app keeps freezing, mold on the walls in the break room",
+  "app froze, I got fired for reporting a hazard",
+  "app froze, the scaffold is missing planks",
+  "app crashed i got a splinter of metal in my hand",
+  "app froze im getting a rash from the cleaner",
+  "app froze and my knee is messed up from kneeling all day",
+  "my phone froze, the extension cord is all chewed up",
+  "app keeps crashing the stairs got no handrail",
+  "app froze and the manhole cover is off",
+  "phone froze, i tripped on the hose and hit my elbow",
+  "app crashed, theres a guy drunk on the forklift",
+  "app froze, somebody threatened me in the parking lot",
+  "app crashed n the pallet rack is leaning bad",
+  "app froze, they keep the emergency exit chained shut",
+  "app froze lightning out here n we still pouring",
+  "app crashed, my shoulder popped when i lifted the box",
+  "piso mojado",
+  "wet floor",
+  "slippery floor",
+  "no guard",
+  "sin guarda",
+  "chemical spill",
+  "derrame",
+  "candado",
+  "arnés",
+  "escalera rota",
+  "broken ladder",
+  "hoyo en el piso",
+  "cables pelados",
+  "mucho ruido",
+  "too loud",
+  "sin guantes",
+  "hot work permit",
+  "vidrio roto",
+  "broken glass",
+  "salida bloqueada",
+  "blocked exit",
+  "botiquín vacío",
+  "horas extra",
+  "la app se trabó y el piso está mojado",
+  "the app froze and the floor is slippery",
+  "la app no funciona, la escalera está rota",
+  "otis no sirve y la guarda de la sierra no está",
+  "app keeps crashing and theres oil all over the floor",
+  "the app crashed and theres a hole in the floor by line 3",
+  "la app se cierra y hay un hoyo en el piso",
+  "otis froze and the stairs have no handrail",
+  "la app no carga, necesito arnés en el techo?",
+  "the app is slow, do I need a respirator for spray paint",
+  "la aplicación falla y nadie bloqueó la máquina",
+  "app crashed and theres broken glass everywhere",
+  "la app no jala y hay vidrios rotos en el pasillo",
+  "my phone froze and there are exposed nails on the walkway",
+  "la app se congela y hay cables pelados",
+  "the app froze and the exit is blocked",
+  "the app is glitching and the dock plate is loose",
+  "la app me sale error y hay ratas en la cocina",
+  "otis keeps freezing and they make us work 14 hours without a break",
+  "la app no funciona y mi jefe no me deja ir al baño",
+  "the app froze and my supervisor told me to skip lockout",
+  "la app no sirve y no me pagan las horas extra",
+  "app is down, can they fire me for reporting a hazard",
+  "la app falla y me amenazaron con correrme si reporto",
+  "app crashed, where do I get the incident report form",
+  "the app is lagging and its freezing in the warehouse",
+  "la app no abre y el botiquín está vacío",
+  "my phone froze and theres a needle in the trash",
+  "la app se trabó, cuántas horas puedo trabajar seguidas?",
+  "the app froze, nobody signed the hot work permit",
+  "la app no jala y la carretilla no tiene frenos",
+  "the app crashed and the ceiling tile is about to come down",
+  "la app se cierra y el techo está goteando",
+  "the app is broken and the railing on the stairs is loose",
+  "la app no funciona y mi certificación de montacargas venció"
+ ],
+ "flows": [
+  [
+   "the app keeps crashing",
+   "offer",
+   "still broken, guy twisted his ankle",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "still crashing and mike is not moving",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "app still crashes and theres a hole in the floor",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "yes and theres smoke",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "still froze, hes bleding bad",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "nope still frozen, forklift brakes are shot",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "confirm",
+   "ok and the floor is soaked and slippery",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "confirm",
+   "sure but joe aint movin",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "confirm",
+   "yeah, theres a snake in the shop",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "confirm",
+   "ok gas smell by the boiler",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "the app froze and mike is not moving",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app crashed when the rebar poked my leg",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "the app keeps crashing and theres broken glass everywhere",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app froze when I twisted my ankle on the stairs",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app crashes when i open the forklift talk and the forklift has no brakes",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app froze on the fire talk, theres smoke in the shop",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app crashd and hes bleding bad",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "the app crashed, coworker havin a seazure",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "app crashed and a fight broke out in the parking lot",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "mike is not moving",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "rebar exposed",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "snake",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "hole in floor",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "gas leak",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "tony aint movin",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "fight",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "offer",
+   "sigue goteando aceite en el piso",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "still water all over the floor",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "offer",
+   "todavía no hay guarda en la sierra",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "ya funciona, pero hay un cable pelado",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "offer",
+   "no, sigue igual y mi compa se cortó",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "offer",
+   "sigue saliendo humo del cargador",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "offer",
+   "still no handrail on the stairs",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "confirm",
+   "no, hay una fuga de amoníaco",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "confirm",
+   "ok pero el piso está mojado",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "confirm",
+   "yes and someone fell",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "el piso está mojado y resbaloso",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "la escalera está rota",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "me caí",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "hombre caído",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "hay vidrios rotos en el pasillo",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "the stairs have no handrail",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "it crashed when I opened the forklift talk, and the forklift has no brakes",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "the app froze and the floor is slippery",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "se trabó y mi compañero se siente mal",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "describe",
+   "la app se trabó y me golpeé la cabeza",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "describe",
+   "it froze and the exit door is blocked",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "email",
+   "hay humo",
+   true
+  ],
+  [
+   "la app se cierra sola",
+   "email",
+   "piso mojado",
+   false
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "wet floor",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "email",
+   "me caí",
+   true
+  ],
+  [
+   "the app keeps crashing",
+   "email",
+   "theres a spill",
+   false
+  ],
+  [
+   "la app se cierra sola",
+   "email",
+   "hombre caído",
+   true
+  ]
+ ],
+ "appComplaints": [
+  [
+   "app keeps crashing when i open the video",
+   null
+  ],
+  [
+   "OTIS wont download on my phone",
+   null
+  ],
+  [
+   "cant sign in to the app",
+   null
+  ],
+  [
+   "notifications from the app stopped",
+   null
+  ],
+  [
+   "app says update needed but there is no update",
+   null
+  ],
+  [
+   "video wont play in the app",
+   null
+  ],
+  [
+   "the link in the app dont work",
+   null
+  ],
+  [
+   "ZERO HARM APP WONT OPEN",
+   null
+  ],
+  [
+   "app froze on the sign in screen",
+   null
+  ],
+  [
+   "my phone keeps kicking me out of the app",
+   null
+  ],
+  [
+   "otis keeps crashing",
+   null
+  ],
+  [
+   "the app is super laggy today",
+   null
+  ],
+  [
+   "app crashed after the update",
+   null
+  ],
+  [
+   "app crashes every time i open the lockout talk",
+   null
+  ],
+  [
+   "the forklift video wont play in the app",
+   null
+  ],
+  [
+   "the app wont load the heat card",
+   null
+  ],
+  [
+   "cant download the episode in the app",
+   null
+  ],
+  [
+   "the app keeps logging me out",
+   null
+  ],
+  [
+   "app screen went black",
+   null
+  ],
+  [
+   "OTIS IS NOT ANSWERING",
+   null
+  ],
+  [
+   "i need help with the app",
+   null
+  ],
+  [
+   "how do i update the app",
+   null
+  ],
+  [
+   "the sign in sheet in the app wont save",
+   null
+  ],
+  [
+   "zero harm keeps freezing on my iphone",
+   null
+  ],
+  [
+   "app is draining my battery",
+   null
+  ],
+  [
+   "the app crashes every time I open it",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "zero harm keeps kicking me out",
+   "Signing in with your email"
+  ],
+  [
+   "otis download stuck at 80 percent",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "the app wont let me sign the sheet",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "my signature keeps disappearing in the app",
+   "A signature will not save"
+  ],
+  [
+   "I never got the monday talk notification on my phone",
+   "Notifications are not arriving"
+  ],
+  [
+   "the pdf from the app wont share",
+   "The PDF will not print or share"
+  ],
+  [
+   "the app is in english, I want spanish",
+   "Spanish is not offered"
+  ],
+  [
+   "the app still shows last weeks talk",
+   "The app shows old content or will not update"
+  ],
+  [
+   "the group photo button does nothing in the app",
+   "Trouble taking the group photo"
+  ],
+  [
+   "the app logged me out and I cant sign back in",
+   "Signing in with your email"
+  ],
+  [
+   "otis takes forever to answer",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "otis says it needs an update but I updated",
+   "OTIS says it needs an update"
+  ],
+  [
+   "my phone says not enough space for otis",
+   "Not enough space on the phone for OTIS"
+  ],
+  [
+   "the weather card is gone from the app",
+   "The weather and heat card is missing"
+  ],
+  [
+   "la app se me cierra cuando abro la charla",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "otis no termina de descargar",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "no me llega la notificación del lunes",
+   "Notifications are not arriving"
+  ],
+  [
+   "la firma no se guarda en la app",
+   "A signature will not save"
+  ],
+  [
+   "la app no deja guardar la hoja de asistencia",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "no puedo compartir el pdf desde la app",
+   "The PDF will not print or share"
+  ],
+  [
+   "la app sigue en inglés",
+   "Spanish is not offered"
+  ],
+  [
+   "otis está bien lento",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "la app no carga el clima",
+   "The weather and heat card is missing"
+  ],
+  [
+   "la app se ve rara, tiene luces de navidad",
+   "The app looks different: the holiday look"
+  ],
+  [
+   "otis dice que necesito actualizar",
+   "OTIS says it needs an update"
+  ],
+  [
+   "no puedo entrar a la app con mi correo",
+   "Signing in with your email"
+  ],
+  [
+   "la app crashea a cada rato",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "no hay espacio en mi cel para otis",
+   "Not enough space on the phone for OTIS"
+  ],
+  [
+   "la app no jala desde ayer",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "quiero reportar un bug de la app",
+   "How to report a problem and see the reply"
+  ],
+  [
+   "app no jala",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "otis no sirve",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "la app truena",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "la app esta bugueada",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "no puedo hacer login en la app",
+   "Signing in with your email"
+  ]
+ ],
+ "failing": {
+  "urgent": [
+   "app froze and mike is not moving",
+   "OTIS IS DOWN AND JOE IS NOT MOVING",
+   "app froze n tony aint movin",
+   "app crashd and hes bleding bad",
+   "app crashed, coworker havin a seazure",
+   "app froze hes twitching on the ground by the line",
+   "app wont load maria is shaking on the floor",
+   "zero harm app crashed and the guy is turning purple",
+   "app froze cnt breathe in here",
+   "app keeps crashing, smells like propane in the shop",
+   "app froze, homie got pinched in the press",
+   "app froze n my bro is gushing from his arm",
+   "app wont load, my chest feels real tight",
+   "video wont load and the guy in the tank aint answering",
+   "me caí",
+   "me caí de la escalera",
+   "me quemé",
+   "me golpeé la cabeza",
+   "el montacargas me pegó",
+   "hombre caído",
+   "la app se cierra sola, me quemé con vapor",
+   "the app froze and then the forklift hit me",
+   "la app se cerró y me torcí el tobillo, no puedo caminar",
+   "la app crashea y me quemé la mano con el aceite"
+  ],
+  "hazard": [
+   "app froze and theres a hole in the floor by line 3",
+   "app crashed, theres water all over the floor real slippery",
+   "this screen froze, the stair railing is loose",
+   "OTIS keeps crashing and the exit door is blocked",
+   "app wont open theres broken glass everywhere in the breakroom",
+   "app froze, the sprinkler head is broke and spraying",
+   "app wont load and the rebar aint capped",
+   "app keeps freezing, the floor is slick with oil",
+   "app is broken and so is the stair rail on the mezz",
+   "app keeps crashing the stairs got no handrail",
+   "app keeps freezing, theres a snake in the warehouse",
+   "app crashed and theres a bees nest by the back door",
+   "app crashed, theres rats all over the warehouse",
+   "app crashed theres a needle in the bathroom",
+   "app froze, the generator is running inside the building",
+   "app froze, I twisted my ankle on the stairs",
+   "app crashed and I tweaked my back lifting",
+   "app froze, I sprained my wrist",
+   "app froze im getting a rash from the cleaner",
+   "app froze and my knee is messed up from kneeling all day",
+   "app crashed, my shoulder popped when i lifted the box",
+   "app froze there is a fight in the parking lot",
+   "app froze and a customer is getting aggressive with my crew",
+   "app crashed, they make us work 16 hours with no water",
+   "app keeps crashing, super wont let us drink water",
+   "app wont sign in, i didnt get paid for overtime",
+   "la app se trabó y el piso está mojado",
+   "the app froze and the floor is slippery",
+   "app keeps crashing and theres oil all over the floor",
+   "the app crashed and theres a hole in the floor by line 3",
+   "la app se cierra y hay un hoyo en el piso",
+   "otis froze and the stairs have no handrail",
+   "the app is broken and the railing on the stairs is loose",
+   "app crashed and theres broken glass everywhere",
+   "la app no jala y hay vidrios rotos en el pasillo",
+   "my phone froze and there are exposed nails on the walkway",
+   "my phone froze and theres a needle in the trash",
+   "the app froze and the exit is blocked",
+   "the app crashed and the ceiling tile is about to come down",
+   "la app me sale error y hay ratas en la cocina",
+   "la app no abre y el botiquín está vacío",
+   "otis keeps freezing and they make us work 14 hours without a break",
+   "la app no sirve y no me pagan las horas extra",
+   "la app se trabó, cuántas horas puedo trabajar seguidas?"
+  ],
+  "flows": [
+   "app crashd and hes bleding bad",
+   "app crashed and a fight broke out in the parking lot",
+   "app froze when I twisted my ankle on the stairs",
+   "app still crashes and theres a hole in the floor",
+   "el piso está mojado y resbaloso",
+   "fight",
+   "hay vidrios rotos en el pasillo",
+   "hombre caído",
+   "it froze and the exit door is blocked",
+   "la app se trabó y me golpeé la cabeza",
+   "me caí",
+   "mike is not moving",
+   "piso mojado",
+   "rebar exposed",
+   "sigue goteando aceite en el piso",
+   "snake",
+   "still broken, guy twisted his ankle",
+   "still crashing and mike is not moving",
+   "still froze, hes bleding bad",
+   "still no handrail on the stairs",
+   "still water all over the floor",
+   "the app crashed, coworker havin a seazure",
+   "the app froze and mike is not moving",
+   "the app froze and the floor is slippery",
+   "the app keeps crashing and theres broken glass everywhere",
+   "the stairs have no handrail",
+   "wet floor"
+  ]
+ }
+}

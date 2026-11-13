@@ -1,6 +1,8 @@
 import Storage from 'expo-sqlite/kv-store';
 
 import { api, isConfigured } from './config';
+import { noteStaleContent } from './live';
+import { savedFirst } from './saved-first';
 
 /** A Zero Hour episode and its huddle card. */
 export type Episode = {
@@ -25,23 +27,30 @@ export type Episode = {
 
 const KEY = 'zero_hour_cache';
 
-/** Released episodes, newest first. The huddle cards are kept on the phone so they open with no signal. */
-export async function listEpisodes(): Promise<Episode[]> {
-  if (isConfigured()) {
-    try {
+/** Released episodes, newest first. The saved huddle cards come back right away; `onFresh` gets the server's list after. */
+export async function listEpisodes(onFresh?: (list: Episode[]) => void): Promise<Episode[]> {
+  const { value } = await savedFirst<Episode[]>(
+    'episodes',
+    async () => {
+      const raw = await Storage.getItem(KEY);
+      const saved = raw ? (JSON.parse(raw) as Episode[]) : [];
+      return saved.length ? saved : null;
+    },
+    async () => {
+      if (!isConfigured()) throw new Error('API not configured');
       const { episodes } = await api<{ episodes: Episode[] }>('/episodes/');
       await Storage.setItem(KEY, JSON.stringify(episodes));
       return episodes;
-    } catch {
-      // offline: saved copy
-    }
-  }
-  const raw = await Storage.getItem(KEY);
-  return raw ? (JSON.parse(raw) as Episode[]) : [];
+    },
+    // A content change seen while this reload used the saved copy is retried on the next check.
+    { onFresh, onOffline: noteStaleContent },
+  );
+  return value ?? [];
 }
 
-export async function getEpisode(n: number) {
-  return (await listEpisodes()).find((e) => e.number === n) ?? null;
+export async function getEpisode(n: number, onFresh?: (ep: Episode | null) => void) {
+  const find = (list: Episode[]) => list.find((e) => e.number === n) ?? null;
+  return find(await listEpisodes(onFresh && ((list) => onFresh(find(list)))));
 }
 
 export const LEGAL =

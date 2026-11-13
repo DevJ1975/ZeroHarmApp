@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, ComingSoon, Field, Heading, Screen } from '@/components/ui';
+import { Body, Field, Heading, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-
-const num = (s: string) => Number(s.replace(/,/g, ''));
+import { injuryRate } from '@/lib/rates';
 
 /** TRIR and DART rates use OSHA's 200,000-hour base (100 full-time workers for a year). */
 export default function ToolsScreen() {
@@ -13,9 +12,7 @@ export default function ToolsScreen() {
   const [recordables, setRecordables] = useState('');
   const [dart, setDart] = useState('');
 
-  const h = num(hours);
-  const ready = h > 0;
-  const rate = (cases: string) => (ready && cases !== '' ? ((num(cases) * 200000) / h).toFixed(2) : '–');
+  const rate = (cases: string) => injuryRate(cases, hours);
 
   return (
     <Screen>
@@ -39,8 +36,6 @@ export default function ToolsScreen() {
         <Body muted>Cases per 100 full-time workers per year. This is guidance, not a substitute for your recordkeeping professional.</Body>
       </View>
 
-      <ComingSoon title="Is it recordable?" detail="A step-by-step check against OSHA's recordkeeping rule. Arrives in the first update." />
-      <ComingSoon title="Heat stress planner" detail="Live heat index with water, rest and shade guidance. Planned for May." />
     </Screen>
   );
 }

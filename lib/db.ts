@@ -32,6 +32,10 @@ export function getDb() {
           kind TEXT NOT NULL,
           json TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS monday_cache (
+          id INTEGER PRIMARY KEY NOT NULL,
+          json TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS sheet_outbox (
           session_id INTEGER PRIMARY KEY NOT NULL,
           payload TEXT NOT NULL,
@@ -43,6 +47,9 @@ export function getDb() {
         'ALTER TABLE signin_sessions ADD COLUMN group_photo TEXT',
         'ALTER TABLE signin_sessions ADD COLUMN photo_count INTEGER',
         'ALTER TABLE signin_sessions ADD COLUMN saved_at TEXT',
+        "ALTER TABLE signin_sessions ADD COLUMN program TEXT NOT NULL DEFAULT 'zhw'",
+        'ALTER TABLE signin_sessions ADD COLUMN pdf_path TEXT',
+        'ALTER TABLE signin_sessions ADD COLUMN title TEXT',
       ]) {
         try {
           await db.execAsync(sql);

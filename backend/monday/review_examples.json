@@ -1,0 +1,346 @@
+[
+ {
+  "slug": "jam-clearing",
+  "category": "Machines",
+  "severity": "must_fix",
+  "field": "facts[0]; key_points[2]",
+  "finding": "The fact paraphrases the 1910.147(a)(2)(ii) minor-servicing exception. It gives the writer a reason to say routine jams are exempt from lockout, which contradicts the must_say and never_say. The old KP3 (\"approved tool or method\") can be read as an alternative to lockout.",
+  "fix": "Fact removed. The fact that stays: lockout applies when a worker removes or bypasses a guard or puts any part of the body in a danger zone. KP3: \"Use only the clearing tool your site's procedure names for that machine, and only after it is locked out.\" Needs the site's written procedure: if the site uses approved alternative measures for specific jams, this talk will be stricter than its program. That is the safe direction, but the site should confirm it."
+ },
+ {
+  "slug": "forklift-loads",
+  "category": "Forklifts",
+  "severity": "must_fix",
+  "field": "key_points[5]; never_say[1]",
+  "finding": "\"Never jump: stay in\" is correct for sit-down counterbalance trucks. On stand-up rear-entry trucks the trained action is usually to step off backward. The writer can easily drop \"sit-down\".",
+  "fix": "KP: \"On a sit-down truck, wear your seatbelt; if it tips, never jump: stay in, hold on, lean away. Stand-up trucks: follow your training.\" New never_say: \"Every kind of forklift uses the same move to escape a tip-over.\" (This replaces \"Adding extra weight to the back lets you lift more\". The capacity-plate KP already covers that point.)"
+ },
+ {
+  "slug": "floor-holes",
+  "category": "Falls",
+  "severity": "must_fix",
+  "field": "key_points[0]",
+  "finding": "\"Never step on a skylight or a cover unless you know it is rated to hold you\" teaches that a skylight can be walked on once it is \"rated\". People fall through skylights. A skylight is never a walking surface.",
+  "fix": "\"Never step, sit or lean on a skylight, even one with a screen, and never step on a cover you are not sure is secured.\""
+ },
+ {
+  "slug": "eye-protection",
+  "category": "PPE",
+  "severity": "must_fix",
+  "field": "key_points[2]",
+  "finding": "\"Goggles or a face shield over glasses... like chemicals\" teaches glasses plus a face shield for chemical splash. Splash runs under a shield and around glasses. Goggles are the eye protection for chemical splash.",
+  "fix": "\"Wear goggles for chemical splash, and add a face shield over your glasses or goggles when the task or your site calls for it.\""
+ },
+ {
+  "slug": "loto-try-out",
+  "category": "Hazardous energy",
+  "severity": "must_fix",
+  "field": "key_points[2]",
+  "finding": "\"Test for voltage... using the right meter and training\" invites any worker to test live circuits. Testing for voltage is qualified-person work under 1910.333.",
+  "fix": "\"Have a qualified person test for voltage where your site's procedure calls for it. Never test for voltage unless you are qualified.\""
+ },
+ {
+  "slug": "loto-try-out",
+  "category": "Hazardous energy",
+  "severity": "must_fix",
+  "field": "must_say[0]",
+  "finding": "\"Before you touch it, try to start it\" is quoted word for word, and it has no clear-the-area step. A try-out with someone inside the machine is the injury. The Appendix A sample procedure starts by checking that no one is exposed.",
+  "fix": "\"Clear everyone, then try to start it before you touch it. If anything moves, stop and get help.\""
+ },
+ {
+  "slug": "loto-six-steps",
+  "category": "Hazardous energy",
+  "severity": "must_fix",
+  "field": "key_points[0], [2], [4]",
+  "finding": "The six steps are taught to every worker with no \"authorized only\". There is no step to tell affected people (1910.147(c)(9)), and the try-out has no clear-the-area step.",
+  "fix": "KP1: \"Know every energy source the machine has, and tell the people who run or work near it before you shut it down.\" KP3: \"Lock out only if you are trained and authorized, and put your own lock and tag on each energy isolating device.\" KP5: \"Make sure everyone is clear, then try the normal start controls to prove it will not run, and return them to off.\""
+ },
+ {
+  "slug": "loto-group-shift",
+  "category": "Hazardous energy",
+  "severity": "should_fix",
+  "field": "story_seed",
+  "finding": "The story has an electrician \"still inside the guard\" protected only by other people's locks. That models the exact mistake the brief says not to make.",
+  "fix": "\"During a long repair, an off-going tech pulled their lock from the group box before the oncoming crew put theirs on. An oncoming mechanic was about to reach into the open guard when a coworker saw the empty box and stopped them.\""
+ },
+ {
+  "slug": "rotating-entanglement",
+  "category": "Machines",
+  "severity": "should_fix",
+  "field": "key_points[2], [4]",
+  "finding": "The never_say refers to a cap but no KP mentions one. Badge lanyards and strings are missing. The KP does not say to wait for the machine to stop turning (chips and measuring are the story's own scenario).",
+  "fix": "KP3: \"Tie long hair back and tuck it under a cap, button or roll sleeves tight, and tuck in badge lanyards and loose strings.\" KP5: \"Never reach near a spinning part; stop the machine and wait until it stops turning before you brush chips, measure or adjust.\""
+ },
+ {
+  "slug": "bench-grinders",
+  "category": "Machines",
+  "severity": "should_fix",
+  "field": "key_points[3], [4]",
+  "finding": "The ring test and speed check are taught as operator tasks. Mounting a wheel is trained work, and most operators should never mount one.",
+  "fix": "KP4: \"Let only trained people mount wheels; they inspect and ring test each wheel first. Never use a cracked or chipped wheel.\" KP5: \"Never use a wheel whose marked speed is lower than the grinder's speed; report it instead.\""
+ },
+ {
+  "slug": "conveyors",
+  "category": "Machines",
+  "severity": "should_fix",
+  "field": "key_points[0]",
+  "finding": "SPEC rule 3: the urgent case (someone caught) was not stated. The brief only said to know where the stops are.",
+  "fix": "\"If someone gets caught, hit the nearest emergency stop or pull cord and shout for help. Know where they are and keep them clear.\""
+ },
+ {
+  "slug": "spill-cleanup",
+  "category": "Walking surfaces",
+  "severity": "should_fix",
+  "field": "key_points (order)",
+  "finding": "KP1 told workers to \"stop and guard\" any spill, including a fuming chemical, before they hear the line about reporting a chemical spill. The urgent case has to come first.",
+  "fix": "New KP1: \"If a spill is a chemical, unknown, large, or gives off fumes, move away, keep others back, and tell your supervisor right away.\" KP2: \"Guard any spill you can safely stand near so no one walks through it.\" (The old \"Report chemical, unknown or large spills\" KP is folded into KP1.)"
+ },
+ {
+  "slug": "battery-charging",
+  "category": "Forklifts",
+  "severity": "should_fix",
+  "field": "key_points[1]",
+  "finding": "In the propane-leak action, \"keep flames and sparks away\" came before \"move away\". It can read as staying to manage ignition sources. It also left out \"do not start anything\".",
+  "fix": "\"If you smell propane or hear a hiss, move away, keep others back, do not start or switch anything on, and report it.\""
+ },
+ {
+  "slug": "winter-walkways",
+  "category": "Walking surfaces",
+  "severity": "should_fix",
+  "field": "story_seed",
+  "finding": "It described an actual fall with impact (\"landing hard on their hands\"). SPEC asks for a close call.",
+  "fix": "\"On an early shift, a worker started to cut across the parking lot instead of using the salted walk. Their foot slid on black ice, and they grabbed a car mirror, then went back to the cleared path.\""
+ },
+ {
+  "slug": "forklift-training",
+  "category": "Forklifts",
+  "severity": "should_fix",
+  "field": "key_points[3]; facts[1]",
+  "finding": "Perimeter. \"Ask for refresher training after a near miss\", plus a fact listing \"accident or near miss\" as a retraining trigger, lets the writer say \"if you have a near miss, you'll be retrained\". That is a claim about what happens to a person after an event, and it discourages reporting.",
+  "fix": "KP4: \"Ask for refresher training when you get a new truck type or attachment, or when your work area changes.\" Fact: \"Refresher training is required in several cases, including when an operator is assigned to a different type of truck or a change in the workplace affects safe driving.\" Lawyer / HR: confirm how the site wants near-miss retraining described, if at all."
+ },
+ {
+  "slug": "wet-locations",
+  "category": "Electrical",
+  "severity": "should_fix",
+  "field": "key_points[3]",
+  "finding": "\"GFCI where your site requires it\" makes ground-fault protection sound optional in wet areas.",
+  "fix": "\"Use only tools and cords approved for wet areas, plugged into ground-fault protection (GFCI) as your site's procedure says.\""
+ },
+ {
+  "slug": "noise-exposure",
+  "category": "PPE",
+  "severity": "should_fix",
+  "field": "facts[0]",
+  "finding": "The PEL fact (\"90 decibels for 8 hours is allowed\") sits next to two 85 dB facts. A writer will likely tell crews 90 is \"the legal limit\", which undercuts the brief's must_say.",
+  "fix": "\"The louder the noise, the shorter the time a worker may be exposed. When noise is over the limits, the employer must use feasible engineering or work-practice controls, and hearing protection when those are not enough.\" (cite 1910.95(b)). Industrial hygienist: only a noise survey tells a crew whether their area is in the hearing conservation program."
+ },
+ {
+  "slug": "ppe-hazard-assessment",
+  "category": "PPE",
+  "severity": "should_fix",
+  "field": "title",
+  "finding": "SPEC rule 7: the title used \"PPE\" before spelling it out.",
+  "fix": "\"Why your protective gear (PPE) was chosen\""
+ },
+ {
+  "slug": "line-of-fire",
+  "category": "Culture",
+  "severity": "must_fix",
+  "field": "must_say[0]",
+  "finding": "\"If something can move, fall, or release, don't be where it will go\" is the predictive trap. It teaches people to stand just outside their own guess. It appears word for word.",
+  "fix": "\"Stay out of the path. Things that move, fall, or snap do not go where you expect.\""
+ },
+ {
+  "slug": "sds",
+  "category": "Chemicals",
+  "severity": "must_fix",
+  "field": "key_points[1] (now [0]), crew_questions[1], story_seed",
+  "finding": "\"Check the first-aid section right away if someone is exposed\" and \"Which section of the SDS would you check first if someone got splashed?\" put reading ahead of flushing. With a corrosive in the eye, that delay costs tissue. The story also showed no first aid.",
+  "fix": "KP moved to first: \"Help an exposed person first: flush at the eyewash or get them to fresh air, call for help, then check the safety data sheet.\" Q: \"If someone got splashed, what would you do first, and who would pull up the safety data sheet?\" Story: the worker \"flushed it at the eyewash right away, but no one on the crew knew where the safety data sheets were kept…\""
+ },
+ {
+  "slug": "permit-spaces",
+  "category": "Confined spaces",
+  "severity": "must_fix",
+  "field": "key_points, must_say",
+  "finding": "The urgent case (a coworker collapses inside) shows up only as a never_say line. The positive action is never stated, and an unstated action is an untaught one. \"Never enter a space marked as a permit space\" also suggests that unmarked spaces are fine.",
+  "fix": "New KP[0]: \"Never go in after someone who collapses inside a confined space; call trained rescue and 911.\" KP: \"Never enter a permit space unless you are trained, authorized, and the entry permit is complete.\" KP: \"Learn which spaces at your site are permit spaces; if a tank, pit, or bin is not marked, ask before entering.\" Added must_say: \"If someone collapses inside, do not go in. Call trained rescue and 911.\""
+ },
+ {
+  "slug": "new-workers",
+  "category": "Culture",
+  "severity": "must_fix",
+  "field": "story_seed",
+  "finding": "The veteran \"showed him how to shut it down the right way\" before reaching into a conveyor jam. That models shutdown as the control for putting a hand in. This is a caught-in fatality pattern and it conflicts with 1910.147.",
+  "fix": "\"…showed him how to lock it out the way the site's procedure says before clearing it.\""
+ },
+ {
+  "slug": "shift-handoff",
+  "category": "Culture",
+  "severity": "must_fix",
+  "field": "story_seed, key_points, facts",
+  "finding": "In the story a guard-off machine is \"kept shut down\", again with no lockout. The KP says to tell the next shift about \"locked-out equipment\" but gives no rule on lock transfer. The writer could invent \"remove your lock and the next shift adds theirs\", which is the gap 1910.147(f)(4) exists to close.",
+  "fix": "Story: \"…made sure the machine stayed locked out until the guard was back on.\" New KP: \"Follow your site's lockout procedure at shift change; never remove another person's lock.\" New fact (1910.147(f)(4)): \"Lockout programs must use specific procedures at shift or personnel changes so lockout protection continues, including an orderly transfer of locks or tags between off-going and oncoming workers.\" references: [\"1910.147\"]."
+ },
+ {
+  "slug": "report-every-injury",
+  "category": "Recordkeeping",
+  "severity": "must_fix",
+  "field": "must_say[0]",
+  "finding": "\"…without being punished for it\" promises what happens after a report, which is a perimeter breach. It is also not something the site can guarantee, because discipline for a separate rule violation is still lawful.",
+  "fix": "\"Report every work injury or illness to your supervisor right away, even if it seems small.\" The anti-retaliation rule stays as an attributed fact: \"Federal rules say employees have the right to report … and employers must not fire or in any way discriminate against employees for reporting.\" (1904.35)"
+ },
+ {
+  "slug": "bloodborne",
+  "category": "Chemicals",
+  "severity": "must_fix",
+  "field": "facts[2]",
+  "finding": "\"After a reported exposure incident, the employer must make a confidential medical evaluation and follow-up immediately available\" has two problems. (a) It is a claim about what happens after reporting (perimeter). (b) It overstates scope: 1910.1030 covers only *occupational exposure*, meaning contact expected as part of a person's duties, such as designated first aiders. A crew member who helps a cut coworker as a Good Samaritan is generally not covered, so the talk would promise something the site may not owe.",
+  "fix": "Fact removed. The KPs (report right away, wash, gloves, leave cleanup to trained staff) stand without it. Flag: site's Exposure Control Plan / lawyer, if the site wants to say what follow-up it offers."
+ },
+ {
+  "slug": "carbon-monoxide",
+  "category": "Chemicals",
+  "severity": "should_fix",
+  "field": "key_points[0], new KP, story_seed",
+  "finding": "The KPs set different 911 thresholds: \"call 911 if very sick\" in the KP against \"dizzy or confused → 911\" in the must_say. Neither says to shut off the engine. There is no warning against entering a closed trailer after a collapsed person, which risks a second victim. In the story the crew stays in place and only opens doors, with no fresh air and no medical check.",
+  "fix": "KP: \"Shut off engines and get anyone with headache, dizziness, or confusion to fresh air; call 911 if anyone is confused, very sick, or passes out.\" Added KP: \"Never go into a closed trailer or room where someone collapsed near a running engine; call 911.\" Story: \"…the truck was shut off, everyone went outside to fresh air and got checked, and the truck was sent for maintenance.\""
+ },
+ {
+  "slug": "eyewash",
+  "category": "Chemicals",
+  "severity": "should_fix",
+  "field": "key_points[1], must_say",
+  "finding": "No flush duration, and none can be given (no 1910 number). \"Keep flushing as your site's procedure… say\" still leaves room for \"a quick rinse\". The must_say \"flush. Then get medical help\" implies you stop flushing to go get help.",
+  "fix": "KP: \"Hold your eyelids open and keep flushing until medical help or your site's procedure says to stop. Do not stop early.\" MS: \"If it splashes in your eyes, get to the eyewash now and keep flushing. Have someone call for medical help.\""
+ },
+ {
+  "slug": "corrosives",
+  "category": "Chemicals",
+  "severity": "should_fix",
+  "field": "key_points[0], must_say",
+  "finding": "Same flush-then-leave problem.",
+  "fix": "KP: \"Flush right away at the eyewash or shower if you are splashed, keep flushing, and have someone call for medical help.\" MS: \"If you are splashed, flush with water right away and keep flushing. Have someone call for medical help.\""
+ },
+ {
+  "slug": "gas-cylinders",
+  "category": "Chemicals",
+  "severity": "should_fix",
+  "field": "must_say, facts[2], story_seed",
+  "finding": "The must_say leaves out removing the regulator. 1910.253(b)(5)(ii)(D) says regulators off and caps on before moving, unless the cylinder is secured on a special carrier. In the story the oxygen cylinder is capped next to fuel gas and left there, which contradicts the 20 ft separation fact in the same brief.",
+  "fix": "MS: \"Before moving a cylinder, remove the regulator and cap the valve, unless it is secured on a cylinder cart.\" The 1910.101 fact is replaced with: \"Unless cylinders are secured on a special cart made for them, regulators must be removed and valve caps put in place before cylinders are moved.\" (1910.253). Story: the worker chained and capped it \"and told the lead it needed to be moved away from the fuel gas.\""
+ },
+ {
+  "slug": "glove-selection",
+  "category": "PPE",
+  "severity": "should_fix",
+  "field": "key_points[0], story_seed",
+  "finding": "It says gloves off but not rings, loose sleeves and hair, so half the entanglement removal message is missing. The story has a worker \"cleaning a chemical tank\", which may be a permit-space entry.",
+  "fix": "KP: \"Take off gloves and rings, secure loose sleeves, and tie back long hair before working near drills, lathes, or other rotating parts.\" Story: \"…before pouring a cleaning chemical…\""
+ },
+ {
+  "slug": "first-aid",
+  "category": "Emergencies",
+  "severity": "should_fix",
+  "field": "key_points[1]",
+  "finding": "\"Make sure the area is safe\" is abstract. It invites the writer to describe a self-rescue from electrical contact or a confined space (spec trap #4).",
+  "fix": "\"Check the area is safe first; never touch someone in contact with electricity or enter a confined space after them. Call 911.\""
+ },
+ {
+  "slug": "hydration",
+  "category": "Health",
+  "severity": "should_fix",
+  "field": "must_say",
+  "finding": "The must_say has 911 but not cooling. Heat stroke = 911 and cool them now.",
+  "fix": "\"Drink water often and rest in shade. If someone is confused in the heat, call 911 and cool them now.\""
+ },
+ {
+  "slug": "silica",
+  "category": "Chemicals",
+  "severity": "should_fix",
+  "field": "facts[2]",
+  "finding": "\"Action level\" is used with no definition. The writer will either explain it vaguely or make up a number.",
+  "fix": "\"Employers must offer medical exams at no cost to workers exposed at or above the action level of 25 micrograms per cubic meter of air (8-hour average) for 30 or more days per year.\" (1910.1053(b), (i)(1)(i))"
+ },
+ {
+  "slug": "osha-reporting",
+  "category": "Recordkeeping",
+  "severity": "should_fix",
+  "field": "facts",
+  "finding": "The facts state federal deadlines as universal. State-plan states can differ; Cal/OSHA, for example, sets a shorter window for serious injuries. The hospitalization, amputation or eye-loss trigger leaves out the \"within 24 hours of the incident\" condition. The OSHA phone and web fact is not something crews act on (KP: follow the site procedure for who reports), and it may change.",
+  "fix": "Facts now read \"Under federal OSHA rules, …\" and the second adds \"if it happens within 24 hours of the incident.\" Phone/web fact removed. Flag: lawyer/EHS, for state-plan sites, before this talk runs there."
+ },
+ {
+  "slug": "report-every-injury",
+  "category": "Recordkeeping",
+  "severity": "should_fix",
+  "field": "facts[2], references",
+  "finding": "The 1904.7 recordability criteria pull the talk toward \"what counts on the log\". That works against \"report everything\" and invites talk of the team record, which is the performance-figure perimeter.",
+  "fix": "Fact and its 1904.7 reference removed."
+ },
+ {
+  "slug": "fire-extinguishers",
+  "category": "Emergencies",
+  "severity": "should_fix",
+  "field": "story_seed",
+  "finding": "The only story shows a worker fighting a fire, with no mention that they were trained and allowed to. Many sites are evacuate-only. Crews remember the story, not the KP.",
+  "fix": "\"…The worker pulled the alarm first, then, because they were trained and their site allows it, used the nearby extinguisher with their back to the exit…\""
+ },
+ {
+  "slug": "fire-prevention",
+  "category": "Emergencies",
+  "severity": "should_fix",
+  "field": "key_points[0]",
+  "finding": "The never_say bans \"Oily rags can go in any trash can\", but no KP says where they go.",
+  "fix": "\"Clear away combustible waste like cardboard and dust, and put oily rags in the closed container your site provides.\""
+ },
+ {
+  "slug": "exit-routes",
+  "category": "Emergencies",
+  "severity": "should_fix",
+  "field": "key_points[3]",
+  "finding": "\"Know at least two ways out\" puts a number in a key point with no fact behind it (rule 2). Also, not every area legally has two exit routes (1910.36(b) has exceptions).",
+  "fix": "\"Know every way out of your work area, not just the door you usually use.\""
+ },
+ {
+  "slug": "speak-up",
+  "category": "Culture",
+  "severity": "should_fix",
+  "field": "key_points[0]",
+  "finding": "The urgent case lacks its action. \"Speak up right away\" sits next to \"Tell the person directly and kindly\", so the writer may blend the two. When something is about to happen, skip the wording and say stop.",
+  "fix": "\"Shout 'Stop!' first if someone is about to get hurt; skip the polite words and explain after.\""
+ },
+ {
+  "slug": "atmospheric-testing",
+  "category": "Confined spaces",
+  "severity": "should_fix",
+  "field": "key_points[1], [4], facts[0]",
+  "finding": "\"Test the air in order\" tells entrants to run the meter. Testing is for a trained tester. \"You have that right\" is stated as a legal right with no fact behind it.",
+  "fix": "KP: \"Make sure the air is tested in order by a trained tester: oxygen first, then flammable gases, then toxic gases.\" KP: \"Ask to watch the air testing; entrants must be given the chance to see it.\" Fact (1910.146(d)(5)(i),(iv)): \"Before entry, the permit space must be tested to see if conditions are acceptable, and each entrant must be given the chance to watch the testing.\""
+ },
+ {
+  "slug": "fatigue",
+  "category": "Health",
+  "severity": "should_fix",
+  "field": "story_seed",
+  "finding": "The story ends with what happens to the person after they report (\"moved him to a different task\"), which is the perimeter.",
+  "fix": "\"…He parked the truck and told his lead he was too tired to drive safely.\""
+ },
+ {
+  "slug": "impairment",
+  "category": "Health",
+  "severity": "should_fix",
+  "field": "story_seed",
+  "finding": "Same perimeter problem (\"moved him off the forklift for the day\"). It also implies a consequence that drug, alcohol and medicine policies set differently at each site.",
+  "fix": "\"…He told his lead before he got on the forklift.\""
+ },
+ {
+  "slug": "severe-weather",
+  "category": "Emergencies",
+  "severity": "should_fix",
+  "field": "facts[0]",
+  "finding": "The fact paraphrases 1910.38(c)(2) as \"procedures for emergencies\"; the rule says \"emergency evacuation\".",
+  "fix": "\"An emergency action plan must include procedures for emergency evacuation, including the type of evacuation and exit route assignments.\""
+ }
+]

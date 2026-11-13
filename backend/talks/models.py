@@ -1,11 +1,53 @@
+import re
+
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 
 class ToolboxTalkQuerySet(models.QuerySet):
     def released(self):
-        """Talks the app may show: published and past their Sunday send time."""
+        """Talks past their Sunday send time (published and reviewed)."""
         return self.filter(published=True, needs_review=False, send_at__lte=timezone.now())
+
+    def available(self):
+        """Talks the app shows: every talk past its Sunday send time, plus (with TALKS_UNLOCK_EARLY) the next
+        TALKS_EARLY_COUNT upcoming talks that have their text, so supervisors can prepare and run them early.
+        Only the next few: opening the whole year early removes the weekly reason to come back."""
+        from django.conf import settings
+
+        now = timezone.now()
+        base = self.filter(published=True, needs_review=False)
+        ready = models.Q(send_at__lte=now)
+        if settings.TALKS_UNLOCK_EARLY and settings.TALKS_EARLY_COUNT > 0:
+            # Only talks that have their text count toward the early slots, so an empty one can't use a slot up.
+            upcoming = list(base.filter(send_at__gt=now).exclude(body_md="").order_by("send_at", "pk")
+                            .values_list("pk", flat=True)[: settings.TALKS_EARLY_COUNT])
+            ready |= models.Q(pk__in=upcoming)
+        return base.filter(ready)
+
+
+def _is_answer_heading(heading: str) -> bool:
+    h = heading.lower().replace("’", "'")
+    return ("last week" in h and "answer" in h) or ("respuesta" in h and "semana" in h)
+
+
+# A section heading: "## Title" with or without the space, any heading level, or a line that is only bold text.
+_HEADING = re.compile(r"^\s*(#{1,6}\s*\S|\*\*[^*]+\*\*\s*$)")
+
+
+def without_last_weeks_answer(body: str) -> str:
+    """Drops the "Last week's answer" section (English or Spanish). It answers the previous issue's crew question, so a
+    talk opened early must not show it before that answer goes out with the Sunday newsletter."""
+    if not body:
+        return body
+    kept, skipping = [], False
+    for line in body.strip().split("\n"):
+        if _HEADING.match(line):
+            skipping = _is_answer_heading(line)
+        if not skipping:
+            kept.append(line)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
 class ToolboxTalk(models.Model):
@@ -17,8 +59,9 @@ class ToolboxTalk(models.Model):
     story_title = models.CharField(max_length=200)
     crew_question = models.TextField()
     body_md = models.TextField(blank=True, help_text="Full talk text. Blank lines separate paragraphs.")
-    hero_url = models.URLField(blank=True)
-    pdf_url = models.URLField(blank=True, help_text="Printable toolbox PDF")
+    # 500 characters, like every other address column here: signed and tracking links run well past 200.
+    hero_url = models.URLField(max_length=500, blank=True)
+    pdf_url = models.URLField(max_length=500, blank=True, help_text="Printable toolbox PDF")
     ghl_template_id = models.CharField(max_length=40, blank=True)
     number = models.PositiveIntegerField(null=True, blank=True, help_text="Issue number as printed (#01). Blank = same as issue.")
     needs_review = models.BooleanField(default=False, help_text="Held out of the app: the GHL template still has [bracketed] pre-send flags")
@@ -47,6 +90,16 @@ class ToolboxTalk(models.Model):
     def __str__(self):
         return f"#{self.issue:02d} {self.title}"
 
+    @property
+    def early(self) -> bool:
+        """Open in the app before its Sunday newsletter."""
+        return self.send_at > timezone.now()
+
+    def public_body(self, lang="en") -> str:
+        """The talk text crews may see right now: without last week's answer until the talk's own send time."""
+        body = (self.body_md_es if lang == "es" else self.body_md) or ""
+        return without_last_weeks_answer(body) if self.early else body
+
     def as_api(self):
         return {
             "issue": self.issue,
@@ -56,33 +109,117 @@ class ToolboxTalk(models.Model):
             "title": self.title,
             "story_title": self.story_title,
             "crew_question": self.crew_question,
-            "body_md": self.body_md or None,
+            "body_md": self.public_body() or None,
             "hero_url": self.hero_url or None,
             "pdf_url": self.pdf_url or None,
+            "send_at": self.send_at.isoformat(),
+            "early": self.early,
             "es": {
                 "title": self.title_es,
                 "story_title": self.story_title_es,
                 "crew_question": self.crew_question_es,
-                "body_md": self.body_md_es,
+                "body_md": self.public_body("es"),
             } if self.spanish_status == self.ES_APPROVED else None,
         }
 
 
 class AppSignup(models.Model):
+    """One row per email. A repeat sign-up updates the row; it never adds a second one."""
+    WELCOME, SETTINGS = "welcome", "settings"
+    SOURCES = [(WELCOME, "Welcome screen"), (SETTINGS, "Settings")]
+
     email = models.EmailField()
     first_name = models.CharField(max_length=80, blank=True)
+    last_name = models.CharField(max_length=120, blank=True)
     company = models.CharField(max_length=120, blank=True)
     wants_offers = models.BooleanField(default=False, help_text="Separate consent for promotional messages")
-    source = models.CharField(max_length=40, default="zero-harm-app")
+    source = models.CharField(max_length=40, default=SETTINGS, choices=SOURCES, help_text="Where in the app they signed up")
+    consent_text = models.CharField(max_length=200, blank=True, help_text="The consent line the app showed, word for word")
+    consent_at = models.DateTimeField(null=True, blank=True, help_text="When they last agreed to it")
+    owner_alerted_at = models.DateTimeField(null=True, blank=True, help_text="When the new sign-up email went to the owner")
     ghl_contact_id = models.CharField(max_length=40, blank=True)
+    ghl_had_tags = models.JSONField(null=True, blank=True, help_text="Newsletter tags the GoHighLevel contact already had before "
+                                    "the app tagged it. A removal leaves these on. Empty until the first sync.")
     ghl_synced_at = models.DateTimeField(null=True, blank=True)
+    removal_requested_at = models.DateTimeField(null=True, blank=True, help_text="A phone other than the one that made this sign-up "
+                                                "asked to remove it. Nothing was deleted: check it, then delete the sign-up or clear this.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(Lower("email"), name="one_signup_per_email")]
 
     def __str__(self):
         return self.email
+
+    @property
+    def full_name(self):
+        return " ".join(x for x in (self.first_name, self.last_name) if x)
+
+
+class SignupPhone(models.Model):
+    """A phone that signed up with this email. Several phones can share one sign-up (a work phone and a home phone).
+
+    There is no password and no email check, so the rule is: the FIRST phone linked to a sign-up (the oldest row here)
+    owns it. Only that phone can change the name, company or offers choice, and only its "Remove my info" deletes the
+    sign-up. Any other phone is linked so the app works on it, but it changes nothing. Its "Remove my info" unlinks
+    that phone, sets removal_requested_at on the sign-up and emails the owner of the app, who decides. That way
+    someone who only knows an email address can neither rewrite that person's sign-up nor take them off the list."""
+    signup = models.ForeignKey(AppSignup, on_delete=models.CASCADE, related_name="phones")
+    install_hash = models.CharField(max_length=64, db_index=True, help_text="Hashed random id of the phone. Not a person.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [models.UniqueConstraint(fields=["signup", "install_hash"], name="one_link_per_phone_per_signup")]
+
+    def __str__(self):
+        return f"Phone for {self.signup_id}"
+
+
+def split_name(name):
+    """"Jane van Doe" -> ("Jane", "van Doe"): the first word, then the rest. That is how GoHighLevel wants it."""
+    words = str(name or "").split()
+    return (words[0][:80], " ".join(words[1:])[:120]) if words else ("", "")
+
+
+class SignupRemoval(models.Model):
+    """Someone asked in the app to remove their sign-up. The sign-up row is already deleted; this short-lived row only
+    holds what is still to do in GoHighLevel (take the newsletter tags off) and for the owner's alert. It is deleted
+    as soon as both are done, and the cron retries it until then."""
+    email = models.EmailField()
+    name = models.CharField(max_length=200, blank=True)
+    ghl_contact_id = models.CharField(max_length=40, blank=True)
+    ghl_had_tags = models.JSONField(null=True, blank=True, help_text="Copied from the sign-up: tags the contact had before the app")
+    ghl_done_at = models.DateTimeField(null=True, blank=True)
+    owner_alerted_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=0, help_text="Tries at the GoHighLevel step")
+    last_tried_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name = "sign-up removal still to finish"
+        verbose_name_plural = "sign-up removals still to finish"
+
+    def __str__(self):
+        return f"Remove {self.email}"
+
+
+class OwnerDigest(models.Model):
+    """One row per Pacific day the daily summary email was handled, so it never goes out twice."""
+    day = models.DateField(unique=True)
+    sent = models.BooleanField(default=False, help_text="Off when the day had nothing to report, so no email went out")
+    new_phones = models.PositiveIntegerField(default=0)
+    signups = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-day"]
+        verbose_name = "daily summary email"
+
+    def __str__(self):
+        return f"{self.day} {'sent' if self.sent else 'nothing to send'}"
 
 
 class FeedItemQuerySet(models.QuerySet):
@@ -103,8 +240,8 @@ class FeedItem(models.Model):
     title = models.CharField(max_length=200)
     summary = models.TextField(blank=True, help_text="One or two plain sentences shown on the card")
     body_md = models.TextField(blank=True, help_text="Optional detail. Blank lines separate paragraphs.")
-    link_url = models.URLField(blank=True, help_text="Where the button goes (course, tool, video, source rule)")
-    image_url = models.URLField(blank=True)
+    link_url = models.URLField(max_length=500, blank=True, help_text="Where the button goes (course, tool, video, source rule)")
+    image_url = models.URLField(max_length=500, blank=True)
     jurisdiction = models.CharField(max_length=20, choices=JURISDICTIONS, blank=True)
     effective_date = models.DateField(null=True, blank=True, help_text="Alerts: the date the rule takes effect")
     publish_at = models.DateTimeField(default=timezone.now)
@@ -169,7 +306,9 @@ class SigninSheet(models.Model):
     """A completed crew sign-in sheet sent from the app. The PDF is forwarded to GoHighLevel Media Storage,
     then the copy kept here is cleared, so signatures and photos are not stored twice."""
 
-    issue = models.PositiveIntegerField(null=True, blank=True)
+    PROGRAMS = [("zero-harm-weekly", "Zero Harm Weekly"), ("monday-minute", "Monday Minute")]
+    program = models.CharField(max_length=20, choices=PROGRAMS, default="zero-harm-weekly")
+    issue = models.PositiveIntegerField(null=True, blank=True, help_text="Zero Harm Weekly issue, or the Monday Minute id")
     talk_title = models.CharField(max_length=200, blank=True)
     supervisor_name = models.CharField(max_length=120)
     supervisor_email = models.EmailField()
@@ -183,6 +322,10 @@ class SigninSheet(models.Model):
     ghl_contact_id = models.CharField(max_length=40, blank=True)
     status = models.CharField(max_length=10, default="pending", choices=[("pending", "Pending"), ("synced", "Saved to GHL"), ("failed", "Failed")])
     error = models.TextField(blank=True)
+    # The PDF itself is emptied once GoHighLevel has it, so this is what is left to recognise the same sheet by when a
+    # phone sends it again. Blank on sheets taken before this column existed.
+    pdf_sha256 = models.CharField(max_length=64, blank=True, db_default="", db_index=True, editable=False, help_text="Fingerprint (SHA-256) of the PDF as it arrived")
+    attempts = models.PositiveIntegerField(default=0, db_default=0, help_text="Tries at sending it to GoHighLevel")
     created_at = models.DateTimeField(auto_now_add=True)
     synced_at = models.DateTimeField(null=True, blank=True)
 
@@ -194,13 +337,25 @@ class SigninSheet(models.Model):
 
 
 class KbEntry(models.Model):
-    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically."""
+    """OTIS knowledge base entries you write and control. Released talks are added to the KB automatically.
+
+    Two kinds. A safety entry is what OTIS answers safety questions from. An app help entry (kind "support") is a fix
+    for a problem with the app itself: the phone shows it word for word, never through the on-device model, and never
+    mixes it into a safety answer."""
+
+    SAFETY, SUPPORT = "safety", "support"
+    KINDS = [(SAFETY, "Safety"), (SUPPORT, "App help")]
 
     title = models.CharField(max_length=200)
     body = models.TextField(help_text="Plain sentences. OTIS answers only from text like this, so keep it accurate and reviewed.")
     source = models.CharField(max_length=200, blank=True, help_text="What OTIS cites, e.g. 'OSHA 1910.147' or 'Zero Harm app help'")
     tags = models.CharField(max_length=200, blank=True, help_text="Extra search words, comma separated")
+    # db_default as well as default: during a deploy the old container keeps inserting rows and does not know this column.
+    kind = models.CharField(max_length=10, choices=KINDS, default=SAFETY, db_default=SAFETY,
+                            help_text="Safety: OTIS answers safety questions from it. App help: a fix for a problem with the app, "
+                                      "shown word for word and never mixed into safety answers. No OSHA section numbers in app help.")
     published = models.BooleanField(default=True)
+    paused_reason = models.CharField(max_length=200, blank=True, help_text="Why this entry was taken out of OTIS, e.g. OSHA changed a rule it cites")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -210,6 +365,17 @@ class KbEntry(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        """The weekly OSHA sync reads every entry for section numbers and takes an entry out of OTIS when its rule
+        changes. An app help entry depends on no rule, so a number shaped like one is refused here, in the admin and
+        in the console, before it can get a help answer switched off."""
+        from django.core.exceptions import ValidationError
+
+        from regs.retrieve import cited
+
+        if self.kind == self.SUPPORT and cited(f"{self.source} {self.body}"):
+            raise ValidationError("App help can't name an OSHA section number (like 1910.147). Take the number out, or make this a safety entry.")
 
 
 class TalkSuggestion(models.Model):
@@ -284,3 +450,83 @@ class Episode(models.Model):
             "references": self.references, "video_url": self.video_url or None, "thumbnail_url": self.thumbnail_url or None,
             "card_pdf_url": self.card_pdf_url or None, "released_at": self.release_at.isoformat(),
         }
+
+
+# ---- OTIS on-device AI: rollout, pinned model files, opt-in feedback -----------------------------
+
+class OtisRollout(models.Model):
+    """One row of switches the phones read in their OTIS manifest. Edit it in the admin; no app update needed."""
+
+    ios_enabled = models.BooleanField(default=True, help_text="Turn OTIS off on iPhone and iPad")
+    android_enabled = models.BooleanField(default=True, help_text="Turn OTIS off on Android")
+    min_app_version = models.CharField(max_length=20, blank=True, help_text="Older app versions are asked to update before using OTIS, e.g. 1.2.0")
+    feedback_enabled = models.BooleanField(default=True, help_text="Accept 'Was this helpful?' ratings from people who opted in")
+    message = models.CharField(max_length=200, blank=True, help_text="Shown when OTIS is off. Blank = 'OTIS is taking a short break.'")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "OTIS rollout"
+        verbose_name_plural = "OTIS rollout"
+
+    def __str__(self):
+        return "OTIS rollout switches"
+
+    @classmethod
+    def current(cls):
+        return cls.objects.order_by("pk").first() or cls()
+
+
+class OtisModelRelease(models.Model):
+    """A pinned copy of the model files the phones download. With none active, phones use the library's built-in model."""
+
+    PLATFORMS = [("ios", "iPhone / iPad"), ("android", "Android")]
+    BACKENDS = [("mlx", "MLX (Apple)"), ("coreml", "Core ML (Apple)"), ("xnnpack", "XNNPACK (CPU, any phone)"), ("vulkan", "Vulkan (Android GPU)")]
+
+    key = models.SlugField(max_length=60, unique=True, help_text="Stable id, e.g. qwen3-1.7b-mlx-int4-2026-11. Change it to make phones download again.")
+    label = models.CharField(max_length=80, help_text="What the setup screen calls it, e.g. OTIS standard")
+    platform = models.CharField(max_length=10, choices=PLATFORMS)
+    backend = models.CharField(max_length=10, choices=BACKENDS, help_text="The phone only gets a release its app build can run")
+    min_memory_gb = models.DecimalField(max_digits=4, decimal_places=1, default=0, help_text="Phones with at least this much memory. The biggest match wins.")
+    model_url = models.URLField(max_length=500, help_text="HTTPS link to the .pte file")
+    tokenizer_url = models.URLField(max_length=500, help_text="HTTPS link to tokenizer.json")
+    tokenizer_config_url = models.URLField(max_length=500, help_text="HTTPS link to tokenizer_config.json")
+    size_mb = models.PositiveIntegerField(help_text="Download size shown on the setup screen")
+    active = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, help_text="What you tested this on")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["platform", "-min_memory_gb"]
+        verbose_name = "OTIS model release"
+
+    def __str__(self):
+        return f"{self.get_platform_display()} · {self.label} ({self.key})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        for field in ("model_url", "tokenizer_url", "tokenizer_config_url"):
+            if not getattr(self, field).startswith("https://"):
+                raise ValidationError({field: "Use an HTTPS link."})
+
+
+class OtisFeedback(models.Model):
+    """A 'Was this helpful?' rating from someone who turned on Help improve OTIS. No name, email or device id."""
+
+    helpful = models.BooleanField()
+    question = models.TextField(blank=True, help_text="Only sent when the person also chose to share their question")
+    source_ids = models.JSONField(default=list, blank=True, help_text="Which knowledge base passages OTIS used")
+    model_key = models.CharField(max_length=60, blank=True)
+    platform = models.CharField(max_length=10, blank=True)
+    app_version = models.CharField(max_length=20, blank=True)
+    lang = models.CharField(max_length=2, default="en")
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "OTIS feedback"
+        verbose_name_plural = "OTIS feedback"
+
+    def __str__(self):
+        return f"{'Helpful' if self.helpful else 'Not helpful'} · {self.created_at:%Y-%m-%d}"

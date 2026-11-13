@@ -1,0 +1,370 @@
+{
+ "en": [
+  [
+   "the app keeps crashing",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "app crashed",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "app is frozen",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "the app is stuck",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "app not working",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "otis won't download",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "OTIS download is stuck at 40%",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "otis stuck on setting up",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "not enough storage for otis",
+   "Not enough space on the phone for OTIS"
+  ],
+  [
+   "otis is really slow",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "otis stopped answering",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "otis says update the app",
+   "OTIS says it needs an update"
+  ],
+  [
+   "otis is taking a short break",
+   "OTIS is switched off or taking a break"
+  ],
+  [
+   "otis is turned off",
+   "OTIS is switched off or taking a break"
+  ],
+  [
+   "otis says it doesn't have that in its knowledge base",
+   "OTIS says it does not have that"
+  ],
+  [
+   "I am not getting notifications",
+   "Notifications are not arriving"
+  ],
+  [
+   "notifications not working",
+   "Notifications are not arriving"
+  ],
+  [
+   "didn't get the monday notification",
+   "Notifications are not arriving"
+  ],
+  [
+   "what time does the notification come",
+   "Notifications are not arriving"
+  ],
+  [
+   "monday minute is not showing",
+   "No Monday Minute is showing"
+  ],
+  [
+   "there is no monday minute this week",
+   "No Monday Minute is showing"
+  ],
+  [
+   "the talk is locked",
+   "A talk is locked or not there yet"
+  ],
+  [
+   "talk isn't out yet",
+   "A talk is locked or not there yet"
+  ],
+  [
+   "how do I change the language to spanish",
+   "Spanish is not offered"
+  ],
+  [
+   "the weather is not showing",
+   "The weather and heat card is missing"
+  ],
+  [
+   "heat card missing",
+   "The weather and heat card is missing"
+  ],
+  [
+   "signature won't save",
+   "A signature will not save"
+  ],
+  [
+   "camera won't open for the group photo",
+   "Trouble taking the group photo"
+  ],
+  [
+   "sign-in sheet won't save",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "sign in sheet not sending",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "where does save sheet to my records go",
+   "What Save sheet to my records does"
+  ],
+  [
+   "the pdf won't print",
+   "The PDF will not print or share"
+  ],
+  [
+   "can't share the pdf",
+   "The PDF will not print or share"
+  ],
+  [
+   "i lost my signatures",
+   "I left crew sign-in before saving the sheet"
+  ],
+  [
+   "i went back and the sheet is gone",
+   "I left crew sign-in before saving the sheet"
+  ],
+  [
+   "login not working",
+   "Signing in with your email"
+  ],
+  [
+   "what is my password",
+   "Signing in with your email"
+  ],
+  [
+   "how do I change my email",
+   "Changing your name or email"
+  ],
+  [
+   "my name is wrong",
+   "Changing your name or email"
+  ],
+  [
+   "remove my info",
+   "Removing your info"
+  ],
+  [
+   "how do I unsubscribe",
+   "Removing your info"
+  ],
+  [
+   "how do I delete my account",
+   "Deleting your data"
+  ],
+  [
+   "why does the app look different",
+   "The app looks different: the holiday look"
+  ],
+  [
+   "why are there christmas lights",
+   "The app looks different: the holiday look"
+  ],
+  [
+   "the talks are not updating",
+   "The app shows old content or will not update"
+  ],
+  [
+   "the content is old",
+   "The app shows old content or will not update"
+  ],
+  [
+   "how do I report a problem",
+   "How to report a problem and see the reply"
+  ],
+  [
+   "I want to report a bug",
+   "How to report a problem and see the reply"
+  ],
+  [
+   "did you reply to my report",
+   "How to report a problem and see the reply"
+  ],
+  [
+   "otis gave a wrong answer",
+   "How to flag a wrong OTIS answer"
+  ],
+  [
+   "otis is wrong",
+   "How to flag a wrong OTIS answer"
+  ],
+  [
+   "what does a crash report send",
+   "What a crash report sends and how to turn it off"
+  ],
+  [
+   "turn off crash reports",
+   "What a crash report sends and how to turn it off"
+  ],
+  [
+   "who do I contact",
+   "Who to contact for help"
+  ],
+  [
+   "is there a phone number for support",
+   "Who to contact for help"
+  ],
+  [
+   "how do I run a toolbox talk",
+   "How to run a toolbox talk in the app"
+  ],
+  [
+   "where are the old talks",
+   "Finding past talks"
+  ],
+  [
+   "how do I suggest a topic",
+   "Suggesting a toolbox talk topic"
+  ],
+  [
+   "what is otis",
+   "What OTIS is"
+  ]
+ ],
+ "es": [
+  [
+   "la app se cierra sola",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "la aplicacion no funciona",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "se traba la app",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "otis no descarga",
+   "OTIS will not download or the download is stuck"
+  ],
+  [
+   "no tengo espacio para otis",
+   "Not enough space on the phone for OTIS"
+  ],
+  [
+   "otis esta muy lento",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "otis no responde",
+   "OTIS is slow or stops in the middle of an answer"
+  ],
+  [
+   "otis pide actualizar",
+   "OTIS says it needs an update"
+  ],
+  [
+   "otis no esta disponible",
+   "OTIS is switched off or taking a break"
+  ],
+  [
+   "otis no sabe",
+   "OTIS says it does not have that"
+  ],
+  [
+   "no me llegan las notificaciones",
+   "Notifications are not arriving"
+  ],
+  [
+   "no aparece la charla del lunes",
+   "No Monday Minute is showing"
+  ],
+  [
+   "la charla no esta disponible",
+   "A talk is locked or not there yet"
+  ],
+  [
+   "no hay espanol",
+   "Spanish is not offered"
+  ],
+  [
+   "quiero la app en español",
+   "Spanish is not offered"
+  ],
+  [
+   "no aparece el clima",
+   "The weather and heat card is missing"
+  ],
+  [
+   "la firma no se guarda",
+   "A signature will not save"
+  ],
+  [
+   "la camara no abre",
+   "Trouble taking the group photo"
+  ],
+  [
+   "no se guarda la hoja de asistencia",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "donde se guardan las hojas",
+   "What Save sheet to my records does"
+  ],
+  [
+   "no puedo imprimir",
+   "The PDF will not print or share"
+  ],
+  [
+   "se borraron las firmas",
+   "I left crew sign-in before saving the sheet"
+  ],
+  [
+   "no puedo iniciar sesion",
+   "Signing in with your email"
+  ],
+  [
+   "quiero cambiar mi correo",
+   "Changing your name or email"
+  ],
+  [
+   "quiero darme de baja",
+   "Removing your info"
+  ],
+  [
+   "borrar mis datos",
+   "Deleting your data"
+  ],
+  [
+   "la app se ve diferente",
+   "The app looks different: the holiday look"
+  ],
+  [
+   "no se actualiza",
+   "The app shows old content or will not update"
+  ],
+  [
+   "quiero reportar un problema",
+   "How to report a problem and see the reply"
+  ],
+  [
+   "la respuesta de otis esta mal",
+   "How to flag a wrong OTIS answer"
+  ],
+  [
+   "como apago los reportes",
+   "What a crash report sends and how to turn it off"
+  ],
+  [
+   "como contacto a soporte",
+   "Who to contact for help"
+  ]
+ ]
+}

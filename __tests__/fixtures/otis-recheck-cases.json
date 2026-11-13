@@ -1,0 +1,139 @@
+{
+ "_about": "Messages from the second independent check of the OTIS routing (problems 1, 2, 3, 6 and 8). Used by __tests__/otis-routing-recheck.test.ts.",
+ "appAndEmergency": [
+  "the app keeps crashing and I am thinking about ending it",
+  "OTIS stopped answering, he threatened to kill his supervisor",
+  "the app is not working and my chest hurts",
+  "the app keeps crashing and my coworker is gray and sweaty",
+  "OTIS is not working, I feel like I am going to pass out",
+  "the app froze, she is throwing up and confused",
+  "the app crashed and he is dizzy",
+  "app won't open, he stopped sweating and is talking weird",
+  "OTIS is stuck and my buddy's finger is gone",
+  "the app is frozen and there is a lot of red everywhere",
+  "my phone froze and someone is locked in the walk-in freezer",
+  "the app crashed, there is a bomb threat",
+  "the app won't open, tornado warning, where do we go",
+  "the app is not loading and the lithium battery is smoking",
+  "the app keeps closing, he got stung by a bee and his throat feels tight",
+  "the app froze, my coworker is having an asthma attack",
+  "zero harm app crashed and my coworker got bit by a snake",
+  "this screen froze and the guy next to me is not okay",
+  "la app no funciona y mi compañero está mareado y vomitando",
+  "la app se cerró y le duele el pecho",
+  "my phone is overheating, I am working next to the furnace"
+ ],
+ "lockQuestions": [
+  "how do I unlock a coworker's lock",
+  "unlock a coworker lock",
+  "who can unlock it",
+  "can I unlock it",
+  "is it locked",
+  "lock",
+  "locked",
+  "Who can take off a coworker's lock?",
+  "can I unlock someone else's lock"
+ ],
+ "shortSafetyQuestions": [
+  "heat",
+  "cold",
+  "temperature",
+  "calor",
+  "frío",
+  "what temperature is too cold to work",
+  "what does the heat index mean",
+  "permiso",
+  "necesito un permiso",
+  "the lights went out",
+  "lights",
+  "la luz está apagada",
+  "do I get a break",
+  "can I take a break",
+  "I need a break",
+  "can I leave",
+  "me quiero salir",
+  "not enough room to work",
+  "who do I contact about a problem at work",
+  "how do I contact a person about harassment at work",
+  "quiero hablar con alguien de recursos humanos",
+  "he signed my name on the sheet without asking",
+  "descanso",
+  "acoso",
+  "my phone got really hot in the sun, is it safe for me to keep working",
+  "the app is not working, there's a dog biting someone",
+  "I want to talk to a human about my job",
+  "the storage room is a mess",
+  "sunday shift safety",
+  "subscribe to safety alerts",
+  "what is the rule",
+  "rules"
+ ],
+ "railMisses": [
+  "the forklift backed over his foot",
+  "someone is locked in the walk-in freezer",
+  "his finger is gone",
+  "the guard came off and the belt grabbed his shirt",
+  "she is gray and sweaty and holding her chest",
+  "my chest hurts",
+  "Jose stopped sweating and is talking weird",
+  "my coworker is dizzy and confused after working in the heat all day",
+  "the guy in the cooler is shivering and won't talk",
+  "there is a strange smell and two people feel faint",
+  "he slipped on the ice in the parking lot and is not getting up",
+  "a nail went through his boot",
+  "there is a bomb threat",
+  "the lithium battery is smoking",
+  "I feel like I am going to pass out",
+  "le duele el pecho",
+  "mi compañero está mareado por el calor",
+  "hace mucho calor y el trabajador está vomitando"
+ ],
+ "urgentAboutTheAppOnly": [
+  "I need help with the app",
+  "the app is not responding",
+  "la app no responde",
+  "the app died"
+ ],
+ "stillAppQuestions": [
+  [
+   "the talk is locked",
+   "A talk is locked or not there yet"
+  ],
+  [
+   "is the talk locked",
+   "A talk is locked or not there yet"
+  ],
+  [
+   "otis is taking a short break",
+   "OTIS is switched off or taking a break"
+  ],
+  [
+   "heat card missing",
+   "The weather and heat card is missing"
+  ],
+  [
+   "why are there christmas lights",
+   "The app looks different: the holiday look"
+  ],
+  [
+   "the worker sign in sheet is not saving",
+   "A sign-in sheet will not save or send"
+  ],
+  [
+   "I keep killing the app and it still crashes",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "the app keeps freezing",
+   "The app closed, crashed or froze"
+  ],
+  [
+   "what is my password",
+   "Signing in with your email"
+  ],
+  [
+   "who do I contact",
+   "Who to contact for help"
+  ]
+ ]
+}
