@@ -1080,7 +1080,7 @@ class OwnerDigestTests(GhlTestCase):
         mail, = self.ghl.emails
         self.assertEqual(mail["subject"], "Zero Harm yesterday: 4 new phones, 2 sign-ups")
         for text in ("4 (2 iPhone, 2 Android)", "Houston, Texas (2), Nevada (1), unknown (1)", "<b>Phones active that day:</b> 5",
-                     "<b>All sign-ups so far:</b> 3", "calendar day in Pacific time", "switched off the anonymous usage count are not included"):
+                     "<b>All sign-ups so far:</b> 3", "calendar day in Pacific time", "switched off the daily usage count are not included"):
             self.assertIn(text, mail["html"])
         row = OwnerDigest.objects.get(day=self.DAY)
         self.assertEqual((row.sent, row.new_phones, row.signups), (True, 4, 2))

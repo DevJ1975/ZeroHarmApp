@@ -1,0 +1,87 @@
+{% extends "legal/base.html" %}
+{% block title %}Terms of use{% endblock %}
+{% block description %}The rules for using the free Zero Harm safety app.{% endblock %}
+{% block heading %}Terms of use{% endblock %}
+{% block content %}
+<p>These terms are the rules for using the Zero Harm app. By using the app, you agree to them. If you do not agree, please do not use the app. Our <a href="/privacy/">privacy policy</a> explains how we handle your information.</p>
+<p>The app is made by <strong>{{ company }}</strong> (also known as Trainovations) in Las Vegas, Nevada. "We", "us" and "our" mean {{ company }}.</p>
+{# [LAWYER REVIEW] Confirm the legal entity name and whether using the app is enough to accept these terms, or whether the app needs an explicit "I agree" step. #}
+
+<nav class="toc card" aria-label="On this page">
+  <ul>
+    <li><a href="#free">The app is free</a></li>
+    <li><a href="#info">Safety information, not advice</a></li>
+    <li><a href="#ai">AI content can be wrong</a></li>
+    <li><a href="#emergency">Emergencies</a></li>
+    <li><a href="#rules">Community rules</a></li>
+    <li><a href="#permission">Permission to record people</a></li>
+    <li><a href="#license">Your license to use the app</a></li>
+    <li><a href="#content">Your content</a></li>
+    <li><a href="#warranty">No promises about the app</a></li>
+    <li><a href="#liability">Limits on our responsibility</a></li>
+    <li><a href="#law">Nevada law</a></li>
+    <li><a href="#changes">Changes</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<h2 id="free">The app is free</h2>
+<p>Zero Harm is free to download and use. Signing in is optional. We may add, change or remove features, or stop offering the app, at any time.</p>
+<p>You must be at least 16 years old to use the app.</p>
+
+<h2 id="info">Safety information, not advice</h2>
+<p>The talks, sign-in sheets, alerts, weather and OTIS answers in Zero Harm are general safety information. They <strong>support your employer's safety training, written procedures and professional advice. They do not replace them.</strong> Always follow your employer's rules, your site's procedures, the equipment maker's instructions and the law.</p>
+<p>Nothing in the app is legal, medical or compliance advice. Using the app does not make you or your company compliant with any law or standard. If you need advice, talk to a qualified professional.</p>
+<p>Zero Harm is <strong>not affiliated with, endorsed by or part of OSHA</strong> or any government agency. When we quote or link to regulations, check the official source for the current text.</p>
+
+<h2 id="ai">AI content can be wrong</h2>
+<p>The <strong>Monday Minute</strong> talk is written by AI and checked by an automated AI review before it is published. A person reviews it only in some weeks. <strong>OTIS</strong> is an AI assistant that runs on your phone. Both can be wrong, out of date or incomplete. Check anything important with your supervisor, your safety team or the official rules before you act on it. Never skip a safety step because the app said so.</p>
+
+<h2 id="emergency">Emergencies</h2>
+<p><strong>In an emergency, call 911</strong> (or your local emergency number) right away. Do not use the app to get emergency help. Weather alerts in the app may be late or missing, so watch official alerts too.</p>
+
+<h2 id="rules">Community rules</h2>
+<p>If you post comments, replies or a display name, you agree to these rules:</p>
+<ul>
+  <li>Talk about the topic and your own site. Share what works and what you've seen.</li>
+  <li>No names or details that could identify an injured person, a coworker or a company.</li>
+  <li>No insults, harassment, threats, hate, sexual content or profanity aimed at anyone.</li>
+  <li>No ads, links, emails or phone numbers.</li>
+  <li>Don't tell others to skip a safety step. If you see something dangerous at work, stop and tell your supervisor.</li>
+</ul>
+<div class="card">
+  <p><strong>Zero tolerance.</strong> We do not allow objectionable content or abusive users. Comments are checked before they show, and a comment reported from two phones is hidden right away. You can report any comment or block any person. We act on every report within 24 hours. If a comment breaks these rules, we remove it and stop the person who posted it from commenting, without warning.</p>
+</div>
+
+<h2 id="permission">Permission to record people</h2>
+<p>You are responsible for having permission before you photograph, record or collect the name or signature of anyone else, such as a crew member on a sign-in sheet. Follow your employer's policy and the law where you work. Do not save a sheet or photo to records if someone has asked you not to.</p>
+{# [LAWYER REVIEW] Photo and signature consent: confirm this puts the duty on the supervisor and employer correctly, and whether the app should show a consent notice before a group photo. #}
+
+<h2 id="license">Your license to use the app</h2>
+<p>We give you a personal, free, non-exclusive, non-transferable right to use the app on devices you own or control, for your own work or your company's safety program. The app, its talks, designs and name belong to us or the people who license them to us. You may print and share talks and sign-in sheets for safety training. You may not copy, sell, rent or resell the app, take it apart to get its code, get around its security or use it to break the law.</p>
+<p>The app stores (Apple App Store and Google Play) have their own terms that also apply. Apple and Google are not responsible for the app or its support.</p>
+{# [LAWYER REVIEW] Confirm whether Apple's standard licensed application end user agreement terms (third-party beneficiary, maintenance and support) should be added in full. #}
+
+<h2 id="content">Your content</h2>
+<p>You own what you post or send us, such as comments, notes, suggestions and saved sign-in sheets. You give us permission to store, show, copy and use it to run and improve the app and our safety programs. For comments, that includes showing them to other app users. You promise you have the right to share what you send.</p>
+
+<h2 id="warranty">No promises about the app</h2>
+<p>We work hard to make the app useful and accurate, but we provide it <strong>"as is" and "as available"</strong>. As far as the law allows, we make no promises, written or implied, that the app or its content will be correct, complete, up to date, free of errors, always available or fit for a particular purpose.</p>
+{# [LAWYER REVIEW] Confirm the disclaimer of warranties is enforceable as written in plain language. #}
+
+<h2 id="liability">Limits on our responsibility</h2>
+<p>As far as the law allows, {{ company }} and its people are <strong>not responsible</strong> for any injury, loss or damage that comes from using or relying on the app, including lost profits, lost data or indirect damages. You use the app and its information at your own risk, and you are responsible for safety decisions at your work.</p>
+<p>If we are found responsible anyway, our total responsibility is limited to <strong>$100</strong>. Some places do not allow these limits, so they may not all apply to you.</p>
+{# [LAWYER REVIEW] Limitation of liability: confirm the $100 cap, the exclusions and how they interact with workplace injury claims. #}
+
+<h2 id="law">Nevada law</h2>
+<p>These terms are governed by the laws of the State of Nevada, United States, without regard to its conflict of law rules. Any dispute will be handled in the state or federal courts located in Clark County, Nevada, unless the law requires otherwise.</p>
+{# [LAWYER REVIEW] Governing law and venue: confirm Clark County courts, and whether to add an arbitration or small claims clause. #}
+
+<h2 id="changes">Changes</h2>
+<p>We may update these terms. We will change the "Last updated" date at the top. If a change is important, we will tell you in the app or by email. If you keep using the app after a change, you accept the new terms.</p>
+<p>If any part of these terms cannot be enforced, the rest still applies. We can remove your comments and stop you from commenting if you break these terms.</p>
+
+<h2 id="contact">Contact</h2>
+<p>{{ company }}<br>Las Vegas, Nevada<br>Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+{% endblock %}

@@ -122,6 +122,46 @@ def retry_signup_alerts(now=None):
     return sum(alert_signup(s) for s in waiting)
 
 
+# ---- Monday Minute comment reported ------------------------------------------------------------------
+
+def report_email(comment):
+    """(subject, html) for a reported comment. Everything the poster and reporters typed is escaped."""
+    reasons = sorted({r for r in comment.reports.values_list("reason", flat=True) if r})
+    rows = [("Comment", comment.body), ("Shown as", comment.display_name), ("Talk", comment.minute.title or comment.minute.topic.title),
+            ("Reports so far", comment.report_count), ("Reasons given", ", ".join(reasons) or "(none)"),
+            ("Now", comment.get_status_display()), ("Comment id", comment.pk)]
+    footer = ("Please act within 24 hours. In the admin, open Monday Minute comments, then either show it again or use "
+              "\"Hide and stop the poster from commenting\".")
+    return f"Zero Harm comment reported: {comment.body[:60]}", _page("A Monday Minute comment was reported", rows, footer)
+
+
+def alert_report(comment, timeout=30):
+    """Emails the owner once per reported comment. True when it went out now or had already gone out. Never raises."""
+    if comment.report_alerted_at:
+        return True
+    try:
+        if not send(*report_email(comment), timeout=timeout):
+            return False
+        type(comment).objects.filter(pk=comment.pk).update(report_alerted_at=timezone.now())
+        comment.report_alerted_at = timezone.now()
+        return True
+    except Exception as err:
+        log.error("Report alert for comment %s failed: %s", comment.pk, err)
+        return False
+
+
+def retry_report_alerts(now=None):
+    """Cron: reported comments from the last 3 days whose alert has not gone out."""
+    if not enabled():
+        return 0
+    from monday.models import MondayComment
+    now = now or timezone.now()
+    waiting = (MondayComment.objects.select_related("minute__topic")
+               .filter(report_count__gt=0, report_alerted_at__isnull=True, reports__created_at__gte=now - dt.timedelta(days=3),
+                       reports__created_at__lte=now - dt.timedelta(minutes=2)).distinct().order_by("pk")[:50])
+    return sum(alert_report(c) for c in waiting)
+
+
 # ---- Sign-up removed from the app --------------------------------------------------------------------
 
 def app_added_tags(removal):
@@ -298,7 +338,7 @@ def digest_email(n, today=None):
         ("All sign-ups so far", n["total_signups"]),
     ]
     footer = ("Counts are for the calendar day in Pacific time. A new phone is one that opened the app for the first time, which is the closest "
-              "thing to a download the app can see. People who switched off the anonymous usage count are not included. Places are approximate.")
+              "thing to a download the app can see. People who switched off the daily usage count are not included. Places are approximate.")
     return subject, _page(f"Zero Harm on {n['day']:%A, %B %-d, %Y}", rows, footer)
 
 

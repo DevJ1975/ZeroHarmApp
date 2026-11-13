@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from . import ai, generate as g
-from .models import MondayComment, MondayFeedback, MondayLock, MondayMinute, MondayTopic
+from .models import MondayComment, MondayCommentBan, MondayFeedback, MondayLock, MondayMinute, MondayTopic
 
 UTC = dt.timezone.utc
 INSTALL = "test-install-0000000001"
@@ -245,6 +245,49 @@ class ApiTests(TestCase):
         self.assertEqual(MondayComment.objects.get().status, MondayComment.VISIBLE)
         self.post(f"/comments/{cid}/report", {"install_id": INSTALL + "b"})
         self.assertEqual(MondayComment.objects.get().status, MondayComment.HIDDEN)
+
+    def test_banned_phone_cannot_comment_and_admin_ban_hides_everything(self):
+        from django.contrib.admin.sites import site
+        from django.test import RequestFactory
+
+        from .api import _hash
+        with patch("monday.moderation.ai_check", return_value=(True, "")):
+            self.comment()
+            self.comment(body="Second one from the same phone.")
+        admin = site._registry[MondayComment]
+        req = RequestFactory().post("/")
+        with patch.object(admin, "message_user"):
+            admin.hide_and_ban(req, MondayComment.objects.filter(pk=MondayComment.objects.first().pk))
+        self.assertTrue(MondayCommentBan.objects.filter(install_hash=_hash(INSTALL)).exists())
+        self.assertFalse(MondayComment.objects.filter(status=MondayComment.VISIBLE).exists())
+        res = self.comment(body="Back again.")
+        self.assertEqual((res.status_code, res.json()["error"]), (403, "You can no longer comment."))
+        self.assertEqual(MondayComment.objects.count(), 2)
+
+    @override_settings(OWNER_ALERT_EMAIL="owner@example.com", GHL_PRIVATE_TOKEN="t", GHL_LOCATION_ID="loc")
+    def test_first_report_emails_the_owner_once(self):
+        with patch("monday.moderation.ai_check", return_value=(True, "")):
+            cid = self.comment().json()["comment"]["id"]
+        with patch("talks.owner_alerts.ghl.configured", return_value=True), \
+                patch("talks.owner_alerts._owner_contact", return_value="c1"), \
+                patch("talks.owner_alerts.ghl.send_email") as send:
+            self.post(f"/comments/{cid}/report", {"install_id": INSTALL + "a", "reason": "rude"})
+            self.post(f"/comments/{cid}/report", {"install_id": INSTALL + "b"})
+        self.assertEqual(send.call_count, 1)
+        self.assertIn("reported", send.call_args.args[1])
+        self.assertIn("within 24 hours", send.call_args.args[2])
+        self.assertIsNotNone(MondayComment.objects.get().report_alerted_at)
+
+    def test_report_alert_waits_for_the_cron_when_alerts_are_off(self):
+        from talks import owner_alerts
+        with patch("monday.moderation.ai_check", return_value=(True, "")):
+            cid = self.comment().json()["comment"]["id"]
+        self.post(f"/comments/{cid}/report", {"install_id": INSTALL + "a"})
+        self.assertIsNone(MondayComment.objects.get().report_alerted_at)
+        later = timezone.now() + dt.timedelta(minutes=5)
+        with patch("talks.owner_alerts.enabled", return_value=True), patch("talks.owner_alerts.send", return_value=True):
+            self.assertEqual(owner_alerts.retry_report_alerts(now=later), 1)
+        self.assertIsNotNone(MondayComment.objects.get().report_alerted_at)
 
     def test_feedback_notes_feed_the_writer(self):
         for i in range(3):

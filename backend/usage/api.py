@@ -130,7 +130,7 @@ class NetworkThrottle(AnonRateThrottle):
 
 @router.post("/open", response=Ok, throttle=[NetworkThrottle("60/h")], summary="Anonymous once-a-day usage count")
 def app_open(request: HttpRequest, body: OpenIn):
-    """The app sends this at most once a day, and only while the person has "Anonymous usage count" switched on."""
+    """The app sends this at most once a day, and only while the person has "Daily usage count" switched on."""
     if not settings.USAGE_ENABLED:
         return {"ok": True}  # switched off on the server: say thanks, keep nothing
     day, install_hash = timezone.localdate(), _hash(body.install_id)

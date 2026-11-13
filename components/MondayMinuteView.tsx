@@ -1,4 +1,5 @@
 import { Link, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import Storage from 'expo-sqlite/kv-store';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -8,7 +9,7 @@ import { MM_ORANGE, MondayMinuteLogo, useMmBorderColor, useMmTextColor } from '@
 import { RegLinks } from '@/components/RegLinks';
 import { Body, Button, Field, OfflineNote, Screen } from '@/components/ui';
 import { fonts, space, useTheme } from '@/constants/theme';
-import { isConfigured } from '@/lib/config';
+import { ApiError, config, isConfigured } from '@/lib/config';
 import { printHandout, shareHandout } from '@/lib/handout';
 import {
   acceptRules, blockAuthor, Comment, listComments, Minute, myVote, postComment, rate, Reason, REASONS,
@@ -254,8 +255,8 @@ function Conversation({ minute }: { minute: Minute }) {
         setReplyTo(null);
         load();
       }
-    } catch {
-      setMsg('Could not post. Check your signal and try again.');
+    } catch (err) {
+      setMsg(err instanceof ApiError && err.status === 403 ? 'You can no longer comment.' : 'Could not post. Check your signal and try again.');
     } finally {
       setBusy(false);
     }
@@ -316,8 +317,14 @@ function Conversation({ minute }: { minute: Minute }) {
         <View style={[styles.box, { borderColor: MM_ORANGE, backgroundColor: t.surface }]}>
           <Text style={[styles.qLabel, { color: t.text }]}>Community rules</Text>
           {(rules.length ? rules : FALLBACK_RULES).map((r, i) => <Body key={i}>• {r}</Body>)}
-          <Body muted>Comments that break these rules are removed, and people who post them lose the ability to comment. Reports are looked at within 24 hours.</Body>
-          <Body muted>Comments are public to Zero Harm app users and are checked before they show. Abusive comments are removed, and you can report or block anyone.</Body>
+          <Body muted>Comments that break these rules are removed, and people who post them lose the ability to comment. We act on reports within 24 hours.</Body>
+          <Body muted>Comments are public: anyone can read them, along with your display name. They are checked before they show. Abusive comments are removed, and you can report or block anyone.</Body>
+          {config.termsUrl !== '' && (
+            <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(config.termsUrl)} style={styles.tap}>
+              <Text style={[styles.link, { color: t.text }]}>Terms of use</Text>
+            </Pressable>
+          )}
+          <Body muted>By tapping I agree, you accept these rules and the Terms of use.</Body>
           <Button
             label="I agree"
             onPress={async () => {

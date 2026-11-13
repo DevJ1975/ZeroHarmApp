@@ -140,6 +140,7 @@ class MondayComment(models.Model):
     status = models.CharField(max_length=10, choices=STATUSES, default=PENDING)
     moderation = models.CharField(max_length=300, blank=True, help_text="Why moderation hid it, if it did")
     report_count = models.PositiveSmallIntegerField(default=0)
+    report_alerted_at = models.DateTimeField(null=True, blank=True, help_text="When the owner was emailed about the first report")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -159,6 +160,20 @@ class MondayCommentReport(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["comment", "install_hash"], name="one_report_per_phone")]
+
+
+class MondayCommentBan(models.Model):
+    """A phone that may no longer comment. Set from the comment admin ("Hide and stop the poster from commenting")."""
+
+    install_hash = models.CharField(max_length=64, unique=True)
+    reason = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Monday Minute comment ban"
+
+    def __str__(self):
+        return f"Ban {self.install_hash[:8]} ({self.created_at:%b %-d, %Y})"
 
 
 class MondayLock(models.Model):

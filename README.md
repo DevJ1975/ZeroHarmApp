@@ -56,7 +56,7 @@ Everyone who signs in on the welcome screen (or in Settings) becomes a lead in G
 - **One email a day for downloads:** the first cron run after 7:00 AM Pacific sends "Zero Harm yesterday: 12 new phones,
   3 sign-ups": new phones with the iPhone and Android split and the top places, new sign-ups, phones active and totals.
   A "new phone" is a phone's first-ever anonymous open, the closest thing to a download the server can see (the app
-  stores don't tell the server about downloads). People who switched off the anonymous usage count are not included.
+  stores don't tell the server about downloads). People who switched off the daily usage count are not included.
   Nothing is sent on a day with no new phones and no sign-ups, and after an outage at most 3 missed days are sent.
 - **Removal:** "Remove my info" in the app removes that phone only. When it was the last phone linked to the email, the
   name and email are deleted from this server at once. In GHL the tags `zero-harm-weekly`, `zero-harm-offers-optin` and
@@ -134,7 +134,7 @@ A weekly 5-minute crew talk written by AI, separate from Zero Harm Weekly (code 
 
 ### Where the app is used (anonymous daily count)
 The back office shows how many phones use the app and roughly where: country, state and city.
-- **What the phone sends:** `POST /api/v2/app/open` at most once per day, and only while *Anonymous usage count* is on in
+- **What the phone sends:** `POST /api/v2/app/open` at most once per day, and only while *Daily usage count* is on in
   the app's settings (on by default). The body is `{"install_id", "platform": "ios"|"android", "app_version", "place"}`.
   `place` (`{"city", "region", "country"}`) is sent only when the phone already knows it from the weather feature, which
   means the person allowed approximate location. The answer is always `{"ok": true}`.

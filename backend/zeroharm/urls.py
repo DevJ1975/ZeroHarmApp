@@ -12,4 +12,5 @@ urlpatterns = [
     path("api/v2/", api_v2.urls),
     path("api/", include("talks.urls")),
     path("", include("invite.urls")),  # /get/: the invite link sent from GoHighLevel
+    path("", include("legal.urls")),  # /privacy/ and /terms/: linked from the app and the store listings
 ]

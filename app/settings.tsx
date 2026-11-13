@@ -193,12 +193,12 @@ export default function SettingsScreen() {
       <Button kind="secondary" label="How to use Zero Harm" onPress={() => router.push('/how-to')} />
       <Body muted>
         Zero Harm gives general safety awareness. It adds to your site training and doesn’t replace it, and it isn’t legal or medical advice.
-        Monday Minute talks are written by AI and checked before they publish. OTIS is an AI assistant that runs on this phone. Trainovate
+        Monday Minute talks are written by AI and checked by an AI review before they publish. OTIS is an AI assistant that runs on this phone. Trainovate
         Technologies is not part of OSHA or any government agency.
       </Body>
       {otisRow(
-        'Anonymous usage count',
-        'Once a day the app tells Trainovate it was opened, with the app version and an approximate city. No name, email or exact location. Turning it off stops it.',
+        'Daily usage count',
+        'Once a day the app tells Trainovate it was opened, with the app version and an approximate city. No name, email or exact location. If you signed in, it can be connected to your sign-up. Turning it off stops it.',
         usage,
         (v) => {
           setUsage(v);
@@ -213,9 +213,9 @@ export default function SettingsScreen() {
           <Button
             kind="secondary"
             label="Delete my data"
-            onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%20and%20comments.`)}
+            onPress={() => Linking.openURL(`mailto:${config.supportEmail}?subject=Delete%20my%20Zero%20Harm%20data&body=Please%20delete%20the%20data%20tied%20to%20this%20email%20address%3A%20sign-ups%2C%20saved%20sign-in%20sheets%2C%20suggestions%2C%20and%20comments%20and%20votes%20from%20my%20phone%20if%20it%20is%20still%20signed%20up.`)}
           />
-          <Body muted>Remove my info, at the top, unlinks this phone from your sign-up. Delete my data opens an email to us, for anything not tied to this phone. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets, suggestions and comments.</Body>
+          <Body muted>Remove my info, at the top, unlinks this phone from your sign-up. Delete my data opens an email to us, for anything not tied to this phone. Send it from the address you signed up with and we’ll remove your sign-ups, saved sheets and suggestions. Comments and votes are filed only under this phone’s scrambled id, so we can find them only while this phone is signed up. Send it before you tap Remove my info.</Body>
         </>
       )}
     </Screen>

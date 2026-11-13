@@ -1,5 +1,5 @@
 /**
- * The anonymous usage count. Once a day the app tells the server it was opened, so Trainovate can see how many phones
+ * The daily usage count. Once a day the app tells the server it was opened, so Trainovate can see how many phones
  * use it and roughly where (city, state, country). It sends a random install id (the server keeps only a salted hash),
  * the platform, the app version and, when the weather feature already knows it, the city. No name, email or coordinates.
  * The switch in Settings turns it off.

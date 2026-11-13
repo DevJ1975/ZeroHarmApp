@@ -14,8 +14,8 @@ from pydantic import Field
 from talks.views import _client_ip
 
 from . import ai, moderation
-from .models import (HIDE_AT_COMMENT_REPORTS, PULL_AT_UNSAFE_REPORTS, MondayComment, MondayCommentReport,
-                     MondayFeedback, MondayMinute)
+from .models import (HIDE_AT_COMMENT_REPORTS, PULL_AT_UNSAFE_REPORTS, MondayComment, MondayCommentBan,
+                     MondayCommentReport, MondayFeedback, MondayMinute)
 
 router = Router(tags=["Monday Minute"])
 InstallId = Field(min_length=16, max_length=64, pattern=r"^[A-Za-z0-9-]+$", description="Random id the app makes once per install")
@@ -167,12 +167,18 @@ def list_comments(request: HttpRequest, minute_id: int):
     return {"comments": top, "rules": moderation.COMMUNITY_RULES}
 
 
-@router.post("/{minute_id}/comments", response={201: CommentResult, 400: Error}, throttle=[AnonRateThrottle("10/h")],
+BANNED = "You can no longer comment."
+
+
+@router.post("/{minute_id}/comments", response={201: CommentResult, 400: Error, 403: Error}, throttle=[AnonRateThrottle("10/h")],
              summary="Post a comment or reply. Screened before anyone sees it.")
 def post_comment(request: HttpRequest, minute_id: int, body: CommentIn):
     minute = _released(minute_id)
     if not body.accepted_rules:
         return 400, {"error": "Please agree to the community rules first."}
+    install_hash = _hash(body.install_id)
+    if MondayCommentBan.objects.filter(install_hash=install_hash).exists():
+        return 403, {"error": BANNED}
     parent = None
     if body.parent_id:
         parent = minute.comments.filter(pk=body.parent_id, status=MondayComment.VISIBLE, parent__isnull=True).first()
@@ -183,7 +189,7 @@ def post_comment(request: HttpRequest, minute_id: int, body: CommentIn):
     reason = moderation.quick_check(text, name)
     if reason:
         return 201, {"status": "rejected", "message": reason}
-    comment = MondayComment(minute=minute, parent=parent, display_name=name, body=text, install_hash=_hash(body.install_id))
+    comment = MondayComment(minute=minute, parent=parent, display_name=name, body=text, install_hash=install_hash)
     if ai.is_local():
         # A CPU model can take a while: save it as waiting and screen it in the background, so posting never hangs.
         comment.status = MondayComment.PENDING
@@ -216,6 +222,10 @@ def report_comment(request: HttpRequest, comment_id: int, body: ReportIn):
     if comment.report_count >= HIDE_AT_COMMENT_REPORTS:
         comment.status, comment.moderation = MondayComment.HIDDEN, f"Hidden after {comment.report_count} reports. Review in the admin."
         comment.save(update_fields=["status", "moderation"])
+    # The owner hears about the first report right away, so the 24-hour promise does not depend on checking the admin.
+    # If GoHighLevel is slow or down, the cron sends it (owner_alerts.retry_report_alerts).
+    from talks import owner_alerts
+    owner_alerts.alert_report(comment, timeout=owner_alerts.QUICK)
     return {"ok": True}
 
 

@@ -52,8 +52,10 @@ class Command(BaseCommand):
         call_command("sync_signups")
         # Emails to the owner: sign-up alerts and removals that did not go out the first time, then the daily summary.
         alerts, removals = owner_alerts.retry_signup_alerts(), owner_alerts.retry_removals()
-        if alerts or removals:
-            self.stdout.write(f"Owner alerts: {alerts} sign-up alerts sent late, {removals} removals finished")
+        reports = owner_alerts.retry_report_alerts()
+        if alerts or removals or reports:
+            self.stdout.write(f"Owner alerts: {alerts} sign-up alerts sent late, {removals} removals finished, "
+                              f"{reports} comment report alerts sent late")
         tagged = retry_invite_tags()  # invite-link taps GoHighLevel didn't tag the first time, from the last 2 days
         if tagged:
             self.stdout.write(f"Invite link: {tagged} taps tagged late")

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from .ai import ensure_model, is_local
 from .generate import generate_week, next_week
-from .models import MondayComment, MondayEvalRun, MondayFeedback, MondayLock, MondayMinute, MondayTopic
+from .models import MondayComment, MondayCommentBan, MondayEvalRun, MondayFeedback, MondayLock, MondayMinute, MondayTopic
 
 
 @admin.register(MondayTopic)
@@ -159,7 +159,7 @@ class MondayCommentAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("body", "display_name")
     readonly_fields = ("minute", "parent", "install_hash", "report_count", "created_at")
-    actions = ("hide", "show")
+    actions = ("hide", "hide_and_ban", "show")
 
     @admin.display(description="Comment")
     def short(self, obj):
@@ -169,9 +169,29 @@ class MondayCommentAdmin(admin.ModelAdmin):
     def hide(self, request, queryset):
         queryset.update(status=MondayComment.HIDDEN, moderation="Hidden in the admin")
 
+    @admin.action(description="Hide and stop the poster from commenting")
+    def hide_and_ban(self, request, queryset):
+        hashes = set(queryset.values_list("install_hash", flat=True))
+        for h in hashes:
+            MondayCommentBan.objects.get_or_create(install_hash=h, defaults={"reason": "Banned from the comment admin"})
+        # Everything they posted comes down with them, not only the selected comments.
+        hidden = MondayComment.objects.filter(install_hash__in=hashes).exclude(status=MondayComment.HIDDEN).update(
+            status=MondayComment.HIDDEN, moderation="Hidden in the admin: poster banned")
+        self.message_user(request, f"Stopped {len(hashes)} poster(s) from commenting and hid {hidden} of their comments.")
+
     @admin.action(description="Show the selected comments")
     def show(self, request, queryset):
         queryset.update(status=MondayComment.VISIBLE, moderation="")
+
+
+@admin.register(MondayCommentBan)
+class MondayCommentBanAdmin(admin.ModelAdmin):
+    """Delete a row here to let that phone comment again."""
+    list_display = ("created_at", "install_hash", "reason")
+    readonly_fields = ("install_hash", "created_at")
+
+    def has_add_permission(self, request):
+        return False  # bans come from the comment list: select comments, then "Hide and stop the poster from commenting"
 
 
 @admin.register(MondayEvalRun)

@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "usage",
     "backoffice",
     "invite",
+    "legal",
 ]
 
 MIDDLEWARE = [
@@ -155,7 +156,7 @@ TALKS_EARLY_COUNT = int(os.environ.get("TALKS_EARLY_COUNT", "2"))  # how many up
 # 2026) and go back to normal on January 1. "default" turns the holiday look off now, "holiday" forces it on. No app update needed.
 APP_THEME = os.environ.get("APP_THEME", "auto")
 
-# Anonymous usage count: one row per phone per day with an approximate city, state and country, for the back office.
+# Daily usage count: one row per phone per day with an approximate city, state and country, for the back office.
 # USAGE_ENABLED=0 stops storing anything (phones still get a normal answer). The network address is never stored.
 USAGE_ENABLED = os.environ.get("USAGE_ENABLED", "1") == "1"
 # MaxMind-format city database used to turn a network address into an approximate place. The Docker build downloads
