@@ -1,8 +1,10 @@
 import html
+import json
 import re
 from pathlib import Path
 
-from django.test import SimpleTestCase
+from django.conf import settings
+from django.test import SimpleTestCase, override_settings
 
 from monday.moderation import COMMUNITY_RULES
 
@@ -68,6 +70,40 @@ class LegalPageTests(SimpleTestCase):
         for phrase in ("Remove my info", "within 30 days", "under 16", "unsubscribe", "400 days", "hashed",
                        "signature", "photo", "stay on the phone", "California"):
             self.assertIn(phrase, text, phrase)
+
+    def test_dates_and_support_email_are_the_ones_published(self):
+        self.assertEqual(EFFECTIVE_DATE, "November 13, 2026")
+        self.assertEqual(CONTACT_EMAIL, "jamil@trainovations.com")
+        # The store build's support email (Settings > Contact support, Delete my data) must be the one the pages name.
+        eas = Path(__file__).resolve().parents[2] / "eas.json"
+        if eas.exists():  # not in the backend's Docker image
+            build = json.loads(eas.read_text())["build"]["production"]["env"]
+            self.assertEqual(build["EXPO_PUBLIC_SUPPORT_EMAIL"], CONTACT_EMAIL)
+        for path in ("/privacy/", "/terms/"):
+            text = self.visible(self.page(path)[1])
+            self.assertIn(f"mailto:{CONTACT_EMAIL}", self.page(path)[1])
+            self.assertIn(f"Effective date: {EFFECTIVE_DATE}", " ".join(text.split()))
+
+    def test_privacy_covers_support_tickets_crash_reports_and_removal(self):
+        text = " ".join(self.visible(self.page("/privacy/")[1]).split())
+        for phrase in ("Report a problem", "My reports", "Report this answer", "error screen", "Crash reports",
+                       "phone model", "system version", "app version", "install id", "OK to reply to me",
+                       "not sent to an AI", "cannot connect a crash report to you", "We got your request",
+                       "phone that made your sign-up", "Reporting a problem with the app to OTIS", "Include my question"):
+            self.assertIn(phrase, text, phrase)
+        self.assertIn(f"after {settings.SUPPORT_CRASH_KEEP_DAYS} days", text)
+        # The old promise with no exceptions must not come back.
+        self.assertNotIn("are not sent to us or anyone else", text)
+        self.assertNotIn("last phone linked", text)
+
+    @override_settings(SUPPORT_CRASH_KEEP_DAYS=30)
+    def test_crash_retention_follows_the_setting(self):
+        self.assertIn("after 30 days", " ".join(self.visible(self.page("/privacy/")[1]).split()))
+
+    def test_terms_say_reports_do_not_go_to_the_employer(self):
+        text = " ".join(self.visible(self.page("/terms/")[1]).split())
+        self.assertIn("They do not go to your employer", text)
+        self.assertIn("problem reports", text)
 
     def test_terms_carry_the_community_rules_and_key_lines(self):
         text = self.visible(self.page("/terms/")[1])

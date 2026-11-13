@@ -10,6 +10,7 @@
     <li><a href="#who">Who we are</a></li>
     <li><a href="#short">The short version</a></li>
     <li><a href="#collect">What we collect, by feature</a></li>
+    <li><a href="#support">Problem reports and crash reports</a></li>
     <li><a href="#phone">What stays only on your phone</a></li>
     <li><a href="#why">Why we use it</a></li>
     <li><a href="#share">Who we share it with</a></li>
@@ -34,9 +35,10 @@
 <ul>
   <li>The app is free. Signing in is optional. Every feature works without it.</li>
   <li>We only collect what a feature needs, and most features let you choose.</li>
-  <li>OTIS, the safety assistant, runs on your phone. Your questions stay on the phone unless you turn on "Help improve OTIS" and "Include my question" in Settings.</li>
+  <li>OTIS, the safety assistant, runs on your phone. Your questions stay on the phone unless you choose to send one: by reporting a problem, by tapping "Report this answer", or by turning on "Help improve OTIS" and "Include my question" in Settings.</li>
+  <li>If you report a problem, a person at our company reads it. When the app hits an error, it sends us a short crash report unless you turn "Crash reports" off in Settings.</li>
   <li>We do not sell personal information. We do not track you across other companies' apps or websites. There are no ads.</li>
-  <li>You can remove your sign-up in Settings with "Remove my info", or email us to delete anything else. We answer within 30 days.</li>
+  <li>You can remove your sign-up in Settings with "Remove my info". On the phone that made your sign-up, it is deleted at once. From any other phone, a person carries out the request. Email us to delete anything else. We answer within 30 days.</li>
 </ul>
 
 <h2 id="collect">What we collect, by feature</h2>
@@ -44,6 +46,7 @@
 <h3>Welcome sign-in (optional)</h3>
 <p>When you first open the app, you can give your <strong>name</strong>, <strong>email</strong> and, if you like, your <strong>company</strong>. You can tap "Not now" and skip it. If you sign in, we also save the exact consent line you saw and the time you agreed.</p>
 <p>Your sign-up goes to our server and to our customer list in GoHighLevel, where it is tagged as coming from the app. We also get an email telling us someone signed up, with your name, email, company, where in the app you signed up and when.</p>
+<p>The phone you first sign up on is the phone that owns your sign-up. If you sign in with the same email on another phone, that phone is linked to your sign-up so the app works there, but it does not change the name, company or offers choice we have. This stops someone who only knows your email from changing your details.</p>
 
 <h3>Zero Harm Weekly newsletter</h3>
 <p>Signing in subscribes you to <strong>Zero Harm Weekly</strong>, a free safety email. If you also turn on news and offers, we tag your contact so you get those too. You can unsubscribe at any time with the link at the bottom of any email.</p>
@@ -56,7 +59,7 @@
 
 <h3>Monday Minute comments</h3>
 <p>You can comment on the weekly Monday Minute talk. We collect the <strong>display name</strong> you choose (you can leave the default), your <strong>comment</strong> and a hashed version of your install id (see below). Before a comment shows, it is checked against our community rules by an automated AI review. Comments that pass are public. Anyone can read them in the app or through our server, along with your display name and a random tag that lets people block you. That tag is not your name.</p>
-<p>If you report a comment, we keep the report, the reason and your hashed install id. If you block someone, the block is saved only on your phone.</p>
+<p>If you report a comment, we keep the report, the reason and your hashed install id. The first report of a comment sends us an email with the comment, its display name and the reasons given. If you block someone, the block is saved only on your phone. If a person breaks the community rules, we can stop their phone from commenting. We keep that ban under the phone's hashed install id.</p>
 
 <h3>Thumbs up or down, and notes</h3>
 <p>You can rate a Monday Minute with thumbs up or down, pick reasons and add a short note. We collect your vote, reasons, note, phone type (iPhone or Android), your hashed install id and a hashed form of your network. If people on three different networks rate a talk down, it can be pulled for review.</p>
@@ -65,7 +68,14 @@
 <p>You can suggest a topic. We collect the <strong>topic</strong>, the <strong>details</strong> you write and the month's theme. Your name, email and company are optional. If you give an email, we add it to our customer list with a note holding your suggestion, so we can reply.</p>
 
 <h3>OTIS, the on-phone safety assistant</h3>
-<p>OTIS answers questions using an AI model that runs <strong>on your phone</strong>. Your questions and answers are not sent to us or anyone else. We turned off the analytics that the AI toolkit would send on its own.</p>
+<p>OTIS answers questions using an AI model that runs <strong>on your phone</strong>. Your questions and answers stay on the phone. We turned off the download analytics that the AI toolkit would send to its maker on its own.</p>
+<p>An OTIS question leaves the phone only when you choose to send it, in one of three ways:</p>
+<ul>
+  <li><strong>"Report this answer":</strong> under each answer. After you confirm, it sends that one question and that one answer to us (see "Problem reports and crash reports").</li>
+  <li><strong>Reporting a problem with the app to OTIS:</strong> if you tell OTIS the app is not working, it can offer to send a report. Nothing is sent until you say yes. The report holds the description you give, which OTIS starts from what you typed. The rest of your chat is not sent.</li>
+  <li><strong>"Include my question":</strong> with a "Was this helpful?" rating, if you turned that on (see below).</li>
+</ul>
+<p>Help with the app itself, such as how to fix a download, comes from help pages stored on the phone. OTIS reads them on the phone and does not send your question anywhere to answer it.</p>
 <p>To pick the right model for your phone, the app sends us your phone type, total memory, app version, system version and a few technical details. We use these to answer and do not store them. The model itself is downloaded from Hugging Face or another download service we choose (see "Who we share it with").</p>
 <p>After an answer, you can tap "Was this helpful?". This is off unless you turn on "Help improve OTIS". If it is on, we get the rating, which reference passages OTIS used, the model, phone type, app version and language. We get the <strong>question text only if you also turn on "Include my question"</strong>. These ratings carry no name, email or install id.</p>
 
@@ -75,8 +85,8 @@
 
 <h3>Weather and approximate location</h3>
 <p>If you allow location, the weather card uses your <strong>approximate location</strong>. The app only asks while you are using it and only for an approximate position. It rounds your position to about 1 kilometer (about half a mile) and sends that to our server. Our server asks the US <strong>National Weather Service</strong> for the forecast and alerts, so the Weather Service sees our server, not your phone. We do not save your location in our database. Our server keeps the forecast for a point for 10 minutes so it can answer the next request faster.</p>
-{# [LAWYER REVIEW] Server request logs at our host may record the weather request address, which includes the rounded location. Confirm this wording, or turn off access logging so "not stored" is fully true. #}
-<p>Our hosting provider's server logs may record the address of the weather request, which includes the rounded location. Those logs are kept for a short time and are not used to build a record of where you go.</p>
+{# [LAWYER REVIEW] Our own request log now drops everything after the "?" in an address, so the rounded location is not in it. Confirm whether Railway's own edge request logs record the full address (with the rounded location) for the plan in use, and keep or remove the second sentence to match. #}
+<p>Our server's request log leaves out the part of the address that holds the rounded location. Our hosting provider may still record the full address of the weather request in its own logs. Those logs are kept for a short time and are not used to build a record of where you go.</p>
 
 <h3>Push notifications</h3>
 <p>The app uses OneSignal to send notifications. When the app starts, the OneSignal toolkit gives your phone a <strong>push token</strong> and creates a device record. OneSignal's toolkit also collects basic device details, such as phone model, system version, language, time zone, network address and when the app is used. The app does not ask to show notifications until you turn one on in Settings. Your choices (Monday Minute, Weekly talk, alerts, Zero Hour and offers) are saved as on or off tags in OneSignal so we send only what you chose. Our server never sees your push token.</p>
@@ -85,24 +95,52 @@
 <p>The first time you use the app, it makes a random id (letters and numbers, not tied to your phone's hardware). Our server only ever stores a <strong>scrambled (hashed)</strong> version of it. We use it to count each phone once, to stop repeat votes and spam, and to know which of your comments are yours. If you sign up, our server links the hashed id to your sign-up so "Remove my info" removes the right phone.</p>
 
 <h3>Invite links</h3>
-<p>We may email you an invite link to get the app. When you tap it, our server records your customer list id, the day and whether you are on an iPhone, Android or other device, then sends you to the App Store or Google Play. We tag your contact in GoHighLevel to show you tapped. We do not save your network address or browser details in our database for this. Our hosting provider's server logs record the link you tapped, which includes your customer list id, along with your network address and browser details, for its standard log period.</p>
+<p>We may email you an invite link to get the app. When you tap it, our server records your customer list id, the day and whether you are on an iPhone, Android or other device, then sends you to the App Store or Google Play. We tag your contact in GoHighLevel to show you tapped. We do not save your network address or browser details in our database for this. Our server's request log records that the link was tapped, with your network address and browser details, but leaves out your customer list id. Our hosting provider may record the full link in its own logs for its standard log period.</p>
 
 <h3>Network address and server logs</h3>
-<p>Like any website or app server, ours sees your network (IP) address with every request. We use it to work out an approximate city for the usage count and to limit abuse, such as too many sign-ups or sheets from one network. Some of these limits keep the address in our server's memory for up to one hour, then it is gone. We store a scrambled form of it with Monday Minute votes so one network cannot outvote everyone.</p>
-<p>Our server writes technical logs to our hosting provider. These logs can include the addresses of pages and requests, your network address, your browser or app details and, when a message to GoHighLevel fails, your email address.</p>
+<p>Like any website or app server, ours sees your network (IP) address with every request. We use it to work out an approximate city for the usage count and to limit abuse, such as too many sign-ups, sheets or reports from one network. These limits keep only a scrambled (hashed) form of the address, in our server's memory, for up to one hour. The limit on new kinds of crash report keeps its scrambled form for up to two days. We store a scrambled form of it with Monday Minute votes so one network cannot outvote everyone.</p>
+<p>Our server writes technical logs to our hosting provider. These logs can include the addresses of pages and requests (without the part after the "?"), your network address, your browser or app details and, when a message to GoHighLevel fails, your email address. To check how our host passes on network addresses, the server also logs a shortened address now and then, such as "174.75.x.x", which does not show the whole address.</p>
 
 <h3>Support and delete requests</h3>
 <p>If you tap "Contact support" or "Delete my data" in Settings, your mail app opens a message to us. We get whatever is in that email, including your email address.</p>
 
+<h2 id="support">Problem reports and crash reports</h2>
+
+<h3>Report a problem and My reports</h3>
+<p>You can report a problem with the app in three places: <strong>Settings, "Report a problem"</strong>; by telling <strong>OTIS</strong>; or on the app's <strong>error screen</strong>, the "Something went wrong" page. Each one says before you send that a report goes to us, not to your employer. Do not use it to report a hazard or an injury at work.</p>
+<p>A report sends us:</p>
+<ul>
+  <li>What you write.</li>
+  <li>Your <strong>email</strong>, only if you give one for a reply. On the Report a problem screen it is sent only while "OK to reply to me" is on. If the app already has your email from signing in, it fills it in for you, but does not send it unless that switch is on.</li>
+  <li>Whether you wrote in English or Spanish.</li>
+  <li>Your <strong>phone model</strong> (such as "Pixel 8"), iPhone or Android, the <strong>system version</strong> and the <strong>app version</strong>.</li>
+  <li>Your random <strong>install id</strong>. Our server keeps only its scrambled form.</li>
+</ul>
+<p>It does not send your OTIS chat, your location or anything else on the phone. A report is saved on the phone first and sent when you have signal.</p>
+<p>We keep each report on our server as a support ticket with a number, such as ZH-123. <strong>"My reports"</strong> in Settings shows the reports sent from your phone, with their status and our reply. The app finds them with your phone's install id. A report is kept under the same scrambled install id as a sign-up from that phone, and it may hold your email, so it can be linked to you.</p>
+<p>A person at our company reads every report. Each report is emailed to us through GoHighLevel, with what you wrote, your phone details, your email if you gave it, and whether you said it is OK to reply. If you gave an email and said it is OK to reply, we also add you to our customer list in GoHighLevel (or find you there), tag your contact as a support ticket and add a note with the ticket number and what you wrote, so we can write back.</p>
+<p>Reports are read by people. They are not sent to an AI.</p>
+
+<h3>Report this answer</h3>
+<p>Under each OTIS answer you can tap "Report this answer". After you confirm, the app sends that one question and that one answer, which OTIS model answered, whether you wrote in English or Spanish, and the same phone details and install id as a problem report. Nothing else from the chat is sent. A person reviews it. It is emailed to us through GoHighLevel like a problem report. It does not show under "My reports", and the app does not show you a reply to it. This does not depend on the "Help improve OTIS" switch.</p>
+
+<h3>Crash reports</h3>
+<p>When the app's own code hits an error, it saves a short <strong>crash report</strong> and sends it the next time the app is open with a signal. A crash report holds what the error said and where in the app's code it happened, whether the app had to close, the screen you were on (without the part of its address after a "?"), the time, the app version, iPhone or Android, the system version, your phone model and your random install id.</p>
+<p>It is built to leave out your name, your email, what you typed, your OTIS questions and answers, photos and your location. Before a report is saved, the app takes out web address details, long ids, emails, phone numbers and long numbers, because an error message can repeat what was on the screen. A name inside an error message could still get through, so we do not promise that one never can.</p>
+<p>Our server scrambles the install id of a crash report in a different way from every other install id. It is used only to count each report once. It does not match the id kept with a sign-up or a problem report, so we cannot connect a crash report to you. The same error on the same app version is grouped into one crash ticket with a count. We get one email through GoHighLevel listing new crashes and crashes that keep happening. Crash reports are not sent to an AI.</p>
+<p><strong>"Crash reports" is on unless you turn it off</strong> in Settings, under About and privacy. When it is off, nothing is recorded or sent, and any reports waiting on the phone are deleted. The app only catches errors in its own code. If the phone itself closes the app, for example because it ran out of memory, no report is made.</p>
+{# [LAWYER REVIEW] Crash reports are on by default (opt-out), on the basis that they cannot be linked to a person. Confirm an opt-out switch is enough under the laws that apply, or whether the app must ask first. #}
+
 <h2 id="phone">What stays only on your phone</h2>
 <p>Some things never leave the phone unless you send them:</p>
 <ul>
-  <li>Your OTIS questions and answers.</li>
+  <li>Your OTIS questions and answers, except one you choose to send (see "OTIS" above).</li>
   <li>Sign-in sheets you do not save to records, and their PDFs.</li>
   <li>People you have blocked in comments.</li>
   <li>Your settings: notification choices, theme, whether you have seen the welcome and how-to screens.</li>
   <li>Copies of talks, alerts and the OTIS reference library, so the app works with a weak signal.</li>
   <li>Your sign-in profile (name, email, company) used to fill in forms, until you tap "Remove my info".</li>
+  <li>Problem reports and crash reports waiting for a signal, and the list of your reports that "My reports" shows.</li>
 </ul>
 
 <h2 id="why">Why we use it</h2>
@@ -112,19 +150,20 @@
   <li><strong>To keep records you chose to save:</strong> sign-in sheets saved to records.</li>
   <li><strong>To keep the community safe:</strong> check comments, handle reports and stop spam and abuse.</li>
   <li><strong>To improve the app:</strong> count how many phones use it and where, in general terms, and learn which talks and OTIS answers help.</li>
-  <li><strong>To answer you:</strong> reply to suggestions, support questions and delete requests.</li>
+  <li><strong>To fix the app:</strong> find and fix errors from crash reports and problem reports.</li>
+  <li><strong>To answer you:</strong> reply to suggestions, problem reports, support questions and delete requests.</li>
 </ul>
 
 <h2 id="share">Who we share it with</h2>
 <p>We share information only with companies that help us run the app, and only what each one needs. They work for us under their own privacy and security terms.</p>
 <ul>
-  <li><strong>GoHighLevel (LeadConnector):</strong> our customer list and email service. It gets sign-ups (name, email, company and tags), saved sign-in sheet PDFs and notes, suggestions with an email, invite link taps, and the alert and summary emails sent to us. It also stores the talk pictures, Zero Hour videos and printable PDFs the app shows. When your phone loads one, GoHighLevel's file service sees your network address and the request, as any website would. If we link a picture or file kept on another website, that website sees the same.</li>
+  <li><strong>GoHighLevel (LeadConnector):</strong> our customer list and email service. It gets sign-ups (name, email, company and tags), saved sign-in sheet PDFs and notes, suggestions with an email, invite link taps, and the alert and summary emails sent to us. Those emails include each problem report and flagged OTIS answer, a list of crashes, reported comments, and requests to remove a sign-up. When you report a problem with an email and say it is OK to reply, it also gets your contact, a support ticket tag and a note with what you wrote. It also stores the talk pictures, Zero Hour videos and printable PDFs the app shows. When your phone loads one, GoHighLevel's file service sees your network address and the request, as any website would. If we link a picture or file kept on another website, that website sees the same.</li>
   <li><strong>OneSignal:</strong> sends push notifications. It gets your push token, device details from its toolkit and your notification choices. It delivers notifications through <strong>Apple</strong> (Apple Push Notification service) and <strong>Google</strong> (Firebase Cloud Messaging).</li>
-  <li><strong>Railway:</strong> hosts our server, database and server logs in the United States. Everything we store is kept there. Our own AI server, which checks comments, also runs at Railway on a private network.</li>
-  <li><strong>Anthropic:</strong> an AI company we may use, in place of our own AI server, to check Monday Minute comments and to write and review talks. When we do, it gets the comment, the display name and the talk title. It does not get your email or install id.</li>
+  <li><strong>Railway:</strong> hosts our server, database and server logs in the United States. Everything we store is kept there, including problem reports and crash reports. Our own AI server, which checks comments, also runs at Railway on a private network.</li>
+  <li><strong>Anthropic:</strong> an AI company we may use, in place of our own AI server, to check Monday Minute comments and to write and review talks. When we do, it gets the comment, the display name and the talk title. We also use it to draft Spanish versions of talks, which holds no personal information. It does not get your email or install id. It does not get problem reports, flagged OTIS answers or crash reports.</li>
   {# [LAWYER REVIEW] Confirm which AI provider production uses (AI_PROVIDER=local or anthropic) and whether Anthropic's API terms need more detail here. #}
   <li><strong>National Weather Service:</strong> gets your rounded location from our server to return the forecast. It does not see your phone.</li>
-  <li><strong>Hugging Face</strong> (or another download service we choose): hosts the OTIS model files. When your phone downloads the model, that service sees your network address and the download request, as any website would.</li>
+  <li><strong>Hugging Face</strong> (or another download service we choose): hosts the OTIS model files. When your phone downloads the model, that service sees your network address and the download request, as any website would. For models kept at Hugging Face, the AI toolkit also sends Hugging Face one standard download-count request, which we cannot turn off. It carries nothing about you beyond what any download does.</li>
   <li><strong>DB-IP:</strong> we use DB-IP's city database to turn a network address into an approximate city. The database is copied to our own server, and the lookup happens there. <strong>No data is sent to DB-IP.</strong></li>
   <li><strong>Apple App Store and Google Play:</strong> invite links send you to the store page. Apple and Google handle your download under their own policies.</li>
   <li><strong>Apps and printers you pick:</strong> when you share or print a sign-in sheet, it goes where you send it.</li>
@@ -136,10 +175,13 @@
 
 <h2 id="keep">How long we keep it</h2>
 <ul>
-  <li><strong>Sign-up (name, email, company):</strong> on the phone until you tap "Remove my info". On our server until the last phone linked to that sign-up removes it, then it is deleted right away. In GoHighLevel, removal takes off the app's tags and marks the contact as removed. To have the contact itself deleted, or to stop all email, email us or use the unsubscribe link. A short record of the removal (your name and email) is kept until the GoHighLevel step and our notice to staff are done, usually within minutes and normally no longer than 7 days. Our notice emails about your sign-up and removal stay in our GoHighLevel inbox.</li>
+  <li><strong>Sign-up (name, email, company):</strong> on the phone until you tap "Remove my info". On our server until "Remove my info" is tapped on the phone that made the sign-up, then it is deleted right away. If you ask from another phone, it is kept until a person at our company checks the request and deletes it. We aim to do that within 30 days. In GoHighLevel, removal takes off the app's tags and marks the contact as removed. To have the contact itself deleted, or to stop all email, email us or use the unsubscribe link. A short record of the removal (your name and email) is kept until the GoHighLevel step and our notice to staff are done, usually within minutes and normally no longer than 7 days. Our notice emails about your sign-up and removal stay in our GoHighLevel inbox.</li>
+  <li><strong>Problem reports and flagged OTIS answers:</strong> kept on our server until you ask us to delete them. The emails about them stay in our GoHighLevel inbox, and the contact and note made for a reply stay in GoHighLevel until you ask us to delete them. "Remove my info" does not delete them.</li>
+  <li><strong>Crash reports:</strong> each single report, with its phone model and system version, is deleted automatically after {{ crash_keep_days }} days. The crash ticket it was grouped into keeps the error, where in the code it happened and how many times it was reported. The phone model, system version and screen of the first report on that ticket are cleared at the same age. A short record that a report was already counted is deleted after 7 days.</li>
+  {# [LAWYER REVIEW] Retention for problem reports and flagged answers: the code keeps them until deleted on request. Pick a fixed period if one is needed, and confirm keeping crash tickets (error text and counts, no phone details) without a time limit is fine. #}
   <li><strong>Daily usage count:</strong> {{ usage_keep_days }} days, then deleted automatically.</li>
   <li><strong>Location for weather:</strong> not saved in our database. Kept in server memory for 10 minutes. On the phone, your last city is kept for the day.</li>
-  <li><strong>Network address:</strong> not saved in our database. Held in server memory for up to one hour for abuse limits. The scrambled form saved with votes is kept as long as the vote.</li>
+  <li><strong>Network address:</strong> not saved in our database. A scrambled form is held in server memory for up to one hour for abuse limits, and up to two days for the crash report limit. The scrambled form saved with votes is kept as long as the vote.</li>
   <li><strong>Saved sign-in sheets:</strong> once the PDF is copied to GoHighLevel, we remove it from our database. If the copy fails, we keep trying for 14 days and keep the PDF until we sort it out. The sheet's details (supervisor, date, location, head count and file link) and the PDF in GoHighLevel are kept while they are needed as a training record, and deleted when you ask.</li>
   {# [LAWYER REVIEW] Retention of training records: confirm how long sign-in sheets should be kept (for example, any OSHA or customer record-keeping needs) and set a fixed period. #}
   <li><strong>Comments, reports, votes, notes, talk suggestions, OTIS ratings and invite link taps:</strong> kept while needed for the purpose they serve. Talk suggestions you gave an email with, and invite link taps, can be deleted when you ask. Comments, votes, notes and reports are stored only under your phone's scrambled install id, so we can find them only while that phone is still signed up. OTIS ratings carry no id, so we cannot tell which ones are yours.</li>
@@ -151,12 +193,13 @@
 
 <h2 id="choices">Delete or change your info</h2>
 <ul>
-  <li><strong>Remove your sign-up:</strong> open Settings and tap <strong>"Remove my info"</strong>. This removes your name and email from the phone and, when it is the last phone linked to your sign-up, from our server.</li>
-  <li><strong>Anything else:</strong> email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> or tap "Delete my data" in Settings. Tell us what you want seen, changed or deleted (for example, a saved sign-in sheet, your GoHighLevel contact, or your comments, which we can find only while the phone you posted from is still signed up). <strong>We answer within 30 days.</strong> We may ask a question to make sure the request is really from you.</li>
+  <li><strong>Remove your sign-up:</strong> open Settings and tap <strong>"Remove my info"</strong>. This removes your name and email from the phone at once. On the phone that made your sign-up, it also deletes your sign-up from our server right away and takes the app's newsletter tags off your contact in GoHighLevel. On any other phone (a second phone, or after you reinstall the app), nothing is deleted yet: the app shows "We got your request", the phone is unlinked, and we get an email so a person can check the request and remove your sign-up by hand. We do it this way so that nobody who only knows your email can remove you. With no signal, the request is sent when you have one.</li>
+  <li><strong>Anything else:</strong> email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> or tap "Delete my data" in Settings. Tell us what you want seen, changed or deleted (for example, a saved sign-in sheet, your GoHighLevel contact, your problem reports, or your comments, which we can find only while the phone you posted from is still signed up). For a problem report, give its number from "My reports" (such as ZH-123) or the email you sent it with. <strong>We answer within 30 days.</strong> We may ask a question to make sure the request is really from you.</li>
   <li><strong>Change your details:</strong> tap "Remove my info" in Settings and sign in again with the right details, or email us.</li>
   <li><strong>Stop emails:</strong> use the unsubscribe link in any Zero Harm Weekly email.</li>
   <li><strong>Stop notifications:</strong> turn them off in the app's Settings or your phone's settings.</li>
   <li><strong>Stop the usage count:</strong> turn off "Daily usage count" in Settings.</li>
+  <li><strong>Stop crash reports:</strong> turn off "Crash reports" in Settings. This also deletes reports waiting on the phone. We cannot find crash reports already sent, because they are not linked to you.</li>
   <li><strong>Stop OTIS ratings:</strong> turn off "Help improve OTIS" or "Include my question" in Settings.</li>
   <li><strong>Stop location:</strong> turn off location for Zero Harm in your phone's settings. The weather card then stays hidden.</li>
 </ul>
@@ -174,7 +217,8 @@
   <li>The app talks to our server over an encrypted connection (HTTPS).</li>
   <li>Install ids and network addresses are scrambled (hashed) with a secret key before we store them.</li>
   <li>Photos on sheets have their hidden details removed.</li>
-  <li>Only our team can reach the back office and database.</li>
+  <li>Crash reports are scrambled with their own id, so they cannot be linked to a sign-up.</li>
+  <li>Only our team can reach the admin, the back office, the content console and the database.</li>
 </ul>
 <p>No system is perfectly safe. If we learn of a breach that affects you, we will tell you as the law requires.</p>
 

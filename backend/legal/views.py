@@ -19,6 +19,7 @@ def _page(request, template):
         "contact_email": CONTACT_EMAIL,
         "company": COMPANY,
         "usage_keep_days": getattr(settings, "USAGE_KEEP_DAYS", 400),
+        "crash_keep_days": getattr(settings, "SUPPORT_CRASH_KEEP_DAYS", 90),
     }
     response = render(request, template, context)
     response["Cache-Control"] = "public, max-age=3600"
